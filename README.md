@@ -24,7 +24,20 @@ Built with ❤️ using Flutter
 
 ## Installation
 
-You can download the latest apk file from the [releases](https://github.com/frostnova721/animestream/releases) tab. Then install the downloaded apk!
+### Android & Windows
+
+You can download the latest apk or windows setup executable file from the [releases](https://github.com/frostnova721/animestream/releases/latest) tab. Then install the downloaded apk!
+
+### Linux
+
+
+Just run the command below.
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/frostnova721/animestream/master/install-linux.sh | bash
+```
+
+Alternatively, just download the zip file from [releases](https://github.com/frostnova721/animestream/releases/latest) page
 
 ## Building
 

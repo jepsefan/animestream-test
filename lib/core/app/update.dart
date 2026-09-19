@@ -48,19 +48,25 @@ class UpdateCheckResult {
 /// v is when the update is parsed from github api.
 /// stage can be beta followed by the iterative number (these are rare and arent present most time)
 Future<UpdateCheckResult?> checkForUpdates() async {
-  print(_checkIfTheNewVersionIsActuallyAnUpgrade("1.6.0-beta1", "1.6.0-beta1"));
+  // print(_checkIfTheNewVersionIsActuallyAnUpgrade("1.6.0-beta1", "1.6.0-beta1"));
   try {
     final releasesUrl = 'https://api.github.com/repos/frostnova721/animestream/releases';
     final packageInfo = await PackageInfo.fromPlatform();
-    final releasesRes = json.decode(await fetch(releasesUrl))[0];
+    final releases = json.decode(await fetch(releasesUrl)) as List<dynamic>;
+    final allowPrereleases = currentUserSettings?.receivePreReleases ?? false;
+
+    final releasesRes =
+        releases.where((it) => it['draft'] == false && (it['prerelease'] == false || allowPrereleases)).firstOrNull;
+
+    if (releasesRes == null) return null;
     final String currentVersion = packageInfo.version;
     final String latestVersion = releasesRes['tag_name'];
     Logs.app.log("<UPDATE-CHECK> current ver: $currentVersion , latest ver: ${latestVersion.replaceAll('v', '')}");
     final String description = releasesRes['body'];
     final bool pre = releasesRes['prerelease'];
-    if (!currentUserSettings!.receivePreReleases! && pre) {
-      return null;
-    }
+    // if (!allowPrereleases && pre) {
+    //   return null;
+    // }
 
     bool triggerSheet = false; // Change this flag for triggering the sheet for debugging
     // int? currentVersionJoined, latestVersionJoined;
@@ -150,14 +156,14 @@ bool _checkIfTheNewVersionIsActuallyAnUpgrade(String newVersion, String oldVersi
   final isTheOldOneStable = oldSplit.length == 1;
   final isTheNewOneStable = newSplit.length == 1;
 
-  if(isTheNewOneStable && isTheOldOneStable) return false;
+  if (isTheNewOneStable && isTheOldOneStable) return false;
 
   // check if the the old ver is non-stable and new ver is stable
   if (!isTheOldOneStable && isTheNewOneStable) {
     return true; // new stable is always prefered than old unstables
   }
 
-  if(isTheOldOneStable && !isTheNewOneStable) {
+  if (isTheOldOneStable && !isTheNewOneStable) {
     return false; // prevent from downgrading to a beta of same version
   }
 
@@ -196,10 +202,9 @@ bool _checkIfTheNewVersionIsActuallyAnUpgrade(String newVersion, String oldVersi
   return newStageNum > oldStageNum;
 }
 
-showUpdateSheet(BuildContext context, String markdownText, String downloadLink, bool pre, String version,
-    {bool forceTrigger = false}) async {
+showUpdateSheet(BuildContext context, UpdateCheckResult data, {bool forceTrigger = false}) async {
   //dont show the sheet if recievePreRelease if off and release is a pre release
-  if (pre && pre != (currentUserSettings?.receivePreReleases! ?? false)) {
+  if (data.preRelease && data.preRelease != (currentUserSettings?.receivePreReleases! ?? false)) {
     return;
   }
 
@@ -216,10 +221,7 @@ showUpdateSheet(BuildContext context, String markdownText, String downloadLink, 
         content: Container(
           width: MediaQuery.sizeOf(context).width / 3,
           child: UpdateSheet(
-            downloadLink: downloadLink,
-            markdownText: markdownText,
-            pre: pre,
-            version: version,
+            data: data,
           ),
         ),
       ),
@@ -232,10 +234,7 @@ showUpdateSheet(BuildContext context, String markdownText, String downloadLink, 
     context: context,
     builder: (context) {
       return UpdateSheet(
-        downloadLink: downloadLink,
-        markdownText: markdownText,
-        pre: pre,
-        version: version,
+        data: data,
       );
     },
   );
@@ -253,7 +252,8 @@ void _testVersionCheck() {
   print("1.0.0-beta > 1.0.0-alpha: ${_checkIfTheNewVersionIsActuallyAnUpgrade("1.0.0-beta", "1.0.0-alpha")}");
   print("1.0.0-rc > 1.0.0-beta:    ${_checkIfTheNewVersionIsActuallyAnUpgrade("1.0.0-rc", "1.0.0-beta")}");
   print("1.0.0-beta2 > 1.0.0-beta1: ${_checkIfTheNewVersionIsActuallyAnUpgrade("1.0.0-beta2", "1.0.0-beta1")}");
-  print("1.0.0-beta10 > 1.0.0-beta2: ${_checkIfTheNewVersionIsActuallyAnUpgrade("1.0.0-beta10", "1.0.0-beta2")}"); // Numeric check
+  print(
+      "1.0.0-beta10 > 1.0.0-beta2: ${_checkIfTheNewVersionIsActuallyAnUpgrade("1.0.0-beta10", "1.0.0-beta2")}"); // Numeric check
 
   print("\n--- GRADUATION (Expected: true) ---");
   print("1.0.0 > 1.0.0-rc:    ${_checkIfTheNewVersionIsActuallyAnUpgrade("1.0.0", "1.0.0-rc")}");
@@ -276,6 +276,8 @@ void _testVersionCheck() {
   print("1.0.0-rc < 1.0.0:    ${_checkIfTheNewVersionIsActuallyAnUpgrade("1.0.0-rc", "1.0.0")}");
 
   print("\n--- EDGE CASES (Expected: varies) ---");
-  print("1.0.0-beta (implicit 0) < 1.0.0-beta1: ${_checkIfTheNewVersionIsActuallyAnUpgrade("1.0.0-beta1", "1.0.0-beta")}"); // True
-  print("1.0.1-alpha > 1.0.0 (Version > Stage): ${_checkIfTheNewVersionIsActuallyAnUpgrade("1.0.1-alpha", "1.0.0")}"); // True (Core version is higher)
+  print(
+      "1.0.0-beta (implicit 0) < 1.0.0-beta1: ${_checkIfTheNewVersionIsActuallyAnUpgrade("1.0.0-beta1", "1.0.0-beta")}"); // True
+  print(
+      "1.0.1-alpha > 1.0.0 (Version > Stage): ${_checkIfTheNewVersionIsActuallyAnUpgrade("1.0.1-alpha", "1.0.0")}"); // True (Core version is higher)
 }

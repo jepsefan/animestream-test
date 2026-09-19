@@ -43,10 +43,7 @@ class MainNavigatorState extends State<MainNavigator> with TickerProviderStateMi
             {
               showUpdateSheet(
                 context,
-                data.description,
-                data.downloadLink,
-                data.preRelease,
-                data.latestVersion,
+                data,
                 // forceTrigger: true
               ),
             }

@@ -3,7 +3,9 @@ import 'dart:io';
 
 import 'package:animestream/core/app/logging.dart';
 import 'package:animestream/core/app/runtimeDatas.dart';
+import 'package:animestream/core/app/update.dart';
 import 'package:animestream/ui/models/snackBar.dart';
+import 'package:crypto/crypto.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:animestream/core/network/network.dart';
@@ -14,15 +16,9 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class UpdateSheet extends StatefulWidget {
-  final String markdownText;
-  final String downloadLink;
-  final bool pre;
-  final String version;
+  final UpdateCheckResult data;
   const UpdateSheet({
-    required this.downloadLink,
-    required this.markdownText,
-    required this.pre,
-    required this.version,
+    required this.data,
     super.key,
   });
 
@@ -32,6 +28,7 @@ class UpdateSheet extends StatefulWidget {
 
 class _UpdateSheetState extends State<UpdateSheet> {
   StreamSubscription<List<int>>? _sub;
+  Completer<void>? _downloadCompleter;
 
   final ValueNotifier<double> progress = ValueNotifier(0);
 
@@ -39,75 +36,139 @@ class _UpdateSheetState extends State<UpdateSheet> {
 
   String downloadPath = "";
 
+  Future<bool> verifyFileHash(File file, String expectedDigest) async {
+    final parts = expectedDigest.trim().toLowerCase().split(':');
+
+    if (parts.length != 2 || parts[0] != 'sha256' || !RegExp(r'^[0-9a-f]{64}$').hasMatch(parts[1])) {
+      throw FormatException('Missing or invalid SHA-256 digest');
+    }
+
+    final actualDigest = await sha256.bind(file.openRead()).first;
+    return actualDigest.toString() == parts[1];
+  }
+
   void downloadAndInstallUpdate() async {
-    final filename =
-        "animestream_${widget.version}.${Platform.isWindows ? "exe" : "apk"}";
+    final filename = "animestream_${widget.data.latestVersion}.part";
+    final finalFilename = "animestream_${widget.data.latestVersion}.${Platform.isWindows ? "exe" : "apk"}";
     final tempPath = await getTemporaryDirectory();
-    downloadPath = "${tempPath.path}/$filename";
+    final partFilePath = "${tempPath.path}/$filename";
+    final finalFilePath = "${tempPath.path}/$finalFilename";
 
-    if (File(downloadPath).existsSync()) {
-      Logs.app.log("Patch already downloaded. Opening the file...");
+    bool isAlreadyDownloaded = false;
+    final finalFile = File(finalFilePath);
+
+    if (finalFile.existsSync()) {
+      try {
+        if (await verifyFileHash(finalFile, widget.data.hash)) {
+          isAlreadyDownloaded = true;
+        }
+      } catch (e) {
+        Logs.app.log("Hash verification failed for existing file: $e");
+      }
+    }
+
+    if (isAlreadyDownloaded) {
+      Logs.app.log("Installable asset already downloaded. Opening the file...");
+      downloadPath = finalFilePath;
     } else {
-      Logs.app.log("Downloading patch ${widget.version}...");
+      Logs.app.log("Downloading patch ${widget.data.latestVersion}...");
+      downloadPath = partFilePath;
 
-      setState(() {
-        downloadState = DownloadState.downloading;
-      });
+      if (mounted) {
+        setState(() {
+          downloadState = DownloadState.downloading;
+        });
+      }
 
-      final uri = Uri.parse(widget.downloadLink);
-      final buffer = <int>[];
-      final completer = Completer();
+      final uri = Uri.parse(widget.data.downloadLink);
+      final buffer = await File(downloadPath).openWrite();
+      _downloadCompleter = Completer<void>();
 
       double downloadedBytes = 0;
 
-      final req = Request("GET", uri);
-      final res = await req.send();
-      int totalBytes = res.contentLength ?? 1;
-
-      _sub = res.stream.listen(
-        (chunk) {
-          downloadedBytes += chunk.length;
-          progress.value = downloadedBytes / totalBytes;
-          buffer.addAll(chunk);
-        },
-        onError: (err) => completer.completeError(err),
-        onDone: () => completer.complete(),
-      );
+      Future<void> cleanup() async {
+        await buffer.flush();
+        await buffer.close();
+      }
 
       try {
-        await completer.future;
+        final req = Request("GET", uri);
+        final res = await req.send();
+        int totalBytes = res.contentLength ?? 0;
+
+        _sub = res.stream.listen((chunk) {
+          downloadedBytes += chunk.length;
+          progress.value = totalBytes == 0 ? 0 : downloadedBytes / totalBytes;
+          buffer.add(chunk);
+        }, onError: (err) {
+          if (!_downloadCompleter!.isCompleted) _downloadCompleter!.completeError(err);
+        }, onDone: () {
+          if (!_downloadCompleter!.isCompleted) _downloadCompleter!.complete();
+        }, cancelOnError: true);
+        
+        await _downloadCompleter!.future;
+        await cleanup();
       } catch (err) {
+        await cleanup();
+        if (err == "cancelled") {
+          Logs.app.log("Download cancelled by user.");
+          return;
+        }
         floatingSnackBar("There was an issue downloading the update.");
         Logs.app.log("Error downloading the update: ${err.toString()}");
-
-        setState(() {
-          downloadState = DownloadState.idle;
-        });
-
+        File(downloadPath).deleteSync();
+        if (mounted) {
+          setState(() {
+            downloadState = DownloadState.idle;
+          });
+        }
         return;
       }
+
+      try {
+        if (!(await verifyFileHash(File(downloadPath), widget.data.hash))) {
+          throw Exception("Hash mismatch");
+        }
+      } catch (e) {
+        floatingSnackBar("File verification failed. Please try again.");
+        Logs.app.log("Update file hash mismatch or error: $e");
+        File(downloadPath).deleteSync();
+        if (mounted) {
+          setState(() {
+            downloadState = DownloadState.idle;
+          });
+        }
+        return;
+      }
+
+      // rename from temp name to proper extension 
+      File(downloadPath).renameSync(finalFilePath);
+      downloadPath = finalFilePath;
 
       // check and clean the old file (can pile up if not cleaned)
       // this is also cleanable with the "clear cache" option
       final oldVersion = File(
           "${tempPath.path}/animestream_${(await PackageInfo.fromPlatform()).version}.${Platform.isWindows ? "exe" : "apk"}");
       if (oldVersion.existsSync()) {
-        oldVersion.delete();
+        oldVersion.deleteSync();
       }
 
-      await File(downloadPath).writeAsBytes(buffer);
-
       // set completed state after saving to disk
-      setState(() {
-        downloadState = DownloadState.completed;
-      });
+      if (mounted) {
+        setState(() {
+          downloadState = DownloadState.completed;
+        });
+      }
 
       Logs.app.log("nice... Download complete!");
     }
 
-    final openRes = await OpenFile.open(downloadPath);
+    var openRes = await OpenFile.open(downloadPath);
     if (openRes.type == ResultType.permissionDenied) {
-      await Permission.requestInstallPackages.request();
+      final status = await Permission.requestInstallPackages.request();
+      if (status.isGranted) {
+        openRes = await OpenFile.open(downloadPath);
+      }
     }
     if (openRes.type == ResultType.done) {
       Logs.app.log("Update dialog invoked succesfully.");
@@ -117,7 +178,10 @@ class _UpdateSheetState extends State<UpdateSheet> {
   void _cancelDownload() {
     _sub?.cancel();
     _sub = null;
-    setState(() => downloadState = DownloadState.idle);
+    if (_downloadCompleter != null && !_downloadCompleter!.isCompleted) {
+      _downloadCompleter!.completeError("cancelled");
+    }
+    if (mounted) setState(() => downloadState = DownloadState.idle);
     progress.value = 0;
   }
 
@@ -131,11 +195,7 @@ class _UpdateSheetState extends State<UpdateSheet> {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: EdgeInsets.only(
-          bottom: MediaQuery.of(context).padding.bottom,
-          left: 15,
-          right: 15,
-          top: 10),
+      padding: EdgeInsets.only(bottom: MediaQuery.of(context).padding.bottom, left: 15, right: 15, top: 10),
       child: SingleChildScrollView(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.end,
@@ -152,8 +212,7 @@ class _UpdateSheetState extends State<UpdateSheet> {
                     children: [
                       Text(
                         "Update Available",
-                        style: TextStyle(
-                            fontSize: 26, fontWeight: FontWeight.bold),
+                        style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold),
                       ),
 
                       // Padding(
@@ -163,20 +222,18 @@ class _UpdateSheetState extends State<UpdateSheet> {
                         // mainAxisAlignment: ,
                         children: [
                           Text(
-                            widget.version,
-                            style: TextStyle(
-                                fontSize: 26, fontWeight: FontWeight.bold),
+                            widget.data.latestVersion,
+                            style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold),
                           ),
                           Container(
-                              padding: EdgeInsets.symmetric(
-                                  vertical: 6, horizontal: 8),
+                              padding: EdgeInsets.symmetric(vertical: 6, horizontal: 8),
                               margin: EdgeInsets.only(left: 12),
                               decoration: BoxDecoration(
                                 borderRadius: BorderRadius.circular(100),
                                 color: appTheme.accentColor,
                               ),
                               child: Text(
-                                widget.pre ? "beta" : "stable",
+                                widget.data.preRelease ? "beta" : "stable",
                                 style: TextStyle(
                                   color: appTheme.onAccent,
                                   fontSize: 15,
@@ -190,8 +247,7 @@ class _UpdateSheetState extends State<UpdateSheet> {
                   IconButton(
                     onPressed: () async {
                       await launchUrl(
-                        Uri.parse(
-                            "https://github.com/frostnova721/animestream/releases/latest"),
+                        Uri.parse("https://github.com/frostnova721/animestream/releases/latest"),
                         mode: LaunchMode.externalApplication,
                       );
                     },
@@ -206,15 +262,13 @@ class _UpdateSheetState extends State<UpdateSheet> {
             ),
             Container(
               height: 400,
-              decoration: BoxDecoration(
-                  color: appTheme.backgroundSubColor,
-                  borderRadius: BorderRadius.circular(25)),
+              decoration: BoxDecoration(color: appTheme.backgroundSubColor, borderRadius: BorderRadius.circular(25)),
               padding: EdgeInsets.all(14),
               child: ListView(
                 shrinkWrap: true,
                 children: [
                   MarkdownBody(
-                    data: widget.markdownText,
+                    data: widget.data.description,
                     styleSheet: MarkdownStyleSheet(
                       h1: style(bold: true),
                       h2: style(bold: true),
@@ -247,8 +301,7 @@ class _UpdateSheetState extends State<UpdateSheet> {
                             onPressed: () {
                               // if the update is downloaded and state is install, it automatically opens
                               // the available update file
-                              if (downloadState != DownloadState.downloading)
-                                return downloadAndInstallUpdate();
+                              if (downloadState != DownloadState.downloading) return downloadAndInstallUpdate();
                             },
                           );
                         },
@@ -260,8 +313,7 @@ class _UpdateSheetState extends State<UpdateSheet> {
                     child: IconButton.outlined(
                       onPressed: () async {
                         _cancelDownload();
-                        if (downloadPath.isNotEmpty &&
-                            downloadState != DownloadState.completed)
+                        if (downloadPath.isNotEmpty && downloadState != DownloadState.completed)
                           await File(downloadPath).delete();
                         setState(() {});
                         Navigator.pop(context);
@@ -270,8 +322,7 @@ class _UpdateSheetState extends State<UpdateSheet> {
                       style: IconButton.styleFrom(
                         side: BorderSide(color: appTheme.accentColor),
                         fixedSize: Size.fromHeight(50),
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(15)),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
                       ),
                       icon: Icon(Icons.close),
                     ),
@@ -306,8 +357,7 @@ class LiquidDownloadButton extends StatelessWidget {
     required this.state,
     required this.progress,
     required this.onPressed,
-  }) : assert(progress >= 0 && progress <= 1,
-            "Progress value must be between 0.0 and 1.0!");
+  }) : assert(progress >= 0 && progress <= 1, "Progress value must be between 0.0 and 1.0!");
 
   @override
   Widget build(BuildContext context) {
@@ -318,9 +368,7 @@ class LiquidDownloadButton extends StatelessWidget {
         child: Container(
           height: 50,
           width: double.infinity,
-          color: state == DownloadState.idle
-              ? appTheme.accentColor
-              : appTheme.backgroundSubColor,
+          color: state == DownloadState.idle ? appTheme.accentColor : appTheme.backgroundSubColor,
           child: Stack(
             children: [
               if (state != DownloadState.idle)
@@ -357,7 +405,7 @@ class LiquidDownloadButton extends StatelessWidget {
       case DownloadState.idle:
         return "Download";
       case DownloadState.downloading:
-        return "Downloading... ${(progress * 100).toInt()}%";
+        return "Downloading... ${progress == 0 ? "" : "${(progress * 100).toInt()}%"}";
       case DownloadState.completed:
         return "Install";
     }

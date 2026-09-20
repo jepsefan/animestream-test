@@ -86,12 +86,15 @@ Future<UpdateCheckResult?> checkForUpdates() async {
     // we can assert not null since we do null check in try statement & the comparison wont occur if theres an issue
     if (triggerSheet || isAnUpgrade) {
       Logs.app.log("<UPDATE-CHECK> UPDATE AVAILABLE!!!");
+      final assetName = Platform.isLinux
+          ? "linux.zip"
+          : Platform.isAndroid ? "app-release.apk" : "animestream-x86_64.exe";
       final List<dynamic> asset = releasesRes['assets']
-          .where((item) => item['name'] == (Platform.isAndroid ? "app-release.apk" : "animestream-x86_64.exe"))
+          .where((item) => item['name'] == assetName)
           .toList();
       if (asset.isEmpty) return null;
       final downloadLink = asset[0]['browser_download_url'];
-      final hash = asset[0]['digest'] as String;
+      final hash = Platform.isLinux ? (asset[0]['digest'] as String? ?? '') : asset[0]['digest'] as String;
       return UpdateCheckResult(
         latestVersion: latestVersion,
         currentVersion: currentVersion,
@@ -213,7 +216,7 @@ showUpdateSheet(BuildContext context, UpdateCheckResult data, {bool forceTrigger
     return;
   }
 
-  if (Platform.isWindows || await isTv()) {
+  if (Platform.isWindows || Platform.isLinux || await isTv()) {
     return showDialog(
       context: context,
       useRootNavigator: false,

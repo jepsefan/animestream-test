@@ -43,9 +43,8 @@ class Downloader {
   /// Used for throttling the download progress notification
   final Map<int, int> _lastProgressUpdate = {};
 
-  int get activeCount => DownloadManager.downloadingItems
-    .where((item) => item.status == DownloadStatus.downloading)
-    .length;
+  int get activeCount =>
+      DownloadManager.downloadingItems.where((item) => item.status == DownloadStatus.downloading).length;
 
   DownloadItem _getDownloadItem(int id) {
     final item = DownloadManager.downloadingItems.firstWhereOrNull((it) => it.id == id);
@@ -118,7 +117,7 @@ class Downloader {
     } catch (err) {
       Logs.downloader.log(err.toString());
       // just incase to handle the situation if sht goes down before downloading has started
-      _cleanUp(item.id);
+      await _cleanUp(item.id, dequeue: false);
     }
   }
 
@@ -190,6 +189,19 @@ class Downloader {
     _fireUpIsolate(item);
   }
 
+  Future<void> requestRetry(int id) async {
+    final item = _maybeGetDownloadItem(id);
+    if(item == null || item.status != DownloadStatus.failed) {
+      return;
+    }
+
+    item.progress = 0;
+    item.lastDownloadedPart = null;
+    _lastProgressUpdate.remove(id);
+    item.status = DownloadStatus.queued;
+    await _processQueue();
+  }
+
   Future<void> _handleMessage(dynamic msg) async {
     if (!(msg is DownloadMessage)) {
       print("Recieved message. But not as DownloadMessage!\nMessage: $msg");
@@ -239,9 +251,17 @@ class Downloader {
         }
       case 'fail':
         {
+          final item = _maybeGetDownloadItem(msg.id);
+          if (item == null || item.status == DownloadStatus.failed) break;
+
+          item.status = DownloadStatus.failed;
+          await _cleanUp(msg.id, dequeue: false);
           _helper.sendCancelledNotif(msg.id, failed: true);
-          _endTask(msg.id);
-          logger?.log("Download failed for ${msg.id}. Reason: ${msg.message}", addToBuffer: true);
+          logger?.log(
+            "Download failed for ${msg.id}. Reason: ${msg.message}",
+            addToBuffer: true,
+          );
+          await _processQueue();
           break;
         }
       case 'cancel':
@@ -290,20 +310,19 @@ class Downloader {
     _receivePorts[item.id] = rp;
 
     final task = DownloadTaskIsolate(
-      url: item.url,
-      fileName: item.fileName,
-      customHeaders: item.customHeaders,
-      retryAttempts: MAX_RETRY_ATTEMPTS,
-      parallelBatches: MAX_STREAM_BATCH_SIZE * ((currentUserSettings?.fasterDownloads ?? false) ? 2 : 1),
-      subsUrl: item.subtitleUrl,
-      sendPort: rp.sendPort,
-      id: item.id,
-      // rootIsolateToken: rootIsolateToken,
-      downloadPath: downloadPath,
-      resumeFrom: item.lastDownloadedPart ?? 0,
-      useMkvRemuxer: currentUserSettings?.useMkvRemuxer ?? true,
-      writeSubtitleTrackToVideo: currentUserSettings?.writeSubtitleTrackToVideo ?? false
-    );
+        url: item.url,
+        fileName: item.fileName,
+        customHeaders: item.customHeaders,
+        retryAttempts: MAX_RETRY_ATTEMPTS,
+        parallelBatches: MAX_STREAM_BATCH_SIZE * ((currentUserSettings?.fasterDownloads ?? false) ? 2 : 1),
+        subsUrl: item.subtitleUrl,
+        sendPort: rp.sendPort,
+        id: item.id,
+        // rootIsolateToken: rootIsolateToken,
+        downloadPath: downloadPath,
+        resumeFrom: item.lastDownloadedPart ?? 0,
+        useMkvRemuxer: currentUserSettings?.useMkvRemuxer ?? true,
+        writeSubtitleTrackToVideo: currentUserSettings?.writeSubtitleTrackToVideo ?? false);
 
     return task;
   }

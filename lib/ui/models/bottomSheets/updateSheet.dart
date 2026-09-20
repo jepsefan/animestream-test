@@ -7,8 +7,9 @@ import 'package:animestream/core/app/update.dart';
 import 'package:animestream/ui/models/snackBar.dart';
 import 'package:crypto/crypto.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
-import 'package:animestream/core/network/network.dart';
+import 'package:http/http.dart' as http;
 import 'package:open_file/open_file.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:path_provider/path_provider.dart';
@@ -27,14 +28,20 @@ class UpdateSheet extends StatefulWidget {
 }
 
 class _UpdateSheetState extends State<UpdateSheet> {
-  StreamSubscription<List<int>>? _sub;
+  http.Client? _downloadClient;
+  bool _isUpdating = false;
+  bool _cancelled = false;
   Completer<void>? _downloadCompleter;
 
   final ValueNotifier<double> progress = ValueNotifier(0);
 
   DownloadState downloadState = DownloadState.idle;
 
-  String downloadPath = "";
+  String get _linuxUpdateCommand {
+    final tag = "'${widget.data.latestVersion.replaceAll("'", "'\\''")}'";
+    return 'curl -fsSL https://raw.githubusercontent.com/frostnova721/animestream/master/install-linux.sh '
+        '| bash -s -- update --version $tag';
+  }
 
   Future<bool> verifyFileHash(File file, String expectedDigest) async {
     final parts = expectedDigest.trim().toLowerCase().split(':');
@@ -47,147 +54,180 @@ class _UpdateSheetState extends State<UpdateSheet> {
     return actualDigest.toString() == parts[1];
   }
 
-  void downloadAndInstallUpdate() async {
-    final filename = "animestream_${widget.data.latestVersion}.part";
-    final finalFilename = "animestream_${widget.data.latestVersion}.${Platform.isWindows ? "exe" : "apk"}";
-    final tempPath = await getTemporaryDirectory();
-    final partFilePath = "${tempPath.path}/$filename";
-    final finalFilePath = "${tempPath.path}/$finalFilename";
+  Future<void> downloadAndInstallUpdate() async {
+    if (Platform.isLinux) return;
+    if (_isUpdating || !mounted) return;
+    _isUpdating = true;
+    _cancelled = false;
+    progress.value = 0;
+    setState(() => downloadState = DownloadState.downloading);
 
-    bool isAlreadyDownloaded = false;
-    final finalFile = File(finalFilePath);
+    File? partFile;
+    bool installerReady = false;
+    String failureMessage = "There was an issue downloading the update.";
+    bool isCancelled() => _cancelled || !mounted;
 
-    if (finalFile.existsSync()) {
+    try {
+      final extension = Platform.isWindows ? "exe" : "apk";
+      final tempPath = await getTemporaryDirectory();
+      if (isCancelled()) return;
+      final finalFile = File("${tempPath.path}/animestream_${widget.data.latestVersion}.$extension");
+      bool isAlreadyDownloaded = false;
+      if (await finalFile.exists()) {
+        try {
+          isAlreadyDownloaded = await verifyFileHash(finalFile, widget.data.hash);
+        } catch (e) {
+          Logs.app.log("Hash verification failed for existing file: $e");
+        }
+      }
+      if (isCancelled()) return;
+
+      if (!isAlreadyDownloaded) {
+        Logs.app.log("Downloading patch ${widget.data.latestVersion}...");
+        final client = http.Client();
+        _downloadClient = client;
+        try {
+          final res = await client.send(http.Request("GET", Uri.parse(widget.data.downloadLink)));
+          if (isCancelled()) return;
+          if (res.statusCode != HttpStatus.ok) {
+            throw HttpException("Update download returned HTTP ${res.statusCode}");
+          }
+
+          partFile = File("${tempPath.path}/animestream_${widget.data.latestVersion}.part");
+          final buffer = partFile.openWrite();
+          final completer = Completer<void>();
+          _downloadCompleter = completer;
+          Object? transferError;
+          void finish([Object? error]) {
+            transferError ??= error;
+            if (!completer.isCompleted) completer.complete();
+          }
+
+          // Observe disk errors immediately, even while waiting for network data.
+          final sinkDone = buffer.done.then<void>((_) {}, onError: (Object error) {
+            finish(error);
+          });
+          StreamSubscription<List<int>>? subscription;
+          try {
+            int downloadedBytes = 0;
+            final totalBytes = res.contentLength ?? 0;
+            subscription = res.stream.listen((chunk) {
+              if (isCancelled() || completer.isCompleted) return;
+              try {
+                buffer.add(chunk);
+                downloadedBytes += chunk.length;
+                progress.value = totalBytes <= 0 ? 0 : (downloadedBytes / totalBytes).clamp(0.0, 1.0);
+              } catch (e) {
+                finish(e);
+              }
+            }, onError: (Object error) => finish(error), onDone: finish, cancelOnError: true);
+            await completer.future;
+          } finally {
+            _downloadCompleter = null;
+            try {
+              await subscription?.cancel();
+            } catch (e) {
+              finish(e);
+            }
+            try {
+              await buffer.flush();
+            } catch (e) {
+              finish(e);
+            } finally {
+              try {
+                await buffer.close();
+              } catch (e) {
+                finish(e);
+              }
+              await sinkDone;
+            }
+          }
+          if (isCancelled()) return;
+          if (transferError != null) throw transferError!;
+        } finally {
+          client.close();
+          _downloadClient = null;
+        }
+
+        failureMessage = "File verification failed. Please try again.";
+        final verified = await verifyFileHash(partFile, widget.data.hash);
+        if (isCancelled()) return;
+        if (!verified) throw Exception("Update file hash mismatch");
+
+        failureMessage = "Could not save the update installer. Please try again.";
+        await partFile.rename(finalFile.path);
+        partFile = null;
+        if (isCancelled()) return;
+      }
+
+      installerReady = true;
+      progress.value = 1;
+      setState(() => downloadState = DownloadState.completed);
+
+      // Cache cleanup must not prevent opening a verified installer.
       try {
-        if (await verifyFileHash(finalFile, widget.data.hash)) {
-          isAlreadyDownloaded = true;
+        final version = (await PackageInfo.fromPlatform()).version;
+        if (isCancelled()) return;
+        for (final oldVersion in {version, 'v$version'}) {
+          final oldFile = File("${tempPath.path}/animestream_$oldVersion.$extension");
+          if (oldFile.path != finalFile.path && await oldFile.exists()) {
+            await oldFile.delete();
+          }
         }
       } catch (e) {
-        Logs.app.log("Hash verification failed for existing file: $e");
-      }
-    }
-
-    if (isAlreadyDownloaded) {
-      Logs.app.log("Installable asset already downloaded. Opening the file...");
-      downloadPath = finalFilePath;
-    } else {
-      Logs.app.log("Downloading patch ${widget.data.latestVersion}...");
-      downloadPath = partFilePath;
-
-      if (mounted) {
-        setState(() {
-          downloadState = DownloadState.downloading;
-        });
+        Logs.app.log("Could not remove the previous update installer: $e");
       }
 
-      final uri = Uri.parse(widget.data.downloadLink);
-      final buffer = await File(downloadPath).openWrite();
-      _downloadCompleter = Completer<void>();
-
-      double downloadedBytes = 0;
-
-      Future<void> cleanup() async {
-        await buffer.flush();
-        await buffer.close();
+      if (isCancelled()) return;
+      failureMessage = "Could not open the update installer. Please try again.";
+      var openRes = await OpenFile.open(finalFile.path);
+      if (isCancelled()) return;
+      if (Platform.isAndroid && openRes.type == ResultType.permissionDenied) {
+        final status = await Permission.requestInstallPackages.request();
+        if (isCancelled()) return;
+        if (status.isGranted) {
+          openRes = await OpenFile.open(finalFile.path);
+          if (isCancelled()) return;
+        }
       }
-
+      if (openRes.type == ResultType.done) {
+        Logs.app.log("Update dialog invoked successfully.");
+      } else {
+        Logs.app.log("Could not open update installer: ${openRes.type}: ${openRes.message}");
+        floatingSnackBar(openRes.type == ResultType.permissionDenied
+            ? "Allow installation from this app, then tap Install again."
+            : failureMessage);
+      }
+    } catch (e) {
+      if (!isCancelled()) {
+        Logs.app.log("Update failed: $e");
+        floatingSnackBar(failureMessage);
+      }
+    } finally {
+      // Only partial downloads are removed; verified installers remain reusable.
       try {
-        final req = Request("GET", uri);
-        final res = await req.send();
-        int totalBytes = res.contentLength ?? 0;
-
-        _sub = res.stream.listen((chunk) {
-          downloadedBytes += chunk.length;
-          progress.value = totalBytes == 0 ? 0 : downloadedBytes / totalBytes;
-          buffer.add(chunk);
-        }, onError: (err) {
-          if (!_downloadCompleter!.isCompleted) _downloadCompleter!.completeError(err);
-        }, onDone: () {
-          if (!_downloadCompleter!.isCompleted) _downloadCompleter!.complete();
-        }, cancelOnError: true);
-        
-        await _downloadCompleter!.future;
-        await cleanup();
-      } catch (err) {
-        await cleanup();
-        if (err == "cancelled") {
-          Logs.app.log("Download cancelled by user.");
-          return;
-        }
-        floatingSnackBar("There was an issue downloading the update.");
-        Logs.app.log("Error downloading the update: ${err.toString()}");
-        File(downloadPath).deleteSync();
-        if (mounted) {
-          setState(() {
-            downloadState = DownloadState.idle;
-          });
-        }
-        return;
-      }
-
-      try {
-        if (!(await verifyFileHash(File(downloadPath), widget.data.hash))) {
-          throw Exception("Hash mismatch");
-        }
+        if (partFile != null && await partFile.exists()) await partFile.delete();
       } catch (e) {
-        floatingSnackBar("File verification failed. Please try again.");
-        Logs.app.log("Update file hash mismatch or error: $e");
-        File(downloadPath).deleteSync();
-        if (mounted) {
-          setState(() {
-            downloadState = DownloadState.idle;
-          });
-        }
-        return;
+        Logs.app.log("Could not remove partial update download: $e");
       }
-
-      // rename from temp name to proper extension 
-      File(downloadPath).renameSync(finalFilePath);
-      downloadPath = finalFilePath;
-
-      // check and clean the old file (can pile up if not cleaned)
-      // this is also cleanable with the "clear cache" option
-      final oldVersion = File(
-          "${tempPath.path}/animestream_${(await PackageInfo.fromPlatform()).version}.${Platform.isWindows ? "exe" : "apk"}");
-      if (oldVersion.existsSync()) {
-        oldVersion.deleteSync();
+      _isUpdating = false;
+      if (!isCancelled() && !installerReady) {
+        progress.value = 0;
+        setState(() => downloadState = DownloadState.idle);
       }
-
-      // set completed state after saving to disk
-      if (mounted) {
-        setState(() {
-          downloadState = DownloadState.completed;
-        });
-      }
-
-      Logs.app.log("nice... Download complete!");
-    }
-
-    var openRes = await OpenFile.open(downloadPath);
-    if (openRes.type == ResultType.permissionDenied) {
-      final status = await Permission.requestInstallPackages.request();
-      if (status.isGranted) {
-        openRes = await OpenFile.open(downloadPath);
-      }
-    }
-    if (openRes.type == ResultType.done) {
-      Logs.app.log("Update dialog invoked succesfully.");
     }
   }
 
   void _cancelDownload() {
-    _sub?.cancel();
-    _sub = null;
-    if (_downloadCompleter != null && !_downloadCompleter!.isCompleted) {
-      _downloadCompleter!.completeError("cancelled");
-    }
-    if (mounted) setState(() => downloadState = DownloadState.idle);
-    progress.value = 0;
+    _cancelled = true;
+    final completer = _downloadCompleter;
+    if (completer != null && !completer.isCompleted) completer.complete();
+    _downloadClient?.close();
   }
 
   @override
   void dispose() {
-    _sub?.cancel();
+    _cancelDownload();
     progress.dispose();
     super.dispose();
   }
@@ -283,6 +323,18 @@ class _UpdateSheetState extends State<UpdateSheet> {
                 ],
               ),
             ),
+            if (Platform.isLinux)
+              Padding(
+                padding: const EdgeInsets.only(top: 16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text("Copy this command, close animestream, then run it in your terminal to update.", style: style()),
+                    const SizedBox(height: 8),
+                    SelectableText(_linuxUpdateCommand, style: style()),
+                  ],
+                ),
+              ),
             Container(
               margin: EdgeInsets.only(top: 20),
               child: Row(
@@ -292,7 +344,16 @@ class _UpdateSheetState extends State<UpdateSheet> {
                     flex: 3,
                     child: Padding(
                       padding: const EdgeInsets.only(right: 10),
-                      child: ValueListenableBuilder(
+                      child: Platform.isLinux
+                          ? FilledButton.icon(
+                              onPressed: () async {
+                                await Clipboard.setData(ClipboardData(text: _linuxUpdateCommand));
+                                if (mounted) floatingSnackBar("Update command copied.");
+                              },
+                              icon: const Icon(Icons.copy),
+                              label: const Text("Copy update command"),
+                            )
+                          : ValueListenableBuilder(
                         valueListenable: progress,
                         builder: (ctx, val, child) {
                           return LiquidDownloadButton(
@@ -301,7 +362,9 @@ class _UpdateSheetState extends State<UpdateSheet> {
                             onPressed: () {
                               // if the update is downloaded and state is install, it automatically opens
                               // the available update file
-                              if (downloadState != DownloadState.downloading) return downloadAndInstallUpdate();
+                              if (downloadState != DownloadState.downloading) {
+                                unawaited(downloadAndInstallUpdate());
+                              }
                             },
                           );
                         },
@@ -311,11 +374,8 @@ class _UpdateSheetState extends State<UpdateSheet> {
                   Expanded(
                     flex: 1,
                     child: IconButton.outlined(
-                      onPressed: () async {
+                      onPressed: () {
                         _cancelDownload();
-                        if (downloadPath.isNotEmpty && downloadState != DownloadState.completed)
-                          await File(downloadPath).delete();
-                        setState(() {});
                         Navigator.pop(context);
                       },
                       color: appTheme.accentColor,

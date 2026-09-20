@@ -81,5 +81,7 @@ class DownloadManager {
     _downloader.requestResume(id);
   }
 
-  Future<void> retryDownload(int id) async {}
+  Future<void> retryDownload(int id) async {
+    _downloader.requestRetry(id);
+  }
 }

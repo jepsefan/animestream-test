@@ -173,29 +173,34 @@ class Anikoto implements AnimeProvider {
 
     for (final group in groups) {
       final grpName = group.firstChild?.text?.trim();
-      final items = group.querySelector("ul")?.children;
+      final types = group.querySelectorAll("div.type");
 
-      if (items == null) {
-        continue;
-      }
-
-      for (final item in items) {
-        final serverName = item.text.trim();
-        final linkId = item.attributes['data-link-id']?.trim();
-
-        final isDub = grpName?.toLowerCase().contains("dub") ?? false;
+      for (final type in types) {
+        // filter as per dub requirement
+        final isDub = type.attributes['data-type'] == 'dub';
 
         if (isDub != dub) {
           continue;
         }
 
-        servers.add({"srv_name": serverName, "link_id": linkId, "group_name": grpName});
-      }
+        final items = type.querySelector("ul")?.children;
 
-      // it should be recieving the kiwires data in parallel, so we can update the streams as soon as we get them
-      final kiwiresData = await kiwires;
-      if (kiwiresData != null && kiwiresData.isNotEmpty) {
-        servers.add({"srv_name": "Kiwi", "link_id": kiwiresData['sub']?['url']?.toString(), "group_name": "Kiwi"});
+        if (items == null) {
+          continue;
+        }
+
+        for (final item in items) {
+          final serverName = item.text.trim();
+          final linkId = item.attributes['data-link-id']?.trim();
+
+          servers.add({"srv_name": serverName, "link_id": linkId, "group_name": grpName});
+        }
+
+        // it should be recieving the kiwires data in parallel, so we can update the streams as soon as we get them
+        final kiwiresData = await kiwires;
+        if (kiwiresData != null && kiwiresData.isNotEmpty) {
+          servers.add({"srv_name": "Kiwi", "link_id": kiwiresData['sub']?['url']?.toString(), "group_name": "Kiwi"});
+        }
       }
     }
 

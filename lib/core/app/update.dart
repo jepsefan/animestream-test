@@ -88,10 +88,10 @@ Future<UpdateCheckResult?> checkForUpdates() async {
       Logs.app.log("<UPDATE-CHECK> UPDATE AVAILABLE!!!");
       final assetName = Platform.isLinux
           ? "linux.zip"
-          : Platform.isAndroid ? "app-release.apk" : "animestream-x86_64.exe";
-      final List<dynamic> asset = releasesRes['assets']
-          .where((item) => item['name'] == assetName)
-          .toList();
+          : Platform.isAndroid
+              ? "app-release.apk"
+              : "animestream-x86_64.exe";
+      final List<dynamic> asset = releasesRes['assets'].where((item) => item['name'] == assetName).toList();
       if (asset.isEmpty) return null;
       final downloadLink = asset[0]['browser_download_url'];
       final hash = Platform.isLinux ? (asset[0]['digest'] as String? ?? '') : asset[0]['digest'] as String;

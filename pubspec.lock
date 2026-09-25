@@ -94,7 +94,7 @@ packages:
     description:
       path: "."
       ref: HEAD
-      resolved-ref: "41a12a372ab57b70c11cde2e0fe7b0e4be3701b5"
+      resolved-ref: "b214c1da75295c8c2478367c79820554f81e6bc0"
       url: "https://github.com/jepsefan/betterplayer-test.git"
     source: git
     version: "1.0.0"

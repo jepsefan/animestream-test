@@ -1,6 +1,8 @@
 import 'package:animestream/core/app/runtimeDatas.dart';
 import 'package:animestream/ui/models/bottomSheets/customControlsSheet.dart';
 import 'package:animestream/ui/models/providers/playerDataProvider.dart';
+import 'package:animestream/ui/models/playerControllers/betterPlayer.dart';
+import 'package:better_player/better_player.dart';
 import 'package:animestream/ui/models/providers/playerProvider.dart';
 import 'package:animestream/ui/pages/settingPages/common.dart';
 import 'package:animestream/ui/pages/settingPages/subtitle.dart';
@@ -219,6 +221,64 @@ class BottomControls extends StatelessWidget {
                         color: Colors.white,
                       ),
                     ),
+                    if (playerProvider.controller is BetterPlayerWrapper)
+                      IconButton(
+                        onPressed: () {
+                          final betterPlayer = playerProvider.controller as BetterPlayerWrapper;
+                          showModalBottomSheet(
+                            context: context,
+                            backgroundColor: appTheme.modalSheetBackgroundColor,
+                            builder: (context) {
+                              return StatefulBuilder(
+                                builder: (context, setState) {
+                                  final current = betterPlayer.controller.subtitleRenderer.value;
+                                  return SafeArea(
+                                    child: Column(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        const Padding(
+                                          padding: EdgeInsets.fromLTRB(20, 20, 20, 8),
+                                          child: Text(
+                                            "Subtitle renderer",
+                                            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                                          ),
+                                        ),
+                                        RadioListTile<BetterPlayerSubtitleRenderer>(
+                                          value: BetterPlayerSubtitleRenderer.defaultRenderer,
+                                          groupValue: current,
+                                          title: const Text("Default"),
+                                          onChanged: (value) {
+                                            if (value == null) return;
+                                            betterPlayer.setSubtitleRenderer(value);
+                                            setState(() {});
+                                          },
+                                        ),
+                                        RadioListTile<BetterPlayerSubtitleRenderer>(
+                                          value: BetterPlayerSubtitleRenderer.stableOverlap,
+                                          groupValue: current,
+                                          title: const Text("Stable overlap"),
+                                          subtitle: const Text("Keeps visible cues fixed and moves 5+ same-start cues to the left"),
+                                          onChanged: (value) {
+                                            if (value == null) return;
+                                            betterPlayer.setSubtitleRenderer(value);
+                                            setState(() {});
+                                          },
+                                        ),
+                                        const SizedBox(height: 8),
+                                      ],
+                                    ),
+                                  );
+                                },
+                              );
+                            },
+                          );
+                        },
+                        tooltip: "Subtitle renderer",
+                        icon: const Icon(
+                          Icons.layers_rounded,
+                          color: Colors.white,
+                        ),
+                      ),
                     IconButton(
                       onPressed: () {
                         playerProvider.toggleSubs();

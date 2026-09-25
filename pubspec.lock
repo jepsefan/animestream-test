@@ -94,7 +94,7 @@ packages:
     description:
       path: "."
       ref: subtitle-renderer-test
-      resolved-ref: "c6156c57adda1fa7f6ae57a84f47fdf9eadf2ee0"
+      resolved-ref: "0fb57a0e7665492bdc3f1ed74ba4e9866f909e29"
       url: "https://github.com/jepsefan/betterplayer-test.git"
     source: git
     version: "1.0.0"

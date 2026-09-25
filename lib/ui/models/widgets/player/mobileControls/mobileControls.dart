@@ -51,6 +51,10 @@ class _MobileControlsState extends State<MobileControls> {
     print(event);
     switch (event.logicalKey) {
       case LogicalKeyboardKey.mediaPlayPause:
+        (provider.controller.isPlaying ?? false)
+            ? provider.controller.pause()
+            : provider.controller.play();
+        break;
       case LogicalKeyboardKey.mediaPause:
         provider.controller.pause();
         break;

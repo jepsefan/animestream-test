@@ -56,7 +56,7 @@ dependencies:
   better_player:
     git:
       url: https://github.com/jepsefan/betterplayer-test.git
-      ref: 41a12a372ab57b70c11cde2e0fe7b0e4be3701b5
+      ref: b214c1da75295c8c2478367c79820554f81e6bc0
 
   fvp: 
     # path: "../../fvp"

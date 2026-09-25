@@ -55,7 +55,8 @@ dependencies:
   video_player: ^2.14.0
   better_player:
     git:
-      url: https://github.com/frostnova721/betterplayer.git
+      url: https://github.com/jepsefan/betterplayer-test.git
+      ref: 41a12a372ab57b70c11cde2e0fe7b0e4be3701b5
 
   fvp: 
     # path: "../../fvp"

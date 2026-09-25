@@ -93,8 +93,8 @@ packages:
     dependency: "direct main"
     description:
       path: "."
-      ref: HEAD
-      resolved-ref: "b214c1da75295c8c2478367c79820554f81e6bc0"
+      ref: subtitle-renderer-test
+      resolved-ref: "b814ad7e7a749429c56cc28e1d4dd37ec009d3f0"
       url: "https://github.com/jepsefan/betterplayer-test.git"
     source: git
     version: "1.0.0"

@@ -92,6 +92,13 @@ class BetterPlayerWrapper implements VideoController {
     return controller.dispose();
   }
 
+  bool get stableSubtitleRenderer =>
+      controller.subtitleRenderer.value == BetterPlayerSubtitleRenderer.stableOverlap;
+
+  void setSubtitleRenderer(BetterPlayerSubtitleRenderer renderer) {
+    controller.setSubtitleRenderer(renderer);
+  }
+
   @override
   Widget getWidget() {
     return BetterPlayer(controller: controller, key: key);

@@ -40,50 +40,53 @@ class _MobileControlsState extends State<MobileControls> {
   void dispose() {
     super.dispose();
     WakelockPlus.disable();
-    _fn.dispose();
   }
 
-  final _fn = FocusNode();
-
-  void _keyListenerEvent(KeyEvent event) {
-    if (event is KeyUpEvent) return;
+  KeyEventResult _keyListenerEvent(KeyEvent event) {
+    if (event is! KeyDownEvent) return KeyEventResult.ignored;
     print("Key pressed: ${event.logicalKey.keyLabel}");
     print(event);
     switch (event.logicalKey) {
       case LogicalKeyboardKey.mediaPlayPause:
+      case LogicalKeyboardKey.space:
         (provider.controller.isPlaying ?? false)
             ? provider.controller.pause()
             : provider.controller.play();
-        break;
+        return KeyEventResult.handled;
       case LogicalKeyboardKey.mediaPause:
         provider.controller.pause();
-        break;
+        return KeyEventResult.handled;
       case LogicalKeyboardKey.mediaPlay:
         provider.controller.play();
-        break;
+        return KeyEventResult.handled;
       case LogicalKeyboardKey.mediaTrackNext:
-        if (dataProvider.state.currentEpIndex + 1 == dataProvider.epLinks.length) return;
+        if (dataProvider.state.currentEpIndex + 1 == dataProvider.epLinks.length) {
+          return KeyEventResult.handled;
+        }
         provider.playPreloadedEpisode(dataProvider);
-        break;
+        return KeyEventResult.handled;
       case LogicalKeyboardKey.mediaTrackPrevious:
-        if (dataProvider.state.currentEpIndex == 0) return;
+        if (dataProvider.state.currentEpIndex == 0) {
+          return KeyEventResult.handled;
+        }
         showSheet(
             context,
             CustomControlsBottomSheet(
                 index: dataProvider.state.currentEpIndex - 1, dataProvider: dataProvider, playerProvider: provider));
-        break;
+        return KeyEventResult.handled;
       case LogicalKeyboardKey.mediaFastForward:
         provider.fastForward(skipDuration ?? 10);
-        break;
+        return KeyEventResult.handled;
       case LogicalKeyboardKey.mediaRewind:
         provider.fastForward(-(skipDuration ?? 10));
-        break;
+        return KeyEventResult.handled;
       case LogicalKeyboardKey.select:
         {
           if (!provider.state.controlsVisible) {
             provider.toggleControlsVisibility();
+            return KeyEventResult.handled;
           }
-          break;
+          return KeyEventResult.ignored;
         }
       case LogicalKeyboardKey.arrowUp:
       case LogicalKeyboardKey.arrowDown:
@@ -93,10 +96,12 @@ class _MobileControlsState extends State<MobileControls> {
           if (!provider.state.controlsVisible) {
             provider.toggleControlsVisibility();
           }
+          return KeyEventResult.ignored;
         }
 
       default:
         print("Unhandled key: ${event.logicalKey.keyLabel} (${event.logicalKey.keyId}) type: ${event.deviceType.name}");
+        return KeyEventResult.ignored;
     }
   }
 
@@ -107,10 +112,9 @@ class _MobileControlsState extends State<MobileControls> {
   Widget build(BuildContext context) {
     dataProvider = context.watch<PlayerDataProvider>();
     provider = context.watch<PlayerProvider>();
-    return KeyboardListener(
-      focusNode: _fn,
+    return Focus(
       autofocus: true,
-      onKeyEvent: _keyListenerEvent,
+      onKeyEvent: (node, event) => _keyListenerEvent(event),
       child: OrientationBuilder(
         builder: (context, orientation) {
           double LRpadding = 30;

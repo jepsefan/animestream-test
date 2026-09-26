@@ -22,6 +22,9 @@ class MobileControls extends StatefulWidget {
 }
 
 class _MobileControlsState extends State<MobileControls> {
+  final FocusNode _playPauseFocusNode = FocusNode(debugLabel: 'video_play_pause');
+  bool _wasControlsVisible = false;
+
   bool startedLoadingNext = false;
 
   bool calledAutoNext = false;
@@ -38,8 +41,9 @@ class _MobileControlsState extends State<MobileControls> {
 
   @override
   void dispose() {
-    super.dispose();
+    _playPauseFocusNode.dispose();
     WakelockPlus.disable();
+    super.dispose();
   }
 
   KeyEventResult _keyListenerEvent(KeyEvent event) {
@@ -112,6 +116,19 @@ class _MobileControlsState extends State<MobileControls> {
   Widget build(BuildContext context) {
     dataProvider = context.watch<PlayerDataProvider>();
     provider = context.watch<PlayerProvider>();
+
+    final controlsVisible = provider.state.controlsVisible;
+    if (controlsVisible &&
+        !_wasControlsVisible &&
+        !dataProvider.state.controlsLocked) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && _playPauseFocusNode.canRequestFocus) {
+          _playPauseFocusNode.requestFocus();
+        }
+      });
+    }
+    _wasControlsVisible = controlsVisible;
+
     return Focus(
       autofocus: true,
       onKeyEvent: (node, event) => _keyListenerEvent(event),
@@ -359,6 +376,8 @@ class _MobileControlsState extends State<MobileControls> {
                       height: 65,
                       width: 65,
                       child: InkWell(
+                        focusNode: _playPauseFocusNode,
+                        focusColor: Colors.white24,
                         borderRadius: BorderRadius.circular(10),
                         onTap: () {
                           if (provider.state.playerState == PlayerState.playing) {

@@ -402,6 +402,25 @@ class _WatchState extends State<Watch> with WidgetsBindingObserver {
 
     final skip = currentUserSettings?.skipDuration ?? 10;
 
+    if (event.logicalKey == LogicalKeyboardKey.mediaPlayPause ||
+        event.logicalKey == LogicalKeyboardKey.space ||
+        event.logicalKey == LogicalKeyboardKey.select) {
+      (playerProvider.controller.isPlaying ?? false)
+          ? playerProvider.controller.pause()
+          : playerProvider.controller.play();
+      return KeyEventResult.handled;
+    }
+
+    if (event.logicalKey == LogicalKeyboardKey.mediaPause) {
+      playerProvider.controller.pause();
+      return KeyEventResult.handled;
+    }
+
+    if (event.logicalKey == LogicalKeyboardKey.mediaPlay) {
+      playerProvider.controller.play();
+      return KeyEventResult.handled;
+    }
+
     if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
       if (playerDataProvider.state.controlsLocked) {
         return KeyEventResult.handled;

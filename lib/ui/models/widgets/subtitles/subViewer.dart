@@ -157,15 +157,42 @@ class _SubViewerState extends State<SubViewer> {
     );
   }
 
+  bool _containsStandaloneStatusKeyword(SubtitleCue sub) {
+    const keywords = <String>{
+      'attack',
+      'defense',
+      'magic',
+      'speed',
+      'equipment',
+      'skills',
+      'skill tree',
+      'skill points',
+      'current stats',
+    };
+
+    return sub.dialogue
+        .split('\n')
+        .map((line) => line.trim().toLowerCase())
+        .any(keywords.contains);
+  }
+
   bool _isStatusCue(SubtitleCue sub, List<SubtitleCue> active) {
     final nearby = active.where((candidate) {
       return (candidate.start - sub.start).inMilliseconds.abs() <= 100;
     }).toList();
 
-    // Only use timing density for status/UI detection. Keyword-based
-    // detection caused ordinary dialogue/status labels such as "Monster:"
-    // to be moved to the left incorrectly.
-    return nearby.length >= 5;
+    // Dense near-simultaneous cue groups are treated as status/UI.
+    if (nearby.length >= 5) {
+      return true;
+    }
+
+    // Standalone status keywords can identify a smaller status block.
+    // If any cue with the exact same start time contains one of these words
+    // on a line by itself, move the whole timestamp group to the left.
+    final sameTimestamp = active.where(
+      (candidate) => candidate.start == sub.start,
+    );
+    return sameTimestamp.any(_containsStandaloneStatusKeyword);
   }
 
   Widget _subtitleWidget(SubtitleCue sub, {TextAlign textAlign = TextAlign.center}) {

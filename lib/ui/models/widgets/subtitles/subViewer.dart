@@ -177,7 +177,7 @@ class _SubViewerState extends State<SubViewer> {
 
   bool _isStatusCue(SubtitleCue sub, List<SubtitleCue> active) {
     final nearby = active.where((candidate) {
-      return (candidate.start - sub.start).inMilliseconds.abs() <= 20;
+      return (candidate.start - sub.start).inMilliseconds.abs() <= 100;
     }).toList();
 
     // Character/status screens usually contain many short cues beginning at
@@ -194,6 +194,7 @@ class _SubViewerState extends State<SubViewer> {
       backgroundColor: widget.settings.backgroundColor,
       backgroundTransparency: widget.settings.backgroundTransparency,
       enableShadows: widget.settings.enableShadows,
+      textAlign: textAlign,
     );
   }
 
@@ -240,7 +241,7 @@ class _SubViewerState extends State<SubViewer> {
               Positioned(
                 left: 24,
                 top: constraints.maxHeight * 0.16,
-                width: constraints.maxWidth * 0.46,
+                width: constraints.maxWidth * 0.62,
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,

@@ -603,7 +603,6 @@ class _WatchState extends State<Watch> with WidgetsBindingObserver {
         ),
       ),
     );
-    );
   }
 
   Widget _buildVolumeBrightnessIndicators() {

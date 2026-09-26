@@ -4,64 +4,91 @@ import 'package:collection/collection.dart';
 
 class VttRipper {
   List<SubtitleCue> parseVtt(String rawSource) {
-    final lines = rawSource.split('\n');
+    final lines = rawSource.replaceAll('\r\n', '\n').split('\n');
     final subtitles = <SubtitleCue>[];
 
-    String? currentDialogue;
+    final dialogueLines = <String>[];
     Duration? start;
     Duration? end;
-
     SubtitleAlignment alignment = SubtitleAlignment.bottomCenter;
 
-    for (final line in lines) {
-      // Skip metadata lines
-      if (line.startsWith('WEBVTT') || line.trim().isEmpty || line.startsWith('NOTE')) {
-        // If we encounter an empty line, it's the end of a block
-        if (currentDialogue != null && start != null && end != null) {
-          subtitles.add(SubtitleCue(start: start, end: end, dialogue: _removeHtml(currentDialogue), alignment: alignment));
-          currentDialogue = null;
-          start = null;
-          end = null;
-          alignment = SubtitleAlignment.bottomCenter;
+    void flushCue() {
+      if (start != null && end != null && dialogueLines.isNotEmpty) {
+        // Keep internal blank lines, but remove blank padding at the edges.
+        while (dialogueLines.isNotEmpty && dialogueLines.first.trim().isEmpty) {
+          dialogueLines.removeAt(0);
         }
+        while (dialogueLines.isNotEmpty && dialogueLines.last.trim().isEmpty) {
+          dialogueLines.removeLast();
+        }
+
+        if (dialogueLines.isNotEmpty) {
+          subtitles.add(
+            SubtitleCue(
+              start: start!,
+              end: end!,
+              dialogue: _removeHtml(dialogueLines.join('\n')),
+              alignment: alignment,
+            ),
+          );
+        }
+      }
+
+      dialogueLines.clear();
+      start = null;
+      end = null;
+      alignment = SubtitleAlignment.bottomCenter;
+    }
+
+    for (final rawLine in lines) {
+      final line = rawLine;
+      final trimmed = line.trim();
+
+      if (trimmed.startsWith('WEBVTT')) {
         continue;
       }
 
-      // Parse timestamp line
+      // A new timestamp is the reliable cue boundary. This intentionally does
+      // not flush on blank lines because some VTT sources put status/UI text
+      // such as Attack / Defense / Magic / Speed in blank-line-separated
+      // continuation lines under one timestamp.
       if (line.contains('-->')) {
+        flushCue();
+
         final times = line.split('-->');
         if (times.length != 2) {
           throw FormatException('Invalid timestamp line: $line');
         }
-        final formatting = times[1].trim().split(' ');
 
-        if (formatting.isNotEmpty) {
-          // Handle additional formatting if needed
-          // final align = formatting.firstWhereOrNull((e) => e.startsWith('align:'))?.replaceAll("align:", ""); // we aint usin align yet!
-          final position =
-              formatting.firstWhereOrNull((e) => e.startsWith('line:'))?.replaceAll(RegExp(r"line:|%"), "");
+        final formatting = times[1].trim().split(RegExp(r'\s+'));
+        final position =
+            formatting.firstWhereOrNull((e) => e.startsWith('line:'))?.replaceAll(RegExp(r'line:|%'), '');
 
-          // push anything >50% to bottom center, else top center
-          alignment = position != null
-              ? (int.tryParse(position) ?? 100) > 50
-                  ? SubtitleAlignment.bottomCenter
-                  : SubtitleAlignment.topCenter
-              : SubtitleAlignment.bottomCenter;
-        }
+        alignment = position != null
+            ? (int.tryParse(position) ?? 100) > 50
+                ? SubtitleAlignment.bottomCenter
+                : SubtitleAlignment.topCenter
+            : SubtitleAlignment.bottomCenter;
 
         start = _parseTime(times[0].trim());
         end = _parseTime(formatting[0].trim());
-      } else if (start != null && end != null) {
-        // Collect dialogue lines
-        currentDialogue = (currentDialogue == null) ? line : '$currentDialogue\n$line';
+        continue;
       }
+
+      // Ignore metadata outside a cue.
+      if (start == null || end == null) {
+        continue;
+      }
+
+      if (trimmed.startsWith('NOTE')) {
+        continue;
+      }
+
+      // Preserve blank lines inside an active timed cue.
+      dialogueLines.add(line);
     }
 
-    // Add the last subtitle if the file ends without an empty line
-    if (start != null && end != null && currentDialogue != null) {
-      subtitles.add(SubtitleCue(start: start, end: end, dialogue: _removeHtml(currentDialogue), alignment: alignment));
-    }
-
+    flushCue();
     return subtitles;
   }
 
@@ -73,14 +100,12 @@ class VttRipper {
   Duration _parseTime(String time) {
     final parts = time.split(':');
     if (parts.length == 3) {
-      // Format is HH:MM:SS.MS
       return Duration(
         hours: int.parse(parts[0]),
         minutes: int.parse(parts[1]),
         milliseconds: (double.parse(parts[2]) * 1000).round(),
       );
     } else if (parts.length == 2) {
-      // Format is MM:SS.MS
       return Duration(
         minutes: int.parse(parts[0]),
         milliseconds: (double.parse(parts[1]) * 1000).round(),

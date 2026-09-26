@@ -88,14 +88,10 @@ class _MobileControlsState extends State<MobileControls> {
           }
           return KeyEventResult.ignored;
         }
-      case LogicalKeyboardKey.arrowLeft:
-        provider.fastForward(-(skipDuration ?? 10));
-        return KeyEventResult.handled;
-      case LogicalKeyboardKey.arrowRight:
-        provider.fastForward(skipDuration ?? 10);
-        return KeyEventResult.handled;
       case LogicalKeyboardKey.arrowUp:
       case LogicalKeyboardKey.arrowDown:
+      case LogicalKeyboardKey.arrowLeft:
+      case LogicalKeyboardKey.arrowRight:
         {
           if (!provider.state.controlsVisible) {
             provider.toggleControlsVisibility();

@@ -20,7 +20,9 @@ class VttRipper {
               start: start!,
               end: end!,
               dialogue: _removeHtml(
-                dialogueLines.join('\n').replaceAll(RegExp(r'(?:\\h)+'), ' '),
+                dialogueLines
+                    .join('\n')
+                    .replaceAll(RegExp(r'(?:\\h)+'), ' '),
               ),
               alignment: alignment,
             ),
@@ -42,10 +44,9 @@ class VttRipper {
         continue;
       }
 
-      // A new timestamp is the reliable cue boundary. This intentionally does
-      // not flush on blank lines because some VTT sources put status/UI text
-      // such as Attack / Defense / Magic / Speed in blank-line-separated
-      // continuation lines under one timestamp.
+      // A new timestamp is the reliable cue boundary. Do not flush on blank
+      // lines because some VTT sources put continuation text under the same
+      // timestamp.
       if (line.contains('-->')) {
         flushCue();
 
@@ -69,7 +70,6 @@ class VttRipper {
         continue;
       }
 
-      // Ignore metadata outside a cue.
       if (start == null || end == null) {
         continue;
       }
@@ -78,14 +78,13 @@ class VttRipper {
         continue;
       }
 
-      // Empty source lines should not create huge vertical gaps in status/UI
-      // text such as Attack / Defense / Magic / Speed.
+      // Empty source lines should not create vertical gaps in status/UI text.
       if (trimmed.isEmpty) {
         continue;
       }
 
-      // Some converted VTT files contain ASS vector drawing commands. They
-      // describe shapes/backgrounds and must not be shown as subtitle text.
+      // Some converted VTT files contain ASS/SSA vector drawing commands.
+      // These describe shapes/backgrounds and must not be displayed as text.
       if (_isAssDrawingLine(trimmed)) {
         continue;
       }
@@ -98,35 +97,14 @@ class VttRipper {
   }
 
   bool _isAssDrawingLine(String line) {
-    return RegExp(r'^[mMnNlLbBsSpPcC](?:\\s+-?\\d+(?:\\.\\d+)?){2,}(?:\\s+.*)?
-    final tagRegExp = RegExp(r'<[^>]*>');
-    return dialogue.replaceAll(tagRegExp, "");
-  }
-
-  Duration _parseTime(String time) {
-    final parts = time.split(':');
-    if (parts.length == 3) {
-      return Duration(
-        hours: int.parse(parts[0]),
-        minutes: int.parse(parts[1]),
-        milliseconds: (double.parse(parts[2]) * 1000).round(),
-      );
-    } else if (parts.length == 2) {
-      return Duration(
-        minutes: int.parse(parts[0]),
-        milliseconds: (double.parse(parts[1]) * 1000).round(),
-      );
-    }
-    throw FormatException('Invalid time format: $time');
-  }
-}
-)
-        .hasMatch(line);
+    return RegExp(
+      r'^[mMnNlLbBsSpPcC](?:\s+-?\d+(?:\.\d+)?){2,}(?:\s+.*)?$',
+    ).hasMatch(line);
   }
 
   String _removeHtml(String dialogue) {
     final tagRegExp = RegExp(r'<[^>]*>');
-    return dialogue.replaceAll(tagRegExp, "");
+    return dialogue.replaceAll(tagRegExp, '');
   }
 
   Duration _parseTime(String time) {

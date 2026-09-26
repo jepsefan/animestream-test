@@ -8,6 +8,7 @@ class SubtitleText extends StatelessWidget {
   final double strokeWidth;
   final double backgroundTransparency;
   final bool enableShadows;
+  final TextAlign textAlign;
 
   const SubtitleText({
     super.key,
@@ -18,6 +19,7 @@ class SubtitleText extends StatelessWidget {
     required this.backgroundColor,
     required this.backgroundTransparency,
     this.enableShadows = true,
+    this.textAlign = TextAlign.center,
   });
 
   @override
@@ -35,7 +37,7 @@ class SubtitleText extends StatelessWidget {
                 ..color = strokeColor
                 ..strokeWidth = strokeWidth,
             ),
-            textAlign: TextAlign.center,
+            textAlign: textAlign,
           ),
 
           //the actual text
@@ -48,7 +50,7 @@ class SubtitleText extends StatelessWidget {
                     ]
                   : null,
             ),
-            textAlign: TextAlign.center,
+            textAlign: textAlign,
           ),
         ],
       ),

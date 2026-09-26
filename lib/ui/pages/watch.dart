@@ -420,6 +420,16 @@ class _WatchState extends State<Watch> with WidgetsBindingObserver {
       return KeyEventResult.handled;
     }
 
+    // Keep the existing hidden-controls seek behavior, but when the player
+    // controls are visible let Flutter move focus between the controls.
+    if (playerProvider.state.controlsVisible &&
+        (event.logicalKey == LogicalKeyboardKey.arrowLeft ||
+            event.logicalKey == LogicalKeyboardKey.arrowRight ||
+            event.logicalKey == LogicalKeyboardKey.arrowUp ||
+            event.logicalKey == LogicalKeyboardKey.arrowDown)) {
+      return KeyEventResult.ignored;
+    }
+
     if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
       if (playerDataProvider.state.controlsLocked) {
         return KeyEventResult.handled;

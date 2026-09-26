@@ -5,6 +5,7 @@
 ## Changes since beta7
 
 ### Subtitle status grouping
+- Status/UI subtitles now use the area from 5% below the top to 5% above the bottom; oversized groups are scaled down to stay fully inside the video frame.
 - Standalone status keywords such as **Attack**, **Defense**, **Magic**, **Speed**, **Equipment**, and **Skills** can identify a status/UI block.
 - A keyword only triggers when it occupies a complete subtitle line by itself.
 - When triggered, **all cues with the exact same start timestamp** are grouped together and rendered in the existing left-side status area.

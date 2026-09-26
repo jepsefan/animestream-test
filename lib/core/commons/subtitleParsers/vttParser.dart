@@ -20,7 +20,7 @@ class VttRipper {
               start: start!,
               end: end!,
               dialogue: _removeHtml(
-                dialogueLines.join('\n').replaceAll(r'\h', ' '),
+                dialogueLines.join('\n').replaceAll(RegExp(r'(?:\\h)+'), ' '),
               ),
               alignment: alignment,
             ),

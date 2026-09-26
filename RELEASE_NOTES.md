@@ -1,8 +1,24 @@
-# v1.4.8-beta5
+# v1.4.8-beta6
 
-> Test release. The subtitle renderer changes are still experimental and may need further tuning on Android TV.
+> Test release. This beta moves the subtitle fixes into AnimeStream's actual subtitle pipeline and adds D-pad seek animation.
 
-## v1.4.8-beta5
+## v1.4.8-beta6
+
+## Changes since beta5
+
+### Subtitle pipeline
+- Moved the status/UI subtitle implementation into AnimeStream's actual **SubViewer** renderer.
+- Reworked **VttRipper** so WebVTT cues are delimited by timestamps instead of blank lines.
+- Continuation text such as **Attack / Defense / Magic / Speed** now stays attached to the same timed cue.
+- Status/UI subtitles are rendered in a dedicated fixed left-side layer.
+
+### Android TV D-pad seek
+- **D-pad Right** seeks forward by the configured skip duration.
+- **D-pad Left** seeks backward by the configured skip duration.
+- D-pad seek now uses the same on-screen animation and skip counter as double-tap seek.
+
+---
+
 
 ### Subtitle rendering
 - Added the new **Stable Overlap** subtitle renderer.

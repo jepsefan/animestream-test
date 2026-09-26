@@ -91,7 +91,13 @@ class _MobileControlsState extends State<MobileControls> {
       case LogicalKeyboardKey.arrowUp:
       case LogicalKeyboardKey.arrowDown:
       case LogicalKeyboardKey.arrowLeft:
+        provider.fastForward(-(skipDuration ?? 10));
+        return KeyEventResult.handled;
       case LogicalKeyboardKey.arrowRight:
+        provider.fastForward(skipDuration ?? 10);
+        return KeyEventResult.handled;
+      case LogicalKeyboardKey.arrowUp:
+      case LogicalKeyboardKey.arrowDown:
         {
           if (!provider.state.controlsVisible) {
             provider.toggleControlsVisibility();

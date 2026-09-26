@@ -7,6 +7,8 @@
 ## Changes since beta6
 
 ### Subtitle fixes
+- Removed keyword-based status/UI detection; only dense near-simultaneous cue groups are treated as status/UI now.
+- VTT `\\h` spacing escapes are converted to normal spaces instead of being rendered literally.
 - Removed empty lines inside parsed VTT cues so status text such as **Attack / Defense / Magic / Speed** does not consume excessive vertical space.
 - Ignore ASS/SSA vector drawing commands such as `m 0 0 l 290 0 290 42 0 42` instead of displaying them as subtitle text.
 - Increased status/UI cue grouping tolerance from **20 ms to 100 ms**, allowing cues such as 18:37.850 and 18:37.900 to stay in the same visual group.

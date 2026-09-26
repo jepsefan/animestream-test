@@ -27,6 +27,8 @@
 - Increased the status/UI text area width to **62%** of the video width.
 
 ### Android TV controls
+- When player controls are visible, directional keys are left to Flutter focus navigation; when hidden, Left/Right keep the existing skip behavior and animation.
+- Added an Android TV focus target to the center Play/Pause control so player controls can receive D-pad focus when they appear.
 - Restored Play/Pause handling in the parent Android TV key handler.
 - Keeps D-pad center/select available for navigating and activating player controls.
 - Removed the old BetterPlayer **Subtitle renderer** button from AnimeStream because AnimeStream's visible subtitles are rendered by `SubViewer`, so that control was not connected to the active subtitle renderer.

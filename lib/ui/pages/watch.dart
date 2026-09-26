@@ -391,12 +391,50 @@ class _WatchState extends State<Watch> with WidgetsBindingObserver {
     });
   }
 
+  KeyEventResult _handleTvSeekKey(
+    KeyEvent event,
+    PlayerProvider playerProvider,
+    PlayerDataProvider playerDataProvider,
+  ) {
+    if (event is! KeyDownEvent || !Platform.isAndroid) {
+      return KeyEventResult.ignored;
+    }
+
+    final skip = currentUserSettings?.skipDuration ?? 10;
+
+    if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
+      if (playerDataProvider.state.controlsLocked) {
+        return KeyEventResult.handled;
+      }
+      playerProvider.fastForward(-skip);
+      if (!_showRewindAnim) skipCount = 0;
+      _showFastForwardAnim(false);
+      return KeyEventResult.handled;
+    }
+
+    if (event.logicalKey == LogicalKeyboardKey.arrowRight) {
+      if (playerDataProvider.state.controlsLocked) {
+        return KeyEventResult.handled;
+      }
+      playerProvider.fastForward(skip);
+      if (!_showForwardAnim) skipCount = 0;
+      _showFastForwardAnim(true);
+      return KeyEventResult.handled;
+    }
+
+    return KeyEventResult.ignored;
+  }
+
   @override
   Widget build(BuildContext context) {
     final playerProvider = context.watch<PlayerProvider>();
     final playerDataProvider = context.watch<PlayerDataProvider>();
 
-    return PopScope(
+    return Focus(
+      autofocus: true,
+      onKeyEvent: (node, event) =>
+          _handleTvSeekKey(event, playerProvider, playerDataProvider),
+      child: PopScope(
       canPop: true,
       onPopInvokedWithResult: (didPop, result) async {
         // save the last watched duration
@@ -564,6 +602,7 @@ class _WatchState extends State<Watch> with WidgetsBindingObserver {
           ),
         ),
       ),
+    );
     );
   }
 

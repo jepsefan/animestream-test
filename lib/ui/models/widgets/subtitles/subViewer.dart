@@ -195,10 +195,17 @@ class _SubViewerState extends State<SubViewer> {
     return sameTimestamp.any(_containsStandaloneStatusKeyword);
   }
 
-  Widget _subtitleWidget(SubtitleCue sub, {TextAlign textAlign = TextAlign.center}) {
+  Widget _subtitleWidget(
+    SubtitleCue sub, {
+    TextAlign textAlign = TextAlign.center,
+    double fontScale = 1.0,
+  }) {
+    final baseStyle = subTextStyle();
     return SubtitleText(
       text: areSubsLoading ? "Loading Subs" : sub.dialogue,
-      style: subTextStyle().copyWith(),
+      style: baseStyle.copyWith(
+        fontSize: (baseStyle.fontSize ?? widget.settings.fontSize) * fontScale,
+      ),
       strokeColor: widget.settings.strokeColor,
       strokeWidth: widget.settings.strokeWidth,
       backgroundColor: widget.settings.backgroundColor,
@@ -250,25 +257,33 @@ class _SubViewerState extends State<SubViewer> {
             if (statusSubs.isNotEmpty)
               Positioned(
                 left: 24,
-                top: constraints.maxHeight * 0.16,
+                top: constraints.maxHeight * 0.05,
                 width: constraints.maxWidth * 0.62,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: statusSubs
-                      .map(
-                        (sub) => SizedBox(
-                          width: double.infinity,
-                          child: Align(
-                            alignment: Alignment.centerLeft,
-                            child: _subtitleWidget(
-                              sub,
-                              textAlign: TextAlign.left,
-                            ),
-                          ),
-                        ),
-                      )
-                      .toList(),
+                height: constraints.maxHeight * 0.90,
+                child: Align(
+                  alignment: Alignment.topLeft,
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.topLeft,
+                    child: SizedBox(
+                      width: constraints.maxWidth * 0.62,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: statusSubs
+                            .map(
+                              (sub) => SizedBox(
+                                width: double.infinity,
+                                child: _subtitleWidget(
+                                  sub,
+                                  textAlign: TextAlign.left,
+                                ),
+                              ),
+                            )
+                            .toList(),
+                      ),
+                    ),
+                  ),
                 ),
               ),
           ],

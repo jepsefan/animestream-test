@@ -11,12 +11,12 @@
 - Overlapping WebVTT cues are kept in stable positions so visible text does not jump when another cue appears or disappears.
 - Connected overlapping cues are handled as one overlap group and preserve their original cue order.
 - Experimental detection for status/UI subtitle groups with **5 or more cues sharing the same start time** was added in earlier betas.
-- Reworked status/UI subtitles into a separate fixed left-side layer using explicit positioning.
+- Reworked status/UI subtitles in AnimeStream's actual **SubViewer** renderer into a separate fixed left-side layer using explicit positioning.
 - Fixed nullable subtitle text handling in the Stable Overlap renderer.
 
 ### WebVTT parsing
 - Experimental WebVTT continuation parsing was added for text after blank lines without a repeated timestamp.
-- Multi-line status cues are now rendered as one HTML block so continuation text such as **Attack / Defense / Magic / Speed** keeps its formatting and remains visible.
+- Replaced blank-line-based VTT cue splitting in AnimeStream's **VttRipper** with timestamp-based cue boundaries so continuation text such as **Attack / Defense / Magic / Speed** remains part of the timed cue.
 - Existing HTML subtitle formatting such as bold and italic text remains supported.
 
 ### Android TV controls
@@ -25,6 +25,7 @@
 - Moved media-key handling into the player's parent Focus tree so remote-control media keys can still be received when another player control has focus.
 - Mapped Android TV **D-pad Right** to seek forward by the configured skip duration (10 seconds by default).
 - Mapped Android TV **D-pad Left** to seek backward by the configured skip duration (10 seconds by default).
+- D-pad seek now uses the same on-screen skip animation/counter as double-tap seek.
 
 ### Build and CI
 - Includes the BetterPlayer WebVTT parser build fix introduced after beta4.

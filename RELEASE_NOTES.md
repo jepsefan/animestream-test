@@ -11,18 +11,20 @@
 - Overlapping WebVTT cues are kept in stable positions so visible text does not jump when another cue appears or disappears.
 - Connected overlapping cues are handled as one overlap group and preserve their original cue order.
 - Experimental detection for status/UI subtitle groups with **5 or more cues sharing the same start time** was added in earlier betas.
-- **Known issue:** status/UI text is still not reliably rendered on the left side and needs further work.
+- Reworked status/UI subtitles into a separate fixed left-side layer using explicit positioning.
 - Fixed nullable subtitle text handling in the Stable Overlap renderer.
 
 ### WebVTT parsing
 - Experimental WebVTT continuation parsing was added for text after blank lines without a repeated timestamp.
-- **Known issue:** continuation text such as **Attack / Defense / Magic / Speed** is still not preserved/rendered correctly in testing.
+- Multi-line status cues are now rendered as one HTML block so continuation text such as **Attack / Defense / Magic / Speed** keeps its formatting and remains visible.
 - Existing HTML subtitle formatting such as bold and italic text remains supported.
 
 ### Android TV controls
 - Changed Android TV media-key handling so **Play/Pause** toggles playback instead of only pausing.
 - Added explicit handling for **Play**, **Pause**, and **Space** playback keys.
 - Moved media-key handling into the player's parent Focus tree so remote-control media keys can still be received when another player control has focus.
+- Mapped Android TV **D-pad Right** to seek forward by the configured skip duration (10 seconds by default).
+- Mapped Android TV **D-pad Left** to seek backward by the configured skip duration (10 seconds by default).
 
 ### Build and CI
 - Includes the BetterPlayer WebVTT parser build fix introduced after beta4.

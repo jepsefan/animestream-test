@@ -1,8 +1,24 @@
-# v1.4.8-beta6
+# v1.4.8-beta7
 
-> Test release. This beta moves the subtitle fixes into AnimeStream's actual subtitle pipeline and adds D-pad seek animation.
+> Test release. This beta refines AnimeStream's subtitle pipeline and Android TV remote handling.
 
-## v1.4.8-beta6
+## v1.4.8-beta7
+
+## Changes since beta6
+
+### Subtitle fixes
+- Removed empty lines inside parsed VTT cues so status text such as **Attack / Defense / Magic / Speed** does not consume excessive vertical space.
+- Ignore ASS/SSA vector drawing commands such as `m 0 0 l 290 0 290 42 0 42` instead of displaying them as subtitle text.
+- Increased status/UI cue grouping tolerance from **20 ms to 100 ms**, allowing cues such as 18:37.850 and 18:37.900 to stay in the same visual group.
+- Added real configurable text alignment to `SubtitleText`; status/UI text now uses left alignment instead of being centered inside a left-positioned container.
+- Increased the status/UI text area width to **62%** of the video width.
+
+### Android TV controls
+- Restored Play/Pause handling in the parent Android TV key handler.
+- Keeps D-pad center/select available for navigating and activating player controls.
+- Removed the old BetterPlayer **Subtitle renderer** button from AnimeStream because AnimeStream's visible subtitles are rendered by `SubViewer`, so that control was not connected to the active subtitle renderer.
+
+---
 
 ## Changes since beta5
 

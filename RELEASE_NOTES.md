@@ -1,8 +1,19 @@
-# v1.4.8-beta7
+# v1.4.8-beta8
 
-> Test release. This beta refines AnimeStream's subtitle pipeline and Android TV remote handling.
+> Test release. This beta adds safer standalone-keyword grouping for status/UI subtitles.
 
-## v1.4.8-beta7
+## v1.4.8-beta8
+
+## Changes since beta7
+
+### Subtitle status grouping
+- Standalone status keywords such as **Attack**, **Defense**, **Magic**, **Speed**, **Equipment**, and **Skills** can identify a status/UI block.
+- A keyword only triggers when it occupies a complete subtitle line by itself.
+- When triggered, **all cues with the exact same start timestamp** are grouped together and rendered in the existing left-side status area.
+- Embedded text such as `Monster: Raana` does not trigger this rule.
+
+---
+
 
 ## Changes since beta6
 

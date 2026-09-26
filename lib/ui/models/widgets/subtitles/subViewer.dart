@@ -157,32 +157,15 @@ class _SubViewerState extends State<SubViewer> {
     );
   }
 
-  bool _isStatusKeyword(SubtitleCue sub) {
-    final text = sub.dialogue.toLowerCase();
-    const keywords = <String>[
-      'attack',
-      'defense',
-      'magic',
-      'speed',
-      'equipment',
-      'skills',
-      'skill tree',
-      'skill points',
-      'current stats',
-      'class:',
-      'monster:',
-    ];
-    return keywords.any(text.contains);
-  }
-
   bool _isStatusCue(SubtitleCue sub, List<SubtitleCue> active) {
     final nearby = active.where((candidate) {
       return (candidate.start - sub.start).inMilliseconds.abs() <= 100;
     }).toList();
 
-    // Character/status screens usually contain many short cues beginning at
-    // the same frame. Also accept explicit status labels as a fallback.
-    return nearby.length >= 5 || _isStatusKeyword(sub);
+    // Only use timing density for status/UI detection. Keyword-based
+    // detection caused ordinary dialogue/status labels such as "Monster:"
+    // to be moved to the left incorrectly.
+    return nearby.length >= 5;
   }
 
   Widget _subtitleWidget(SubtitleCue sub, {TextAlign textAlign = TextAlign.center}) {

@@ -19,7 +19,9 @@ class VttRipper {
             SubtitleCue(
               start: start!,
               end: end!,
-              dialogue: _removeHtml(dialogueLines.join('\n')),
+              dialogue: _removeHtml(
+                dialogueLines.join('\n').replaceAll(r'\h', ' '),
+              ),
               alignment: alignment,
             ),
           );

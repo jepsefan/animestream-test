@@ -14,14 +14,6 @@ class VttRipper {
 
     void flushCue() {
       if (start != null && end != null && dialogueLines.isNotEmpty) {
-        // Keep internal blank lines, but remove blank padding at the edges.
-        while (dialogueLines.isNotEmpty && dialogueLines.first.trim().isEmpty) {
-          dialogueLines.removeAt(0);
-        }
-        while (dialogueLines.isNotEmpty && dialogueLines.last.trim().isEmpty) {
-          dialogueLines.removeLast();
-        }
-
         if (dialogueLines.isNotEmpty) {
           subtitles.add(
             SubtitleCue(
@@ -84,12 +76,50 @@ class VttRipper {
         continue;
       }
 
-      // Preserve blank lines inside an active timed cue.
+      // Empty source lines should not create huge vertical gaps in status/UI
+      // text such as Attack / Defense / Magic / Speed.
+      if (trimmed.isEmpty) {
+        continue;
+      }
+
+      // Some converted VTT files contain ASS vector drawing commands. They
+      // describe shapes/backgrounds and must not be shown as subtitle text.
+      if (_isAssDrawingLine(trimmed)) {
+        continue;
+      }
+
       dialogueLines.add(line);
     }
 
     flushCue();
     return subtitles;
+  }
+
+  bool _isAssDrawingLine(String line) {
+    return RegExp(r'^[mMnNlLbBsSpPcC](?:\\s+-?\\d+(?:\\.\\d+)?){2,}(?:\\s+.*)?
+    final tagRegExp = RegExp(r'<[^>]*>');
+    return dialogue.replaceAll(tagRegExp, "");
+  }
+
+  Duration _parseTime(String time) {
+    final parts = time.split(':');
+    if (parts.length == 3) {
+      return Duration(
+        hours: int.parse(parts[0]),
+        minutes: int.parse(parts[1]),
+        milliseconds: (double.parse(parts[2]) * 1000).round(),
+      );
+    } else if (parts.length == 2) {
+      return Duration(
+        minutes: int.parse(parts[0]),
+        milliseconds: (double.parse(parts[1]) * 1000).round(),
+      );
+    }
+    throw FormatException('Invalid time format: $time');
+  }
+}
+)
+        .hasMatch(line);
   }
 
   String _removeHtml(String dialogue) {

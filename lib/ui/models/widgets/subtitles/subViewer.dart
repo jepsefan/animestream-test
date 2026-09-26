@@ -157,48 +157,112 @@ class _SubViewerState extends State<SubViewer> {
     );
   }
 
+  bool _isStatusKeyword(SubtitleCue sub) {
+    final text = sub.dialogue.toLowerCase();
+    const keywords = <String>[
+      'attack',
+      'defense',
+      'magic',
+      'speed',
+      'equipment',
+      'skills',
+      'skill tree',
+      'skill points',
+      'current stats',
+      'class:',
+      'monster:',
+    ];
+    return keywords.any(text.contains);
+  }
+
+  bool _isStatusCue(SubtitleCue sub, List<SubtitleCue> active) {
+    final nearby = active.where((candidate) {
+      return (candidate.start - sub.start).inMilliseconds.abs() <= 20;
+    }).toList();
+
+    // Character/status screens usually contain many short cues beginning at
+    // the same frame. Also accept explicit status labels as a fallback.
+    return nearby.length >= 5 || _isStatusKeyword(sub);
+  }
+
+  Widget _subtitleWidget(SubtitleCue sub, {TextAlign textAlign = TextAlign.center}) {
+    return SubtitleText(
+      text: areSubsLoading ? "Loading Subs" : sub.dialogue,
+      style: subTextStyle().copyWith(),
+      strokeColor: widget.settings.strokeColor,
+      strokeWidth: widget.settings.strokeWidth,
+      backgroundColor: widget.settings.backgroundColor,
+      backgroundTransparency: widget.settings.backgroundTransparency,
+      enableShadows: widget.settings.enableShadows,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    // I dont think this is a great idea to do this here, but oh boi!
-    final Map<SubtitleAlignment, List<SubtitleCue>> subsGrouped = {};
-    for (final sub in activeSubtitles) {
-      subsGrouped.putIfAbsent(sub.alignment, () => []).add(sub);
-    }
+    final statusSubs =
+        activeSubtitles.where((sub) => _isStatusCue(sub, activeSubtitles)).toList();
+    final normalSubs =
+        activeSubtitles.where((sub) => !statusSubs.contains(sub)).toList();
 
-    // Sort each group by start time for consistency
-    for (var list in subsGrouped.values) {
+    statusSubs.sort((a, b) => a.start.compareTo(b.start));
+
+    final Map<SubtitleAlignment, List<SubtitleCue>> normalGrouped = {};
+    for (final sub in normalSubs) {
+      normalGrouped.putIfAbsent(sub.alignment, () => []).add(sub);
+    }
+    for (final list in normalGrouped.values) {
       list.sort((a, b) => a.start.compareTo(b.start));
     }
 
-    return Stack(
-      children: subsGrouped.entries.map((group) {
-        final alignment = group.key;
-        final subs = group.value;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return Stack(
+          fit: StackFit.expand,
+          children: [
+            ...normalGrouped.entries.map((group) {
+              return Align(
+                alignment: getLineAlignment(group.key),
+                child: Container(
+                  width: constraints.maxWidth / 1.4,
+                  margin: EdgeInsets.only(
+                    bottom: widget.settings.bottomMargin,
+                    top: widget.settings.bottomMargin,
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: group.value.map(_subtitleWidget).toList(),
+                  ),
+                ),
+              );
+            }),
 
-        return Align(
-          alignment: getLineAlignment(alignment),
-          child: Container(
-            width: MediaQuery.of(context).size.width / 1.4,
-            margin: EdgeInsets.only(bottom: widget.settings.bottomMargin, top: widget.settings.bottomMargin),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: subs
-                  .map(
-                    (sub) => SubtitleText(
-                      text: areSubsLoading ? "Loading Subs" : sub.dialogue,
-                      style: subTextStyle(),
-                      strokeColor: widget.settings.strokeColor,
-                      strokeWidth: widget.settings.strokeWidth,
-                      backgroundColor: widget.settings.backgroundColor,
-                      backgroundTransparency: widget.settings.backgroundTransparency,
-                      enableShadows: widget.settings.enableShadows,
-                    ),
-                  )
-                  .toList(),
-            ),
-          ),
+            if (statusSubs.isNotEmpty)
+              Positioned(
+                left: 24,
+                top: constraints.maxHeight * 0.16,
+                width: constraints.maxWidth * 0.46,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: statusSubs
+                      .map(
+                        (sub) => SizedBox(
+                          width: double.infinity,
+                          child: Align(
+                            alignment: Alignment.centerLeft,
+                            child: _subtitleWidget(
+                              sub,
+                              textAlign: TextAlign.left,
+                            ),
+                          ),
+                        ),
+                      )
+                      .toList(),
+                ),
+              ),
+          ],
         );
-      }).toList(),
+      },
     );
   }
 

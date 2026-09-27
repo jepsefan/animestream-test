@@ -1539,6 +1539,11 @@ class _InfoMobileState extends State<InfoMobile> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Focus(
+                focusNode: _backButtonFocusNode,
+                autofocus: Platform.isAndroid,
+                onFocusChange: (_) {
+                  if (mounted) setState(() {});
+                },
                 onKeyEvent: (node, event) {
                   if (event is KeyDownEvent &&
                       event.logicalKey == LogicalKeyboardKey.arrowDown) {
@@ -1548,11 +1553,6 @@ class _InfoMobileState extends State<InfoMobile> {
                   return KeyEventResult.ignored;
                 },
                 child: IconButton(
-                  focusNode: _backButtonFocusNode,
-                  autofocus: Platform.isAndroid,
-                  onFocusChange: (_) {
-                    if (mounted) setState(() {});
-                  },
                   onPressed: () {
                     Navigator.of(context).pop();
                   },

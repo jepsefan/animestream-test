@@ -21,7 +21,7 @@ class SettingsModal {
   /// AMOLED background for dark mode [defaults to false]
   final bool? amoledBackground;
 
-  /// Preferred quality for the player [defaults to 720p]
+  /// Preferred quality for the player [defaults to 1080p]
   final String? preferredQuality; // 1080p | 720p |480p | 360p as string
 
   /// The trasparency of the homescreen navbar
@@ -128,7 +128,7 @@ class SettingsModal {
       showErrors: map['showErrors'] ?? false,
       receivePreReleases: map['receivePreReleases'] ?? false,
       amoledBackground: map['amoledBackground'] ?? false,
-      preferredQuality: map['preferredQuality'] ?? "720p",
+      preferredQuality: map['preferredQuality'] ?? "1080p",
       navbarTranslucency: map['navbarTranslucency'] ?? 1.0,
       fasterDownloads: map['fasterDownloads'] ?? false,
       preferredProvider: map['preferredProvider'] ?? null,

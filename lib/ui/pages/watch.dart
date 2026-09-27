@@ -402,6 +402,16 @@ class _WatchState extends State<Watch> with WidgetsBindingObserver {
 
     final skip = currentUserSettings?.skipDuration ?? 10;
 
+    if (event.logicalKey == LogicalKeyboardKey.select ||
+        event.logicalKey == LogicalKeyboardKey.enter ||
+        event.logicalKey == LogicalKeyboardKey.numpadEnter) {
+      if (!playerProvider.state.controlsVisible) {
+        playerProvider.toggleControlsVisibility(action: true);
+        return KeyEventResult.handled;
+      }
+      return KeyEventResult.ignored;
+    }
+
     if (event.logicalKey == LogicalKeyboardKey.mediaPlayPause ||
         event.logicalKey == LogicalKeyboardKey.space) {
       (playerProvider.controller.isPlaying ?? false)

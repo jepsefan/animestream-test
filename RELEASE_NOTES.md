@@ -15,3 +15,4 @@
 - Cancel now stops the polling loop instead of leaving it running in the background.
 - Expired device codes automatically request a new code.
 - SIMKL device-flow errors are shown with specific messages and a retry option in the PIN dialog.
+- Android TV D-pad directions no longer open the player overlay while it is hidden; Left/Right keep the existing ±skip seek, while D-pad center/OK opens the overlay.

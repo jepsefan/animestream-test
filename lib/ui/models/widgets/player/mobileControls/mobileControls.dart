@@ -23,6 +23,8 @@ class MobileControls extends StatefulWidget {
 
 class _MobileControlsState extends State<MobileControls> {
   final FocusNode _playPauseFocusNode = FocusNode(debugLabel: 'video_play_pause');
+  final FocusNode _bottomControlsFocusNode =
+      FocusNode(debugLabel: 'video_bottom_controls');
   bool _wasControlsVisible = false;
 
   bool startedLoadingNext = false;
@@ -42,6 +44,7 @@ class _MobileControlsState extends State<MobileControls> {
   @override
   void dispose() {
     _playPauseFocusNode.dispose();
+    _bottomControlsFocusNode.dispose();
     WakelockPlus.disable();
     super.dispose();
   }
@@ -199,36 +202,45 @@ class _MobileControlsState extends State<MobileControls> {
                                               : RoundSliderThumbShape(enabledThumbRadius: 6),
                                           trackShape: EdgeToEdgeTrackShape(),
                                           overlayShape: SliderComponentShape.noThumb),
-                                      child: Slider(
-                                        value: dataProvider.state.sliderValue.toDouble(),
-                                        secondaryTrackValue: provider.controller.buffered?.toDouble(),
-                                        onChanged: (val) {
-                                          setState(() {
-                                            _pendingSeek = provider.controller.seekTo(Duration(seconds: val.toInt()));
-                                          });
+                                      child: CallbackShortcuts(
+                                        bindings: {
+                                          const SingleActivator(LogicalKeyboardKey.arrowDown): () {
+                                            _bottomControlsFocusNode.requestFocus();
+                                          },
                                         },
-                                        onChangeStart: (value) {
-                                          provider.controller.pause();
-                                        },
-                                        onChangeEnd: (value) async {
-                                          if (_pendingSeek != null) {
-                                            await _pendingSeek;
-                                          }
+                                        child: Slider(
+                                          value: dataProvider.state.sliderValue.toDouble(),
+                                          secondaryTrackValue: provider.controller.buffered?.toDouble(),
+                                          onChanged: (val) {
+                                            setState(() {
+                                              _pendingSeek =
+                                                  provider.controller.seekTo(Duration(seconds: val.toInt()));
+                                            });
+                                          },
+                                          onChangeStart: (value) {
+                                            provider.controller.pause();
+                                          },
+                                          onChangeEnd: (value) async {
+                                            if (_pendingSeek != null) {
+                                              await _pendingSeek;
+                                            }
 
-                                          // just to make sure its on the same page...
-                                          await provider.controller.seekTo(Duration(seconds: value.toInt()));
-                                          
-                                          await provider.controller.play();
-                                        },
-                                        min: 0,
-                                        max: (provider.controller.duration ?? 0) / 1000,
+                                            // just to make sure its on the same page...
+                                            await provider.controller
+                                                .seekTo(Duration(seconds: value.toInt()));
+
+                                            await provider.controller.play();
+                                          },
+                                          min: 0,
+                                          max: (provider.controller.duration ?? 0) / 1000,
+                                        ),
                                       ),
                                     ),
                                   ),
                                 ),
                               ),
                             ),
-                            BottomControls(),
+                            BottomControls(firstFocusNode: _bottomControlsFocusNode),
                           ],
                         ),
                       ),

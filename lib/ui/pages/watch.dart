@@ -458,6 +458,29 @@ class _WatchState extends State<Watch> with WidgetsBindingObserver {
       return KeyEventResult.handled;
     }
 
+    // With controls hidden, D-pad Up acts like the on-screen mega skip button:
+    // skip the current OP/ED when inside one, otherwise use megaSkipDuration.
+    if (!playerProvider.state.controlsVisible &&
+        event.logicalKey == LogicalKeyboardKey.arrowUp) {
+      if (playerDataProvider.state.controlsLocked) {
+        return KeyEventResult.handled;
+      }
+
+      final position = ((playerProvider.controller.position ?? 0) / 1000).toInt();
+      final op = playerDataProvider.state.opSkip;
+      final ed = playerDataProvider.state.edSkip;
+      final megaSkip = currentUserSettings?.megaSkipDuration;
+
+      if (op != null && position >= op.start && position <= op.end) {
+        playerProvider.fastForward(op.end - position);
+      } else if (ed != null && position >= ed.start && position <= ed.end) {
+        playerProvider.fastForward(ed.end - position);
+      } else if (megaSkip != null) {
+        playerProvider.fastForward(megaSkip);
+      }
+      return KeyEventResult.handled;
+    }
+
     // Keep the existing hidden-controls seek behavior, but when the player
     // controls are visible let Flutter move focus between the controls.
     if (playerProvider.state.controlsVisible &&
@@ -501,8 +524,17 @@ class _WatchState extends State<Watch> with WidgetsBindingObserver {
       onKeyEvent: (node, event) =>
           _handleTvSeekKey(event, playerProvider, playerDataProvider),
       child: PopScope(
-      canPop: true,
+      canPop: !playerProvider.state.controlsVisible,
       onPopInvokedWithResult: (didPop, result) async {
+        if (!didPop && playerProvider.state.controlsVisible) {
+          playerProvider.toggleControlsVisibility(action: false);
+          _controlsTimer?.cancel();
+          _controlsTimer = null;
+          return;
+        }
+
+        if (!didPop) return;
+
         // save the last watched duration
         if (isInitiated && (controller.duration ?? 0) > 0) {
           final pos = (controller.position ?? 0).toDouble();

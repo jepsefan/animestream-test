@@ -18,8 +18,11 @@ class SettingsModal {
   /// Enable pre-release update notifications [defaults to false]
   final bool? receivePreReleases;
 
-  /// AMOLED background for dark mode [defaults to false]
+  /// AMOLED background for dark mode [defaults to true]
   final bool? amoledBackground;
+
+  /// One-time migration marker for the beta10 AMOLED-default change.
+  final bool? amoledDefaultTrueMigrated;
 
   /// Preferred quality for the player [defaults to 1080p]
   final String? preferredQuality; // 1080p | 720p |480p | 360p as string
@@ -99,6 +102,7 @@ class SettingsModal {
     this.showErrors,
     this.receivePreReleases,
     this.amoledBackground,
+    this.amoledDefaultTrueMigrated,
     this.preferredQuality,
     this.preferredQualityDefault1080Migrated,
     this.navbarTranslucency,
@@ -131,7 +135,8 @@ class SettingsModal {
       skipDuration: map['skipDuration'] ?? 10,
       showErrors: map['showErrors'] ?? false,
       receivePreReleases: map['receivePreReleases'] ?? false,
-      amoledBackground: map['amoledBackground'] ?? false,
+      amoledBackground: map['amoledBackground'] ?? true,
+      amoledDefaultTrueMigrated: map['amoledDefaultTrueMigrated'] ?? false,
       preferredQuality: map['preferredQuality'] ?? "1080p",
       preferredQualityDefault1080Migrated:
           map['preferredQualityDefault1080Migrated'] ?? false,
@@ -167,6 +172,7 @@ class SettingsModal {
       'showErrors': showErrors,
       'receivePreReleases': receivePreReleases,
       'amoledBackground': amoledBackground,
+      'amoledDefaultTrueMigrated': amoledDefaultTrueMigrated,
       'preferredQuality': preferredQuality,
       'preferredQualityDefault1080Migrated':
           preferredQualityDefault1080Migrated,

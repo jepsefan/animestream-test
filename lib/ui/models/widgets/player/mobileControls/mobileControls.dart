@@ -256,32 +256,34 @@ class _MobileControlsState extends State<MobileControls> {
                                             _timelineFocusNode.hasFocus ? 90 : 0,
                                           ),
                                         ),
-                                        child: Slider(
-                                          value: dataProvider.state.sliderValue.toDouble(),
-                                          secondaryTrackValue:
-                                              provider.controller.buffered?.toDouble(),
-                                          onChanged: (val) {
-                                            setState(() {
-                                              _pendingSeek = provider.controller
-                                                  .seekTo(Duration(seconds: val.toInt()));
-                                            });
-                                          },
-                                          onChangeStart: (value) {
-                                            provider.controller.pause();
-                                          },
-                                          onChangeEnd: (value) async {
-                                            if (_pendingSeek != null) {
-                                              await _pendingSeek;
-                                            }
+                                        child: ExcludeFocus(
+                                          child: Slider(
+                                            value: dataProvider.state.sliderValue.toDouble(),
+                                            secondaryTrackValue:
+                                                provider.controller.buffered?.toDouble(),
+                                            onChanged: (val) {
+                                              setState(() {
+                                                _pendingSeek = provider.controller
+                                                    .seekTo(Duration(seconds: val.toInt()));
+                                              });
+                                            },
+                                            onChangeStart: (value) {
+                                              provider.controller.pause();
+                                            },
+                                            onChangeEnd: (value) async {
+                                              if (_pendingSeek != null) {
+                                                await _pendingSeek;
+                                              }
 
-                                            // just to make sure its on the same page...
-                                            await provider.controller
-                                                .seekTo(Duration(seconds: value.toInt()));
+                                              // just to make sure its on the same page...
+                                              await provider.controller
+                                                  .seekTo(Duration(seconds: value.toInt()));
 
-                                            await provider.controller.play();
-                                          },
-                                          min: 0,
-                                          max: (provider.controller.duration ?? 0) / 1000,
+                                              await provider.controller.play();
+                                            },
+                                            min: 0,
+                                            max: (provider.controller.duration ?? 0) / 1000,
+                                          ),
                                         ),
                                       ),
                                     ),

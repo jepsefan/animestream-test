@@ -403,6 +403,35 @@ class _AnimeStreamState extends State<AnimeStream>
                 ),
               );
             },
+            builder: (context, child) {
+              return Listener(
+                behavior: HitTestBehavior.translucent,
+                onPointerDown: (_) => _registerUserActivity(),
+                onPointerMove: (_) => _registerUserActivity(),
+                onPointerHover: (_) => _registerUserActivity(),
+                onPointerSignal: (_) => _registerUserActivity(),
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    if (child != null) child,
+                    IgnorePointer(
+                      child: AnimatedOpacity(
+                        opacity: _amoledProtectionEnabled &&
+                                !isWatchPageActive &&
+                                _globalDimmed
+                            ? 1
+                            : 0,
+                        duration: const Duration(milliseconds: 600),
+                        curve: Curves.easeInOut,
+                        child: Container(
+                          color: const Color.fromARGB(155, 0, 0, 0),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            },
             home: ChangeNotifierProvider(
               create: (context) => MainNavProvider(),
               child: Platform.isWindows || Platform.isLinux ? AppWrapper(firstPage: MainNavigator()) : MainNavigator(),

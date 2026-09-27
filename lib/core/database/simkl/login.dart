@@ -213,11 +213,12 @@ class SimklLogin extends DatabaseLogin {
           token != null &&
           token.isNotEmpty) {
         final grantedScopes = grantedScope
-            .split(RegExp(r'\\s+'))
+            .split(RegExp(r'\s+'))
             .where((scope) => scope.isNotEmpty)
             .toSet();
 
-        if (!grantedScopes.contains('media:write')) {
+        if (grantedScope.isNotEmpty &&
+            !grantedScopes.contains('media:write')) {
           throw SimklDeviceAuthException(
             'missing_write_scope',
             'SIMKL login succeeded, but media:write permission was not granted.',

@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:animestream/core/anime/downloader/downloadManager.dart';
 import 'package:animestream/core/data/watching.dart';
 import 'package:animestream/ui/models/bottomSheets/batchDownload.dart';
@@ -5,6 +7,7 @@ import 'package:animestream/ui/models/bottomSheets/commentSection.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 import 'package:animestream/core/app/runtimeDatas.dart';
@@ -33,7 +36,10 @@ class _InfoMobileState extends State<InfoMobile> {
 
   bool infoPage = true;
 
-  FocusNode _watchInfoButtonFocusNode = FocusNode();
+  final FocusNode _watchInfoButtonFocusNode =
+      FocusNode(debugLabel: 'info_watch_button');
+  final FocusNode _backButtonFocusNode =
+      FocusNode(debugLabel: 'info_back_button');
   final useNativeTitle = currentUserSettings?.nativeTitle ?? false;
 
   // just a small helper function to get the title based on preference!
@@ -250,6 +256,13 @@ class _InfoMobileState extends State<InfoMobile> {
                   ),
                 ),
     );
+  }
+
+  @override
+  void dispose() {
+    _watchInfoButtonFocusNode.dispose();
+    _backButtonFocusNode.dispose();
+    super.dispose();
   }
 
   IconData viewModeIcon() {
@@ -1525,16 +1538,35 @@ class _InfoMobileState extends State<InfoMobile> {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              IconButton(
-                onPressed: () {
-                  Navigator.of(context).pop();
+              Focus(
+                onKeyEvent: (node, event) {
+                  if (event is KeyDownEvent &&
+                      event.logicalKey == LogicalKeyboardKey.arrowDown) {
+                    _watchInfoButtonFocusNode.requestFocus();
+                    return KeyEventResult.handled;
+                  }
+                  return KeyEventResult.ignored;
                 },
-                iconSize: 27,
-                icon: Icon(
-                  Icons.arrow_back_rounded,
-                  color: Colors.white,
+                child: IconButton(
+                  focusNode: _backButtonFocusNode,
+                  autofocus: Platform.isAndroid,
+                  onFocusChange: (_) {
+                    if (mounted) setState(() {});
+                  },
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                  },
+                  iconSize: 27,
+                  icon: const Icon(
+                    Icons.arrow_back_rounded,
+                    color: Colors.white,
+                  ),
+                  style: IconButton.styleFrom(
+                    backgroundColor: _backButtonFocusNode.hasFocus
+                        ? appTheme.accentColor
+                        : const Color.fromARGB(69, 0, 0, 0),
+                  ),
                 ),
-                style: IconButton.styleFrom(backgroundColor: Color.fromARGB(69, 0, 0, 0)),
               ),
               IconButton(
                 onPressed: () {

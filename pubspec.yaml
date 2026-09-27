@@ -20,6 +20,7 @@ dependencies:
   js_unpack: ^1.0.4
   url_launcher: ^6.3.2
   url_launcher_android: ^6.3.32
+  qr_flutter: ^4.1.0
   flutter_web_auth_2: ^6.0.0-alpha.0
   crypto: ^3.0.6
 

@@ -42,6 +42,7 @@ class _WatchState extends State<Watch> with WidgetsBindingObserver {
   @override
   void initState() {
     super.initState();
+    isWatchPageActive = true;
     setWatchMode();
 
     controller = widget.controller;
@@ -896,6 +897,7 @@ class _WatchState extends State<Watch> with WidgetsBindingObserver {
 
   @override
   void dispose() {
+    isWatchPageActive = false;
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     SystemChrome.setPreferredOrientations(
         [DeviceOrientation.portraitUp, DeviceOrientation.landscapeRight, DeviceOrientation.landscapeLeft]);

@@ -6,6 +6,8 @@ import "package:animestream/core/commons/enums/hiveEnums.dart";
 import "package:animestream/core/database/anilist/login.dart";
 import "package:animestream/core/database/anilist/queries.dart";
 import "package:animestream/core/database/anilist/types.dart";
+import "package:animestream/core/database/simkl/login.dart";
+import "package:animestream/core/database/mal/login.dart";
 import "package:animestream/core/database/handler/syncHandler.dart";
 import "package:animestream/core/database/types.dart";
 import "package:animestream/core/commons/enums.dart";
@@ -22,9 +24,11 @@ Future<void> storeWatching(
   double? rating,
 }) async {
   try {
-    //add to anilist if the user is logged in
     Logs.app.log("SETTING WATCHED TO $watched");
-    if (await AniListLogin().isAnilistLoggedIn()) {
+    final hasRemoteAccount = await AniListLogin().isAnilistLoggedIn() ||
+        await SimklLogin.isLoggedIn() ||
+        await MALLogin().isLoggedIn();
+    if (hasRemoteAccount) {
       SyncHandler()
           .mutateAnimeList(id: id, status: MediaStatus.CURRENT, progress: watched, otherIds: alternateDatabases);
     } else {
@@ -57,7 +61,10 @@ Future<void> storeWatching(
 Future<void> updateWatching(int? id, String title, int watched, List<AlternateDatabaseId> otherIds) async {
   try {
     Logs.app.log("UPDATING WATCHED TO $watched");
-    if (await AniListLogin().isAnilistLoggedIn()) {
+    final hasRemoteAccount = await AniListLogin().isAnilistLoggedIn() ||
+        await SimklLogin.isLoggedIn() ||
+        await MALLogin().isLoggedIn();
+    if (hasRemoteAccount) {
       if (id == null) throw Exception("ERR_NO_ID_PROVIDED");
       SyncHandler().mutateAnimeList(
         id: id,

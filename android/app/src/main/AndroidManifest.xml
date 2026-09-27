@@ -15,6 +15,7 @@
         android:label="animestream"
         android:name="${applicationName}"
         android:icon="@drawable/ic_launcher_purple"
+        android:banner="@drawable/banner"
         android:requestLegacyExternalStorage="true"
         android:allowBackup="false">
         <activity

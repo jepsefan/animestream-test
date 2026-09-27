@@ -3,12 +3,14 @@ import 'package:animestream/core/commons/enums.dart';
 import 'package:animestream/core/data/secureStorage.dart';
 import 'package:animestream/core/database/anilist/anilist.dart';
 import 'package:animestream/core/database/anilist/login.dart';
+import 'package:animestream/core/database/anilist/localTvLogin.dart';
 import 'package:animestream/core/database/anilist/types.dart';
 import 'package:animestream/core/database/database.dart';
 import 'package:animestream/core/database/mal/login.dart';
 import 'package:animestream/core/database/simkl/login.dart';
 import 'package:animestream/core/database/simkl/types.dart';
 import 'package:animestream/ui/models/snackBar.dart';
+import 'package:animestream/core/commons/utils.dart';
 import 'package:animestream/ui/models/widgets/loader.dart';
 import 'package:animestream/ui/pages/settingPages/common.dart';
 import 'package:animestream/ui/models/providers/appProvider.dart';
@@ -16,6 +18,7 @@ import 'package:animestream/ui/pages/settingPages/widgets/database_account_card.
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:qr_flutter/qr_flutter.dart';
 
 class AccountSetting extends StatefulWidget {
   const AccountSetting({super.key});
@@ -135,6 +138,149 @@ class _AccountSettingState extends State<AccountSetting> {
         break;
     }
     floatingSnackBar("Logged out successfully!");
+  }
+
+  Future<bool> _handleAniListLogin() async {
+    if (!(await isTv())) {
+      return AniListLogin().initiateLogin();
+    }
+
+    AniListLocalTvLoginSession session;
+    try {
+      session = await AniListLocalTvLoginSession.start();
+    } catch (err) {
+      floatingSnackBar("Could not start local AniList login: ${err.toString()}");
+      return false;
+    }
+
+    bool cancelled = false;
+    bool tokenListenerStarted = false;
+    String? errorMessage;
+
+    final result = await showDialog<String>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            if (!tokenListenerStarted) {
+              tokenListenerStarted = true;
+              WidgetsBinding.instance.addPostFrameCallback((_) async {
+                try {
+                  final token = await session.token;
+                  if (cancelled || !context.mounted) return;
+
+                  await storeSecureVal(SecureStorageKey.anilistToken, token);
+
+                  try {
+                    await AniListLogin().getUserProfile();
+                  } catch (err) {
+                    await AniListLogin().removeToken();
+                    if (context.mounted && !cancelled) {
+                      setDialogState(() {
+                        errorMessage =
+                            "AniList rejected the token. Start login again and paste the complete token.";
+                      });
+                    }
+                    return;
+                  }
+
+                  if (context.mounted &&
+                      !cancelled &&
+                      Navigator.of(context).canPop()) {
+                    Navigator.of(context).pop('success');
+                  }
+                } catch (err) {
+                  if (!context.mounted || cancelled) return;
+                  setDialogState(() {
+                    errorMessage =
+                        "Local AniList login failed: ${err.toString()}";
+                  });
+                }
+              });
+            }
+
+            return AlertDialog(
+              backgroundColor: appTheme.modalSheetBackgroundColor,
+              title: const Text("Connect AniList"),
+              content: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 520),
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Text(
+                        "Scan this QR code with a phone on the same local network as the TV.",
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 16),
+                      Container(
+                        color: Colors.white,
+                        padding: const EdgeInsets.all(10),
+                        child: QrImageView(
+                          data: session.localUrl,
+                          version: QrVersions.auto,
+                          size: 220,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      SelectableText(
+                        session.localUrl,
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 16),
+                      if (errorMessage == null) ...[
+                        const CircularProgressIndicator(),
+                        const SizedBox(height: 10),
+                        const Text(
+                          "Waiting for the token from your phone...",
+                          textAlign: TextAlign.center,
+                        ),
+                      ] else ...[
+                        Text(
+                          errorMessage!,
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(color: Colors.redAccent),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    cancelled = true;
+                    Navigator.of(context).pop('old');
+                  },
+                  child: const Text("Use old login"),
+                ),
+                TextButton(
+                  onPressed: () {
+                    cancelled = true;
+                    Navigator.of(context).pop('cancel');
+                  },
+                  child: const Text("Cancel"),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+
+    cancelled = true;
+    await session.close();
+
+    if (result == 'success') {
+      return true;
+    }
+
+    if (result == 'old') {
+      return AniListLogin().initiateLogin();
+    }
+
+    return false;
   }
 
   Future<bool> _handleSimklDeviceLogin() async {
@@ -298,7 +444,7 @@ class _AccountSettingState extends State<AccountSetting> {
     try {
       switch (db) {
         case Databases.anilist:
-          logged = await AniListLogin().initiateLogin();
+          logged = await _handleAniListLogin();
           break;
         case Databases.simkl:
           logged = await _handleSimklDeviceLogin();

@@ -14,11 +14,10 @@
 - Hidden Left / Right keep the existing seek behavior and skip animation.
 - Touch and mouse control behavior remains unchanged.
 
-### In-app beta updates
-- Update checks now use releases from `jepsefan/animestream-test` instead of FrostNova's upstream repository.
-- A currently installed beta automatically allows newer prerelease/beta updates even if the normal prerelease setting is off.
-- The update dialog's browser link now opens the fork releases page.
-- Android in-place updates still require all APKs to be signed with the same keystore.
+### UI defaults
+- AMOLED Background is now enabled by default.
+- Existing beta installs using the old default are migrated to AMOLED once.
+- Users can still turn AMOLED Background off manually afterwards.
 
 ### Playback quality
 - Preferred playback quality now defaults to **1080p**.

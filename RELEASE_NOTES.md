@@ -1,18 +1,13 @@
-# v1.4.8-beta8
+# v1.4.8-beta9
 
-> Test release. This beta adds safer status/UI subtitle grouping and Android TV focus navigation.
+> Test release. This beta adds SIMKL PIN/device-code login.
 
-## Changes since beta7
+## Changes since beta8
 
-### Subtitle status grouping
-- Status/UI subtitles now use the area from 5% below the top to 5% above the bottom; oversized groups are scaled down to stay fully inside the video frame.
-- Standalone status keywords such as **Attack**, **Defense**, **Magic**, **Speed**, **Equipment**, and **Skills** can identify a status/UI block.
-- A keyword only triggers when it occupies a complete subtitle line by itself.
-- When triggered, **all cues with the exact same start timestamp** are grouped together and rendered in the existing left-side status area.
-- Embedded text such as `Monster: Raana` does not trigger this rule.
-
-### Android TV controls
-- Added a real focus target to the center **Play/Pause** control when player controls appear.
-- When controls are visible, D-pad directions are left to Flutter focus navigation.
-- When controls are hidden, the existing **Left/Right seek behavior and skip animation** are preserved.
-- Existing Play/Pause media-key handling is unchanged.
+### SIMKL login
+- Added SIMKL device authorization using `POST /oauth2/device`.
+- The account page shows the returned `user_code` and verification URL.
+- Added an **Open Simkl** button using `verification_uri_complete` when available.
+- The app polls `POST /oauth2/token` until authorization succeeds or the device code expires.
+- Handles `authorization_pending`, `slow_down`, `expired_token`, and `access_denied`.
+- The device flow uses `SIMKL_CLIENT_ID` and does not use the redirect URL flow for SIMKL login.

@@ -184,6 +184,7 @@ class _WatchState extends State<Watch> with WidgetsBindingObserver {
             : PlayerState.paused;
 
     playerProvider.updatePlayState(playState);
+    _updateOledPauseProtection();
 
     final currentPositionInSeconds = (controller.position ?? 0) ~/ 1000;
     final durationInSeconds = (controller.duration ?? 0) ~/ 1000;
@@ -265,6 +266,33 @@ class _WatchState extends State<Watch> with WidgetsBindingObserver {
         _controlsTimer = null;
       });
     }
+  }
+
+  Timer? _oledPauseProtectionTimer;
+  bool _oledPauseDimmed = false;
+
+  void _updateOledPauseProtection() {
+    final isPlaying = controller.isPlaying ?? false;
+    final isBuffering = controller.isBuffering ?? false;
+
+    if (isPlaying || isBuffering) {
+      _oledPauseProtectionTimer?.cancel();
+      _oledPauseProtectionTimer = null;
+      if (_oledPauseDimmed && mounted) {
+        setState(() => _oledPauseDimmed = false);
+      }
+      return;
+    }
+
+    if (_oledPauseDimmed || _oledPauseProtectionTimer != null) return;
+
+    _oledPauseProtectionTimer = Timer(const Duration(seconds: 8), () {
+      _oledPauseProtectionTimer = null;
+      if (!mounted) return;
+      if (!(controller.isPlaying ?? false) && !(controller.isBuffering ?? false)) {
+        setState(() => _oledPauseDimmed = true);
+      }
+    });
   }
 
   Timer? _controlsTimer = null;
@@ -600,6 +628,15 @@ class _WatchState extends State<Watch> with WidgetsBindingObserver {
                       headers: playerDataProvider.state.currentStream.customHeaders,
                       isOffline: widget.localSource,
                     ),
+                  IgnorePointer(
+                    child: AnimatedOpacity(
+                      duration: const Duration(milliseconds: 500),
+                      opacity: _oledPauseDimmed ? 1 : 0,
+                      child: Container(
+                        color: const Color.fromARGB(150, 0, 0, 0),
+                      ),
+                    ),
+                  ),
                   isInitiated
                       ? AnimatedOpacity(
                           duration: Duration(milliseconds: 150),
@@ -838,6 +875,7 @@ class _WatchState extends State<Watch> with WidgetsBindingObserver {
     controller.removeListener(_listener);
     controller.dispose();
     _controlsTimer?.cancel();
+    _oledPauseProtectionTimer?.cancel();
     _tapTimer?.cancel();
 
     WidgetsBinding.instance.removeObserver(this);

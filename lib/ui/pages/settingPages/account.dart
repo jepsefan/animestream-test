@@ -366,23 +366,49 @@ class _AccountSettingState extends State<AccountSetting> {
                 content: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Text("Open Simkl and enter this code:"),
-                    const SizedBox(height: 14),
-                    SelectableText(
-                      code.userCode,
-                      style: const TextStyle(
-                        fontSize: 30,
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: 3,
-                      ),
+                    const Text(
+                      "Scan the QR code or open Simkl and approve this login.",
+                      textAlign: TextAlign.center,
                     ),
-                    const SizedBox(height: 12),
-                    SelectableText(code.verificationUri),
+                    const SizedBox(height: 14),
+                    Builder(
+                      builder: (context) {
+                        final qrTarget = code.verificationUriComplete ??
+                            "https://simkl.com/pin/${Uri.encodeComponent(code.userCode)}";
+                        return Column(
+                          children: [
+                            Container(
+                              color: Colors.white,
+                              padding: const EdgeInsets.all(10),
+                              child: QrImageView(
+                                data: qrTarget,
+                                version: QrVersions.auto,
+                                size: 210,
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            SelectableText(
+                              code.userCode,
+                              style: const TextStyle(
+                                fontSize: 30,
+                                fontWeight: FontWeight.bold,
+                                letterSpacing: 3,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            SelectableText(
+                              qrTarget,
+                              textAlign: TextAlign.center,
+                            ),
+                          ],
+                        );
+                      },
+                    ),
                     const SizedBox(height: 16),
                     ElevatedButton.icon(
                       onPressed: () async {
-                        final target =
-                            code.verificationUriComplete ?? code.verificationUri;
+                        final target = code.verificationUriComplete ??
+                            "https://simkl.com/pin/${Uri.encodeComponent(code.userCode)}";
                         final uri = Uri.parse(target);
                         final opened = await launchUrl(
                           uri,

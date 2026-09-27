@@ -24,6 +24,9 @@ class SettingsModal {
   /// Preferred quality for the player [defaults to 1080p]
   final String? preferredQuality; // 1080p | 720p |480p | 360p as string
 
+  /// One-time migration marker for the beta10 1080p default.
+  final bool? preferredQualityDefault1080Migrated;
+
   /// The trasparency of the homescreen navbar
   final double? navbarTranslucency; //value from 0 to 1
 
@@ -97,6 +100,7 @@ class SettingsModal {
     this.receivePreReleases,
     this.amoledBackground,
     this.preferredQuality,
+    this.preferredQualityDefault1080Migrated,
     this.navbarTranslucency,
     this.fasterDownloads,
     this.preferredProvider,
@@ -129,6 +133,8 @@ class SettingsModal {
       receivePreReleases: map['receivePreReleases'] ?? false,
       amoledBackground: map['amoledBackground'] ?? false,
       preferredQuality: map['preferredQuality'] ?? "1080p",
+      preferredQualityDefault1080Migrated:
+          map['preferredQualityDefault1080Migrated'] ?? false,
       navbarTranslucency: map['navbarTranslucency'] ?? 1.0,
       fasterDownloads: map['fasterDownloads'] ?? false,
       preferredProvider: map['preferredProvider'] ?? null,
@@ -162,6 +168,8 @@ class SettingsModal {
       'receivePreReleases': receivePreReleases,
       'amoledBackground': amoledBackground,
       'preferredQuality': preferredQuality,
+      'preferredQualityDefault1080Migrated':
+          preferredQualityDefault1080Migrated,
       'navbarTranslucency': navbarTranslucency,
       'fasterDownloads': fasterDownloads,
       'preferredProvider': preferredProvider,

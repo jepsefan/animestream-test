@@ -142,11 +142,27 @@ class _AccountSettingState extends State<AccountSetting> {
 
     if (!mounted) return false;
 
+    bool cancelled = false;
+    late BuildContext dialogContext;
+
     final pollFuture = SimklLogin.pollDeviceCode(code);
+
+    pollFuture.then((logged) {
+      if (!cancelled && logged && mounted && Navigator.of(dialogContext).canPop()) {
+        Navigator.of(dialogContext).pop(true);
+      }
+    }).catchError((error) {
+      if (!cancelled && mounted && Navigator.of(dialogContext).canPop()) {
+        Navigator.of(dialogContext).pop(false);
+      }
+      return false;
+    });
+
     final approved = await showDialog<bool>(
       context: context,
       barrierDismissible: false,
-      builder: (dialogContext) {
+      builder: (context) {
+        dialogContext = context;
         return AlertDialog(
           backgroundColor: appTheme.modalSheetBackgroundColor,
           title: const Text("Connect Simkl"),
@@ -184,7 +200,10 @@ class _AccountSettingState extends State<AccountSetting> {
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(false),
+              onPressed: () {
+                cancelled = true;
+                Navigator.of(context).pop(false);
+              },
               child: const Text("Cancel"),
             ),
           ],
@@ -192,15 +211,7 @@ class _AccountSettingState extends State<AccountSetting> {
       },
     );
 
-    if (approved == false) {
-      return false;
-    }
-
-    final logged = await pollFuture;
-    if (mounted && Navigator.of(context).canPop()) {
-      Navigator.of(context).pop();
-    }
-    return logged;
+    return approved == true;
   }
 
   void _handleLogin(Databases db) async {

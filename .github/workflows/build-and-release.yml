@@ -122,13 +122,15 @@ jobs:
 
       - name: Setup env File
         env:
+          ANILIST_PIN_CLIENT_ID: ${{ secrets.ANILIST_PIN_CLIENT_ID }}
           SIMKL_CLIENT_SECRET: ${{ secrets.SIMKL_CLIENT_SECRET }}
           SIMKL_CLIENT_ID: ${{ secrets.SIMKL_CLIENT_ID }}
           COMMENTUM_API_URL: ${{ secrets.COMMENTUM_API_URL }}
           DISCORD_APP_ID: ${{secrets.DISCORD_APP_ID }}
         shell: bash
         run: |
-          echo "SIMKL_CLIENT_SECRET=$SIMKL_CLIENT_SECRET" > .env
+          echo "ANILIST_PIN_CLIENT_ID=$ANILIST_PIN_CLIENT_ID" > .env
+          echo "SIMKL_CLIENT_SECRET=$SIMKL_CLIENT_SECRET" >> .env
           echo "SIMKL_CLIENT_ID=$SIMKL_CLIENT_ID" >> .env
           echo "COMMENTUM_API_URL=$COMMENTUM_API_URL" >> .env
           echo "DISCORD_APP_ID=$DISCORD_APP_ID" >> .env

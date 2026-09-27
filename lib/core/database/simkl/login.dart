@@ -127,7 +127,10 @@ class SimklLogin extends DatabaseLogin {
         'Accept': 'application/json',
         'Content-Type': 'application/x-www-form-urlencoded',
       },
-      body: {'client_id': clientId},
+      body: {
+        'client_id': clientId,
+        'scope': 'media:read media:write',
+      },
     );
 
     if (res.statusCode < 200 || res.statusCode >= 300) {
@@ -204,13 +207,28 @@ class SimklLogin extends DatabaseLogin {
       }
 
       final token = data['access_token']?.toString();
+      final grantedScope = data['scope']?.toString() ?? '';
       if (res.statusCode >= 200 &&
           res.statusCode < 300 &&
           token != null &&
           token.isNotEmpty) {
+        final grantedScopes = grantedScope
+            .split(RegExp(r'\\s+'))
+            .where((scope) => scope.isNotEmpty)
+            .toSet();
+
+        if (!grantedScopes.contains('media:write')) {
+          throw SimklDeviceAuthException(
+            'missing_write_scope',
+            'SIMKL login succeeded, but media:write permission was not granted.',
+          );
+        }
+
         await _validateAccessToken(token);
         await storeSecureVal(SecureStorageKey.simklToken, token);
-        print("[SIMKL-LOGIN]: Device login success, Access token validated and saved!");
+        print(
+          "[SIMKL-LOGIN]: Device login success with media:write, access token validated and saved!",
+        );
         return true;
       }
 

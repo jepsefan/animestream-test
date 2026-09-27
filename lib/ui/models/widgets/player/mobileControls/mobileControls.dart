@@ -25,6 +25,8 @@ class _MobileControlsState extends State<MobileControls> {
   final FocusNode _playPauseFocusNode = FocusNode(debugLabel: 'video_play_pause');
   final FocusNode _bottomControlsFocusNode =
       FocusNode(debugLabel: 'video_bottom_controls');
+  final FocusNode _timelineFocusNode =
+      FocusNode(debugLabel: 'video_timeline');
   bool _wasControlsVisible = false;
 
   bool startedLoadingNext = false;
@@ -45,6 +47,7 @@ class _MobileControlsState extends State<MobileControls> {
   void dispose() {
     _playPauseFocusNode.dispose();
     _bottomControlsFocusNode.dispose();
+    _timelineFocusNode.dispose();
     WakelockPlus.disable();
     super.dispose();
   }
@@ -190,49 +193,73 @@ class _MobileControlsState extends State<MobileControls> {
                                 child: IgnorePointer(
                                   ignoring: dataProvider.state.controlsLocked,
                                   child: Container(
-                                    child: SliderTheme(
-                                      data: SliderThemeData(
-                                          trackHeight: 1.3,
+                                    child: Focus(
+                                      focusNode: _timelineFocusNode,
+                                      onFocusChange: (_) {
+                                        if (mounted) setState(() {});
+                                      },
+                                      child: SliderTheme(
+                                        data: SliderThemeData(
+                                          trackHeight: _timelineFocusNode.hasFocus ? 2.4 : 1.3,
                                           thumbColor: appTheme.accentColor,
                                           activeTrackColor: appTheme.accentColor,
-                                          inactiveTrackColor: Color.fromARGB(255, 121, 121, 121),
-                                          secondaryActiveTrackColor: Color.fromARGB(255, 167, 167, 167),
+                                          inactiveTrackColor: const Color.fromARGB(255, 121, 121, 121),
+                                          secondaryActiveTrackColor:
+                                              const Color.fromARGB(255, 167, 167, 167),
                                           thumbShape: dataProvider.state.controlsLocked
                                               ? SliderComponentShape.noThumb
-                                              : RoundSliderThumbShape(enabledThumbRadius: 6),
+                                              : RoundSliderThumbShape(
+                                                  enabledThumbRadius:
+                                                      _timelineFocusNode.hasFocus ? 8 : 6,
+                                                  elevation:
+                                                      _timelineFocusNode.hasFocus ? 8 : 1,
+                                                  pressedElevation:
+                                                      _timelineFocusNode.hasFocus ? 12 : 6,
+                                                ),
                                           trackShape: EdgeToEdgeTrackShape(),
-                                          overlayShape: SliderComponentShape.noThumb),
-                                      child: CallbackShortcuts(
-                                        bindings: {
-                                          const SingleActivator(LogicalKeyboardKey.arrowDown): () {
-                                            _bottomControlsFocusNode.requestFocus();
+                                          overlayShape: _timelineFocusNode.hasFocus
+                                              ? const RoundSliderOverlayShape(
+                                                  overlayRadius: 16,
+                                                )
+                                              : SliderComponentShape.noOverlay,
+                                          overlayColor: appTheme.accentColor.withAlpha(
+                                            _timelineFocusNode.hasFocus ? 90 : 0,
+                                          ),
+                                        ),
+                                        child: CallbackShortcuts(
+                                          bindings: {
+                                            const SingleActivator(LogicalKeyboardKey.arrowDown): () {
+                                              _bottomControlsFocusNode.requestFocus();
+                                            },
                                           },
-                                        },
-                                        child: Slider(
-                                          value: dataProvider.state.sliderValue.toDouble(),
-                                          secondaryTrackValue: provider.controller.buffered?.toDouble(),
-                                          onChanged: (val) {
-                                            setState(() {
-                                              _pendingSeek =
-                                                  provider.controller.seekTo(Duration(seconds: val.toInt()));
-                                            });
-                                          },
-                                          onChangeStart: (value) {
-                                            provider.controller.pause();
-                                          },
-                                          onChangeEnd: (value) async {
-                                            if (_pendingSeek != null) {
-                                              await _pendingSeek;
-                                            }
+                                          child: Slider(
+                                            focusNode: _timelineFocusNode,
+                                            value: dataProvider.state.sliderValue.toDouble(),
+                                            secondaryTrackValue:
+                                                provider.controller.buffered?.toDouble(),
+                                            onChanged: (val) {
+                                              setState(() {
+                                                _pendingSeek = provider.controller
+                                                    .seekTo(Duration(seconds: val.toInt()));
+                                              });
+                                            },
+                                            onChangeStart: (value) {
+                                              provider.controller.pause();
+                                            },
+                                            onChangeEnd: (value) async {
+                                              if (_pendingSeek != null) {
+                                                await _pendingSeek;
+                                              }
 
-                                            // just to make sure its on the same page...
-                                            await provider.controller
-                                                .seekTo(Duration(seconds: value.toInt()));
+                                              // just to make sure its on the same page...
+                                              await provider.controller
+                                                  .seekTo(Duration(seconds: value.toInt()));
 
-                                            await provider.controller.play();
-                                          },
-                                          min: 0,
-                                          max: (provider.controller.duration ?? 0) / 1000,
+                                              await provider.controller.play();
+                                            },
+                                            min: 0,
+                                            max: (provider.controller.duration ?? 0) / 1000,
+                                          ),
                                         ),
                                       ),
                                     ),

@@ -211,6 +211,12 @@ class _MobileControlsState extends State<MobileControls> {
                                           return KeyEventResult.handled;
                                         }
 
+                                        if (event.logicalKey ==
+                                            LogicalKeyboardKey.arrowUp) {
+                                          _playPauseFocusNode.requestFocus();
+                                          return KeyEventResult.handled;
+                                        }
+
                                         final step =
                                             currentUserSettings?.skipDuration ?? 10;
                                         if (event.logicalKey ==

@@ -36,6 +36,11 @@ class _MobileControlsState extends State<MobileControls> {
   @override
   void initState() {
     super.initState();
+    _timelineFocusNode.addListener(_handleTimelineFocusChanged);
+  }
+
+  void _handleTimelineFocusChanged() {
+    if (mounted) setState(() {});
   }
 
   int? skipDuration = currentUserSettings?.skipDuration ?? 10;
@@ -193,12 +198,7 @@ class _MobileControlsState extends State<MobileControls> {
                                 child: IgnorePointer(
                                   ignoring: dataProvider.state.controlsLocked,
                                   child: Container(
-                                    child: Focus(
-                                      focusNode: _timelineFocusNode,
-                                      onFocusChange: (_) {
-                                        if (mounted) setState(() {});
-                                      },
-                                      child: SliderTheme(
+                                    child: SliderTheme(
                                         data: SliderThemeData(
                                           trackHeight: _timelineFocusNode.hasFocus ? 2.4 : 1.3,
                                           thumbColor: appTheme.accentColor,
@@ -261,7 +261,6 @@ class _MobileControlsState extends State<MobileControls> {
                                             max: (provider.controller.duration ?? 0) / 1000,
                                           ),
                                         ),
-                                      ),
                                     ),
                                   ),
                                 ),

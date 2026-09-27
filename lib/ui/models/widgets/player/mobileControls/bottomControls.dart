@@ -8,7 +8,12 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 class BottomControls extends StatelessWidget {
-  const BottomControls({super.key});
+  final FocusNode? firstFocusNode;
+
+  const BottomControls({
+    super.key,
+    this.firstFocusNode,
+  });
 
   void showSheet(BuildContext context, Widget child) => showModalBottomSheet(
       isScrollControlled: true,
@@ -36,6 +41,7 @@ class BottomControls extends StatelessWidget {
                 Row(
                   children: [
                     IconButton(
+                      focusNode: firstFocusNode,
                       onPressed: () {
                         showModalBottomSheet(
                           isScrollControlled: true,

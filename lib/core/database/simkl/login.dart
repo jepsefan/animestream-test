@@ -123,7 +123,10 @@ class SimklLogin extends DatabaseLogin {
 
     final res = await post(
       Uri.parse("https://api.simkl.com/oauth2/device"),
-      headers: {'Accept': 'application/json'},
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
       body: {'client_id': clientId},
     );
 
@@ -181,7 +184,10 @@ class SimklLogin extends DatabaseLogin {
 
       final res = await post(
         Uri.parse("https://api.simkl.com/oauth2/token"),
-        headers: {'Accept': 'application/json'},
+        headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
         body: {
           'grant_type': 'urn:ietf:params:oauth:grant-type:device_code',
           'device_code': code.deviceCode,

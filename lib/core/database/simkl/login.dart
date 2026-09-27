@@ -115,6 +115,108 @@ class SimklLogin extends DatabaseLogin {
     return await completer.future;
   }
 
+  static Future<SimklDeviceCodeResult> requestDeviceCode() async {
+    final clientId = AnimeStreamEnvironment.simklClientId;
+    if (clientId.isEmpty) {
+      throw Exception("SIMKL_CLIENT_ID is missing from this build");
+    }
+
+    final res = await post(
+      Uri.parse("https://api.simkl.com/oauth2/device"),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({'client_id': clientId}),
+    );
+
+    if (res.statusCode < 200 || res.statusCode >= 300) {
+      throw Exception("SIMKL_DEVICE_CODE_FAILED_${res.statusCode}: ${res.body}");
+    }
+
+    final data = jsonDecode(res.body) as Map<String, dynamic>;
+    final deviceCode = data['device_code']?.toString() ?? '';
+    final userCode = data['user_code']?.toString() ?? '';
+
+    if (deviceCode.isEmpty || userCode.isEmpty) {
+      throw Exception("SIMKL_DEVICE_CODE_RESPONSE_INVALID");
+    }
+
+    return SimklDeviceCodeResult(
+      deviceCode: deviceCode,
+      userCode: userCode,
+      verificationUri:
+          data['verification_uri']?.toString() ?? 'https://simkl.com/pin',
+      verificationUriComplete: data['verification_uri_complete']?.toString(),
+      expiresAt: DateTime.now().toUtc().add(
+            Duration(
+              seconds: int.tryParse(data['expires_in'].toString()) ?? 900,
+            ),
+          ),
+      intervalSeconds: int.tryParse(data['interval'].toString()) ?? 5,
+    );
+  }
+
+  static Future<bool> pollDeviceCode(SimklDeviceCodeResult code) async {
+    final clientId = AnimeStreamEnvironment.simklClientId;
+    if (clientId.isEmpty) {
+      throw Exception("SIMKL_CLIENT_ID is missing from this build");
+    }
+
+    var interval = code.intervalSeconds;
+
+    while (DateTime.now().toUtc().isBefore(code.expiresAt)) {
+      await Future.delayed(Duration(seconds: interval));
+
+      final res = await post(
+        Uri.parse("https://api.simkl.com/oauth2/token"),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'grant_type': 'urn:ietf:params:oauth:grant-type:device_code',
+          'device_code': code.deviceCode,
+          'client_id': clientId,
+        }),
+      );
+
+      Map<String, dynamic> data = {};
+      if (res.body.isNotEmpty) {
+        final decoded = jsonDecode(res.body);
+        if (decoded is Map<String, dynamic>) {
+          data = decoded;
+        }
+      }
+
+      final token = data['access_token']?.toString();
+      if (res.statusCode >= 200 &&
+          res.statusCode < 300 &&
+          token != null &&
+          token.isNotEmpty) {
+        await storeSecureVal(SecureStorageKey.simklToken, token);
+        print("[SIMKL-LOGIN]: Device login success, Access token saved!");
+        return true;
+      }
+
+      final error = data['error']?.toString() ?? '';
+
+      if (error == 'authorization_pending') {
+        continue;
+      }
+      if (error == 'slow_down') {
+        interval += 5;
+        continue;
+      }
+      if (error == 'expired_token') {
+        throw Exception("SIMKL_DEVICE_CODE_EXPIRED");
+      }
+      if (error == 'access_denied') {
+        throw Exception("SIMKL_DEVICE_LOGIN_DENIED");
+      }
+
+      throw Exception(
+        "SIMKL_DEVICE_TOKEN_FAILED_${res.statusCode}: ${res.body}",
+      );
+    }
+
+    throw Exception("SIMKL_DEVICE_CODE_EXPIRED");
+  }
+
   Future<UserModal> getUserProfile() async {
     final url = "https://api.simkl.com/users/settings";
     final headers = await SimklMutation.getHeader();
@@ -152,6 +254,24 @@ class SimklLogin extends DatabaseLogin {
   Future<void>? refreshToken() {
     return null; //permanent access token, no need to refresh
   }
+}
+
+class SimklDeviceCodeResult {
+  final String deviceCode;
+  final String userCode;
+  final String verificationUri;
+  final String? verificationUriComplete;
+  final DateTime expiresAt;
+  final int intervalSeconds;
+
+  const SimklDeviceCodeResult({
+    required this.deviceCode,
+    required this.userCode,
+    required this.verificationUri,
+    required this.verificationUriComplete,
+    required this.expiresAt,
+    required this.intervalSeconds,
+  });
 }
 
 class PCKECodeResult {

@@ -12,6 +12,18 @@ class Settings {
     if (!box.isOpen) box = await Hive.openBox(_boxName);
     Map<dynamic, dynamic> settings = await box.get(HiveKey.settings.name) ?? {};
     if (settings.isEmpty) settings = SettingsModal().toMap();
+
+    final migrationDone =
+        settings['preferredQualityDefault1080Migrated'] == true;
+    if (!migrationDone) {
+      final quality = settings['preferredQuality'];
+      if (quality == null || quality == '720p') {
+        settings['preferredQuality'] = '1080p';
+      }
+      settings['preferredQualityDefault1080Migrated'] = true;
+      await box.put(HiveKey.settings.name, settings);
+    }
+
     final classed = SettingsModal.fromMap(settings);
     if (!writing) await box.close();
     return classed;

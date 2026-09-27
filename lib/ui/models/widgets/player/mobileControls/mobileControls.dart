@@ -85,9 +85,13 @@ class _MobileControlsState extends State<MobileControls> {
         provider.fastForward(-(skipDuration ?? 10));
         return KeyEventResult.handled;
       case LogicalKeyboardKey.select:
+      case LogicalKeyboardKey.enter:
+      case LogicalKeyboardKey.numpadEnter:
         {
+          // On Android TV, only D-pad center/OK should open the player overlay.
+          // Touch/mouse visibility handling is independent in Watch/GestureOverlay.
           if (!provider.state.controlsVisible) {
-            provider.toggleControlsVisibility();
+            provider.toggleControlsVisibility(action: true);
             return KeyEventResult.handled;
           }
           return KeyEventResult.ignored;
@@ -97,9 +101,9 @@ class _MobileControlsState extends State<MobileControls> {
       case LogicalKeyboardKey.arrowLeft:
       case LogicalKeyboardKey.arrowRight:
         {
-          if (!provider.state.controlsVisible) {
-            provider.toggleControlsVisibility();
-          }
+          // Do not reveal controls from D-pad directions while hidden.
+          // Left/right are allowed to bubble to Watch, where they perform the
+          // existing seek +/- skipDuration and show the skip animation.
           return KeyEventResult.ignored;
         }
 

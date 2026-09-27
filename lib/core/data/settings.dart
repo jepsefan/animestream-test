@@ -13,6 +13,17 @@ class Settings {
     Map<dynamic, dynamic> settings = await box.get(HiveKey.settings.name) ?? {};
     if (settings.isEmpty) settings = SettingsModal().toMap();
 
+    final amoledMigrationDone =
+        settings['amoledDefaultTrueMigrated'] == true;
+    if (!amoledMigrationDone) {
+      final amoled = settings['amoledBackground'];
+      if (amoled == null || amoled == false) {
+        settings['amoledBackground'] = true;
+      }
+      settings['amoledDefaultTrueMigrated'] = true;
+      await box.put(HiveKey.settings.name, settings);
+    }
+
     final migrationDone =
         settings['preferredQualityDefault1080Migrated'] == true;
     if (!migrationDone) {

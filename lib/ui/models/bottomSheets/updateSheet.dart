@@ -287,7 +287,7 @@ class _UpdateSheetState extends State<UpdateSheet> {
                   IconButton(
                     onPressed: () async {
                       await launchUrl(
-                        Uri.parse("https://github.com/frostnova721/animestream/releases/latest"),
+                        Uri.parse("https://github.com/jepsefan/animestream-test/releases"),
                         mode: LaunchMode.externalApplication,
                       );
                     },

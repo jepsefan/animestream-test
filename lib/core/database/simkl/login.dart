@@ -123,8 +123,8 @@ class SimklLogin extends DatabaseLogin {
 
     final res = await post(
       Uri.parse("https://api.simkl.com/oauth2/device"),
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({'client_id': clientId}),
+      headers: {'Accept': 'application/json'},
+      body: {'client_id': clientId},
     );
 
     if (res.statusCode < 200 || res.statusCode >= 300) {
@@ -154,25 +154,39 @@ class SimklLogin extends DatabaseLogin {
     );
   }
 
-  static Future<bool> pollDeviceCode(SimklDeviceCodeResult code) async {
+  static Future<bool> pollDeviceCode(
+    SimklDeviceCodeResult code, {
+    bool Function()? shouldCancel,
+  }) async {
     final clientId = AnimeStreamEnvironment.simklClientId;
     if (clientId.isEmpty) {
-      throw Exception("SIMKL_CLIENT_ID is missing from this build");
+      throw SimklDeviceAuthException(
+        'missing_client_id',
+        'SIMKL Client ID is missing from this build.',
+      );
     }
 
     var interval = code.intervalSeconds;
 
     while (DateTime.now().toUtc().isBefore(code.expiresAt)) {
+      if (shouldCancel?.call() ?? false) {
+        throw SimklDeviceAuthException('cancelled', 'Login cancelled.');
+      }
+
       await Future.delayed(Duration(seconds: interval));
+
+      if (shouldCancel?.call() ?? false) {
+        throw SimklDeviceAuthException('cancelled', 'Login cancelled.');
+      }
 
       final res = await post(
         Uri.parse("https://api.simkl.com/oauth2/token"),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
+        headers: {'Accept': 'application/json'},
+        body: {
           'grant_type': 'urn:ietf:params:oauth:grant-type:device_code',
           'device_code': code.deviceCode,
           'client_id': clientId,
-        }),
+        },
       );
 
       Map<String, dynamic> data = {};
@@ -198,23 +212,36 @@ class SimklLogin extends DatabaseLogin {
       if (error == 'authorization_pending') {
         continue;
       }
+
       if (error == 'slow_down') {
         interval += 5;
         continue;
       }
+
       if (error == 'expired_token') {
-        throw Exception("SIMKL_DEVICE_CODE_EXPIRED");
-      }
-      if (error == 'access_denied') {
-        throw Exception("SIMKL_DEVICE_LOGIN_DENIED");
+        throw SimklDeviceAuthException(
+          'expired_token',
+          'The SIMKL code expired. Requesting a new code…',
+        );
       }
 
-      throw Exception(
-        "SIMKL_DEVICE_TOKEN_FAILED_${res.statusCode}: ${res.body}",
+      if (error == 'access_denied') {
+        throw SimklDeviceAuthException(
+          'access_denied',
+          'SIMKL authorization was denied.',
+        );
+      }
+
+      throw SimklDeviceAuthException(
+        error.isEmpty ? 'token_error' : error,
+        'SIMKL login failed (${res.statusCode}).',
       );
     }
 
-    throw Exception("SIMKL_DEVICE_CODE_EXPIRED");
+    throw SimklDeviceAuthException(
+      'expired_token',
+      'The SIMKL code expired. Requesting a new code…',
+    );
   }
 
   Future<UserModal> getUserProfile() async {
@@ -254,6 +281,16 @@ class SimklLogin extends DatabaseLogin {
   Future<void>? refreshToken() {
     return null; //permanent access token, no need to refresh
   }
+}
+
+class SimklDeviceAuthException implements Exception {
+  final String code;
+  final String message;
+
+  const SimklDeviceAuthException(this.code, this.message);
+
+  @override
+  String toString() => message;
 }
 
 class SimklDeviceCodeResult {

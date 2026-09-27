@@ -1,27 +1,17 @@
-# v1.4.8-beta11
+# v1.4.8-beta12
 
-> Test release focused on parallel installation, SIMKL login, and OLED pause protection.
+> Test release focused on fixing SIMKL login validation.
 
-## Changes since beta10
-
-### Separate Android test app
-- The fork now uses Android application ID `app.animestream.test`.
-- It can be installed alongside the normal AnimeStream app instead of Android treating it as an update to `app.animestream`.
+## Changes since beta11
 
 ### SIMKL login
-- SIMKL device login now validates the returned access token before reporting a successful login.
-- SIMKL profile parsing accepts the alternate user ID locations returned by different API responses.
-- SIMKL sync operations are now awaited so sync failures are no longer detached from the caller.
-- The SIMKL login dialog now shows a QR code.
-- The QR target includes the PIN, using SIMKL's complete verification URL when supplied and `https://simkl.com/pin/<PIN>` as the fallback.
-- Manual PIN entry and the Open Simkl button remain available.
+- Fixed the post-login validation request to use GET for `/users/settings`.
+- Fixed the normal SIMKL profile request to use GET for `/users/settings`.
+- This addresses the 403 error shown after approving the SIMKL PIN login even though SIMKL had already returned an access token.
 
-### OLED pause protection
-- When playback has been paused continuously for 8 seconds, a dark overlay fades over the video.
-- The player controls stay above the dimming layer and remain readable.
-- The dimming is removed immediately when playback resumes.
-- This does not change the device's system brightness.
-
-### MAL
-- No MAL QR/device-flow change is included in beta11.
-- The existing MAL login remains the browser-based OAuth2/PKCE flow.
+### Included from beta11
+- Separate Android application ID `app.animestream.test` for parallel installation.
+- SIMKL QR/PIN login.
+- OLED pause dimming after 8 seconds.
+- Android TV info-page focus improvements.
+- AniList local-network QR login remains available.

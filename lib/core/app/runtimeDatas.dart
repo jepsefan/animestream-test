@@ -16,3 +16,5 @@ UserPreferencesModal? userPreferences;
 late AnimeStreamTheme appTheme;
 
 late String animeOnsenToken;
+// True while the full-screen player page is mounted.
+bool isWatchPageActive = false;

@@ -138,80 +138,159 @@ class _AccountSettingState extends State<AccountSetting> {
   }
 
   Future<bool> _handleSimklDeviceLogin() async {
-    final code = await SimklLogin.requestDeviceCode();
-
-    if (!mounted) return false;
-
-    bool cancelled = false;
-    late BuildContext dialogContext;
-
-    final pollFuture = SimklLogin.pollDeviceCode(code);
-
-    pollFuture.then((logged) {
-      if (!cancelled && logged && mounted && Navigator.of(dialogContext).canPop()) {
-        Navigator.of(dialogContext).pop(true);
+    while (mounted) {
+      SimklDeviceCodeResult code;
+      try {
+        code = await SimklLogin.requestDeviceCode();
+      } on SimklDeviceAuthException catch (err) {
+        floatingSnackBar(err.message);
+        return false;
+      } catch (err) {
+        floatingSnackBar("Could not request a SIMKL login code: ${err.toString()}");
+        return false;
       }
-    }).catchError((error) {
-      if (!cancelled && mounted && Navigator.of(dialogContext).canPop()) {
-        Navigator.of(dialogContext).pop(false);
-      }
-      return false;
-    });
 
-    final approved = await showDialog<bool>(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) {
-        dialogContext = context;
-        return AlertDialog(
-          backgroundColor: appTheme.modalSheetBackgroundColor,
-          title: const Text("Connect Simkl"),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text("Open Simkl and enter this code:"),
-              const SizedBox(height: 14),
-              SelectableText(
-                code.userCode,
-                style: const TextStyle(
-                  fontSize: 30,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 3,
+      if (!mounted) return false;
+
+      bool cancelled = false;
+      bool pollingStarted = false;
+      String? errorMessage;
+
+      final result = await showDialog<String>(
+        context: context,
+        barrierDismissible: false,
+        builder: (dialogContext) {
+          return StatefulBuilder(
+            builder: (context, setDialogState) {
+              if (!pollingStarted) {
+                pollingStarted = true;
+                WidgetsBinding.instance.addPostFrameCallback((_) async {
+                  try {
+                    final logged = await SimklLogin.pollDeviceCode(
+                      code,
+                      shouldCancel: () => cancelled,
+                    );
+
+                    if (logged &&
+                        context.mounted &&
+                        Navigator.of(context).canPop()) {
+                      Navigator.of(context).pop('success');
+                    }
+                  } on SimklDeviceAuthException catch (err) {
+                    if (!context.mounted || cancelled) return;
+
+                    if (err.code == 'expired_token') {
+                      if (Navigator.of(context).canPop()) {
+                        Navigator.of(context).pop('expired');
+                      }
+                      return;
+                    }
+
+                    if (err.code == 'cancelled') {
+                      return;
+                    }
+
+                    setDialogState(() {
+                      errorMessage = err.message;
+                    });
+                  } catch (err) {
+                    if (!context.mounted || cancelled) return;
+                    setDialogState(() {
+                      errorMessage = "SIMKL login failed: ${err.toString()}";
+                    });
+                  }
+                });
+              }
+
+              return AlertDialog(
+                backgroundColor: appTheme.modalSheetBackgroundColor,
+                title: const Text("Connect Simkl"),
+                content: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Text("Open Simkl and enter this code:"),
+                    const SizedBox(height: 14),
+                    SelectableText(
+                      code.userCode,
+                      style: const TextStyle(
+                        fontSize: 30,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 3,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    SelectableText(code.verificationUri),
+                    const SizedBox(height: 16),
+                    ElevatedButton.icon(
+                      onPressed: () async {
+                        final target =
+                            code.verificationUriComplete ?? code.verificationUri;
+                        final uri = Uri.parse(target);
+                        final opened = await launchUrl(
+                          uri,
+                          mode: LaunchMode.externalApplication,
+                        );
+                        if (!opened && context.mounted) {
+                          setDialogState(() {
+                            errorMessage = "Could not open the SIMKL verification page.";
+                          });
+                        }
+                      },
+                      icon: const Icon(Icons.open_in_browser),
+                      label: const Text("Open Simkl"),
+                    ),
+                    const SizedBox(height: 14),
+                    if (errorMessage == null) ...[
+                      const CircularProgressIndicator(),
+                      const SizedBox(height: 10),
+                      const Text("Waiting for approval..."),
+                    ] else ...[
+                      Text(
+                        errorMessage!,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(color: Colors.redAccent),
+                      ),
+                    ],
+                  ],
                 ),
-              ),
-              const SizedBox(height: 12),
-              SelectableText(code.verificationUri),
-              const SizedBox(height: 16),
-              ElevatedButton.icon(
-                onPressed: () async {
-                  final target =
-                      code.verificationUriComplete ?? code.verificationUri;
-                  final uri = Uri.parse(target);
-                  await launchUrl(uri, mode: LaunchMode.externalApplication);
-                },
-                icon: const Icon(Icons.open_in_browser),
-                label: const Text("Open Simkl"),
-              ),
-              const SizedBox(height: 14),
-              const CircularProgressIndicator(),
-              const SizedBox(height: 10),
-              const Text("Waiting for approval..."),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                cancelled = true;
-                Navigator.of(context).pop(false);
-              },
-              child: const Text("Cancel"),
-            ),
-          ],
-        );
-      },
-    );
+                actions: [
+                  if (errorMessage != null)
+                    TextButton(
+                      onPressed: () {
+                        if (Navigator.of(context).canPop()) {
+                          Navigator.of(context).pop('retry');
+                        }
+                      },
+                      child: const Text("Try again"),
+                    ),
+                  TextButton(
+                    onPressed: () {
+                      cancelled = true;
+                      Navigator.of(context).pop('cancel');
+                    },
+                    child: const Text("Cancel"),
+                  ),
+                ],
+              );
+            },
+          );
+        },
+      );
 
-    return approved == true;
+      cancelled = true;
+
+      if (result == 'success') {
+        return true;
+      }
+
+      if (result == 'expired' || result == 'retry') {
+        continue;
+      }
+
+      return false;
+    }
+
+    return false;
   }
 
   void _handleLogin(Databases db) async {
@@ -239,8 +318,11 @@ class _AccountSettingState extends State<AccountSetting> {
           );
         }
       }
+    } on SimklDeviceAuthException catch (err) {
+      floatingSnackBar(err.message);
+      print(err.toString());
     } catch (err) {
-      floatingSnackBar("Login failed! Try again");
+      floatingSnackBar("Login failed: ${err.toString()}");
       print(err.toString());
     }
   }

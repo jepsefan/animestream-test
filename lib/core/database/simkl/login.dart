@@ -208,8 +208,9 @@ class SimklLogin extends DatabaseLogin {
           res.statusCode < 300 &&
           token != null &&
           token.isNotEmpty) {
+        await _validateAccessToken(token);
         await storeSecureVal(SecureStorageKey.simklToken, token);
-        print("[SIMKL-LOGIN]: Device login success, Access token saved!");
+        print("[SIMKL-LOGIN]: Device login success, Access token validated and saved!");
         return true;
       }
 
@@ -250,6 +251,26 @@ class SimklLogin extends DatabaseLogin {
     );
   }
 
+  static Future<void> _validateAccessToken(String token) async {
+    final clientId = AnimeStreamEnvironment.simklClientId;
+    final res = await post(
+      Uri.parse("https://api.simkl.com/users/settings"),
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+        'simkl-api-key': clientId,
+      },
+    );
+
+    if (res.statusCode < 200 || res.statusCode >= 300) {
+      throw SimklDeviceAuthException(
+        'invalid_token',
+        'SIMKL returned ${res.statusCode} while validating the login.',
+      );
+    }
+  }
+
   Future<UserModal> getUserProfile() async {
     final url = "https://api.simkl.com/users/settings";
     final headers = await SimklMutation.getHeader();
@@ -264,15 +285,29 @@ class SimklLogin extends DatabaseLogin {
           "Failed to fetch simkl user profile", res.statusCode);
     }
 
-    final jsoned = jsonDecode(res.body);
-    final userModal = UserModal(
-      avatar: jsoned['user']['avatar'],
-      banner: null,
-      id: jsoned['account']['id'],
-      name: jsoned['user']['name'],
-    );
+    final jsoned = jsonDecode(res.body) as Map<String, dynamic>;
+    final user = (jsoned['user'] is Map<String, dynamic>)
+        ? jsoned['user'] as Map<String, dynamic>
+        : <String, dynamic>{};
+    final account = (jsoned['account'] is Map<String, dynamic>)
+        ? jsoned['account'] as Map<String, dynamic>
+        : <String, dynamic>{};
+    final ids = (user['ids'] is Map<String, dynamic>)
+        ? user['ids'] as Map<String, dynamic>
+        : <String, dynamic>{};
 
-    return userModal;
+    final rawId = account['id'] ?? ids['simkl'] ?? jsoned['id'];
+    final parsedId = rawId is int ? rawId : int.tryParse(rawId?.toString() ?? '');
+    if (parsedId == null) {
+      throw SimklException("SIMKL profile did not include a usable user id", 500);
+    }
+
+    return UserModal(
+      avatar: user['avatar']?.toString(),
+      banner: null,
+      id: parsedId,
+      name: user['name']?.toString() ?? 'SIMKL',
+    );
   }
 
   static Future<bool> isLoggedIn() async {

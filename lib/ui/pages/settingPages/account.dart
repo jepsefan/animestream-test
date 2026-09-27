@@ -248,6 +248,14 @@ class _AccountSettingState extends State<AccountSetting> {
                 ),
               ),
               actions: [
+                if (errorMessage != null)
+                  TextButton(
+                    onPressed: () {
+                      cancelled = true;
+                      Navigator.of(context).pop('retry');
+                    },
+                    child: const Text("Try again"),
+                  ),
                 TextButton(
                   onPressed: () {
                     cancelled = true;
@@ -278,6 +286,10 @@ class _AccountSettingState extends State<AccountSetting> {
 
     if (result == 'old') {
       return AniListLogin().initiateLogin();
+    }
+
+    if (result == 'retry') {
+      return _handleAniListLogin();
     }
 
     return false;

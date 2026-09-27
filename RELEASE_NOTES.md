@@ -24,6 +24,12 @@
 - Existing beta installs using the old 720p default are migrated to 1080p once.
 - After that migration, users can still manually choose 720p or another quality without it being forced back to 1080p.
 
-### AniList login
-- No AniList PIN/device-flow change is included in this beta.
-- AniList's Auth Pin flow is different from SIMKL Device Flow and requires separate AniList OAuth client configuration.
+### AniList TV login
+- Android TV now offers a local-network QR login option for AniList.
+- The QR code opens a temporary HTTP page hosted directly by the TV on its LAN IP.
+- The phone opens AniList Auth Pin login, then the returned access token can be pasted into the local page and sent directly to the TV.
+- The QR code contains only the TV's temporary local login URL and session ID, never the AniList token itself.
+- The TV validates the received token before saving it.
+- Android TV also keeps a **Use old login** option for the existing redirect-based flow.
+- Phones and tablets continue to use the existing AniList login flow directly without showing the QR screen.
+- This requires a separate `ANILIST_PIN_CLIENT_ID` whose AniList Redirect URL is `https://anilist.co/api/v2/oauth/pin`.

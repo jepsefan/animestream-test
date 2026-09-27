@@ -50,16 +50,18 @@ class UpdateCheckResult {
 Future<UpdateCheckResult?> checkForUpdates() async {
   // print(_checkIfTheNewVersionIsActuallyAnUpgrade("1.6.0-beta1", "1.6.0-beta1"));
   try {
-    final releasesUrl = 'https://api.github.com/repos/frostnova721/animestream/releases';
+    final releasesUrl = 'https://api.github.com/repos/jepsefan/animestream-test/releases';
     final packageInfo = await PackageInfo.fromPlatform();
     final releases = json.decode(await fetch(releasesUrl)) as List<dynamic>;
-    final allowPrereleases = currentUserSettings?.receivePreReleases ?? false;
+    final String currentVersion = packageInfo.version;
+    final allowPrereleases =
+        (currentUserSettings?.receivePreReleases ?? false) ||
+        currentVersion.contains('-');
 
     final releasesRes =
         releases.where((it) => it['draft'] == false && (it['prerelease'] == false || allowPrereleases)).firstOrNull;
 
     if (releasesRes == null) return null;
-    final String currentVersion = packageInfo.version;
     final String latestVersion = releasesRes['tag_name'];
     Logs.app.log("<UPDATE-CHECK> current ver: $currentVersion , latest ver: ${latestVersion.replaceAll('v', '')}");
     final String description = releasesRes['body'];
@@ -207,7 +209,10 @@ bool _checkIfTheNewVersionIsActuallyAnUpgrade(String newVersion, String oldVersi
 
 showUpdateSheet(BuildContext context, UpdateCheckResult data, {bool forceTrigger = false}) async {
   //dont show the sheet if recievePreRelease if off and release is a pre release
-  if (data.preRelease && data.preRelease != (currentUserSettings?.receivePreReleases! ?? false)) {
+  final allowPrereleases =
+      (currentUserSettings?.receivePreReleases ?? false) ||
+      data.currentVersion.contains('-');
+  if (data.preRelease && !allowPrereleases) {
     return;
   }
 

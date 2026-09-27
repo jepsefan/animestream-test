@@ -30,9 +30,9 @@ class SimklMutation extends DatabaseMutation {
 
     //this condition works only for currently watching animes
     if (previousStatus?.name == status?.name)
-      syncToHistory(id, progress!);
+      await syncToHistory(id, progress!);
     else
-      addToList(id, status ?? MediaStatus.CURRENT);
+      await addToList(id, status ?? MediaStatus.CURRENT);
 
     return SimklMutationResult();
   }

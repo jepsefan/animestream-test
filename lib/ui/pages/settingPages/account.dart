@@ -15,6 +15,7 @@ import 'package:animestream/ui/models/providers/appProvider.dart';
 import 'package:animestream/ui/pages/settingPages/widgets/database_account_card.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class AccountSetting extends StatefulWidget {
   const AccountSetting({super.key});
@@ -136,6 +137,72 @@ class _AccountSettingState extends State<AccountSetting> {
     floatingSnackBar("Logged out successfully!");
   }
 
+  Future<bool> _handleSimklDeviceLogin() async {
+    final code = await SimklLogin.requestDeviceCode();
+
+    if (!mounted) return false;
+
+    final pollFuture = SimklLogin.pollDeviceCode(code);
+    final approved = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) {
+        return AlertDialog(
+          backgroundColor: appTheme.modalSheetBackgroundColor,
+          title: const Text("Connect Simkl"),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text("Open Simkl and enter this code:"),
+              const SizedBox(height: 14),
+              SelectableText(
+                code.userCode,
+                style: const TextStyle(
+                  fontSize: 30,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 3,
+                ),
+              ),
+              const SizedBox(height: 12),
+              SelectableText(code.verificationUri),
+              const SizedBox(height: 16),
+              ElevatedButton.icon(
+                onPressed: () async {
+                  final target =
+                      code.verificationUriComplete ?? code.verificationUri;
+                  final uri = Uri.parse(target);
+                  await launchUrl(uri, mode: LaunchMode.externalApplication);
+                },
+                icon: const Icon(Icons.open_in_browser),
+                label: const Text("Open Simkl"),
+              ),
+              const SizedBox(height: 14),
+              const CircularProgressIndicator(),
+              const SizedBox(height: 10),
+              const Text("Waiting for approval..."),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: const Text("Cancel"),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (approved == false) {
+      return false;
+    }
+
+    final logged = await pollFuture;
+    if (mounted && Navigator.of(context).canPop()) {
+      Navigator.of(context).pop();
+    }
+    return logged;
+  }
+
   void _handleLogin(Databases db) async {
     bool logged = false;
     try {
@@ -144,7 +211,7 @@ class _AccountSettingState extends State<AccountSetting> {
           logged = await AniListLogin().initiateLogin();
           break;
         case Databases.simkl:
-          logged = await SimklLogin().initiateLogin();
+          logged = await _handleSimklDeviceLogin();
           break;
         case Databases.mal:
           logged = await MALLogin().initiateLogin();

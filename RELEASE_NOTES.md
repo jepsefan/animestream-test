@@ -1,35 +1,27 @@
-# v1.4.8-beta10
+# v1.4.8-beta11
 
-> Test release focused on account sync, Android TV controls, updates, and playback defaults.
+> Test release focused on parallel installation, SIMKL login, and OLED pause protection.
 
-## Changes since beta9
+## Changes since beta10
 
-### SIMKL watched progress
-- Watching progress now enters the remote sync path when SIMKL is connected, instead of falling back to local-only storage just because AniList is not logged in.
-- This fixes the beta9 case where SIMKL login worked but completed/watch progress was not sent to SIMKL.
+### Separate Android test app
+- The fork now uses Android application ID `app.animestream.test`.
+- It can be installed alongside the normal AnimeStream app instead of Android treating it as an update to `app.animestream`.
 
-### Android TV D-pad
-- D-pad center / OK is now handled in the top-level Watch focus handler.
-- When the player overlay is hidden, center / OK opens it directly.
-- Hidden Left / Right keep the existing seek behavior and skip animation.
-- Touch and mouse control behavior remains unchanged.
+### SIMKL login
+- SIMKL device login now validates the returned access token before reporting a successful login.
+- SIMKL profile parsing accepts the alternate user ID locations returned by different API responses.
+- SIMKL sync operations are now awaited so sync failures are no longer detached from the caller.
+- The SIMKL login dialog now shows a QR code.
+- The QR target includes the PIN, using SIMKL's complete verification URL when supplied and `https://simkl.com/pin/<PIN>` as the fallback.
+- Manual PIN entry and the Open Simkl button remain available.
 
-### UI defaults
-- AMOLED Background is now enabled by default.
-- Existing beta installs using the old default are migrated to AMOLED once.
-- Users can still turn AMOLED Background off manually afterwards.
+### OLED pause protection
+- When playback has been paused continuously for 8 seconds, a dark overlay fades over the video.
+- The player controls stay above the dimming layer and remain readable.
+- The dimming is removed immediately when playback resumes.
+- This does not change the device's system brightness.
 
-### Playback quality
-- Preferred playback quality now defaults to **1080p**.
-- Existing beta installs using the old 720p default are migrated to 1080p once.
-- After that migration, users can still manually choose 720p or another quality without it being forced back to 1080p.
-
-### AniList TV login
-- Android TV now offers a local-network QR login option for AniList.
-- The QR code opens a temporary HTTP page hosted directly by the TV on its LAN IP.
-- The phone opens AniList Auth Pin login, then the returned access token can be pasted into the local page and sent directly to the TV.
-- The QR code contains only the TV's temporary local login URL and session ID, never the AniList token itself.
-- The TV validates the received token before saving it.
-- Android TV also keeps a **Use old login** option for the existing redirect-based flow.
-- Phones and tablets continue to use the existing AniList login flow directly without showing the QR screen.
-- This requires a separate `ANILIST_PIN_CLIENT_ID` whose AniList Redirect URL is `https://anilist.co/api/v2/oauth/pin`.
+### MAL
+- No MAL QR/device-flow change is included in beta11.
+- The existing MAL login remains the browser-based OAuth2/PKCE flow.

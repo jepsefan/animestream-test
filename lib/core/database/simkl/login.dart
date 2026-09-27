@@ -253,11 +253,10 @@ class SimklLogin extends DatabaseLogin {
 
   static Future<void> _validateAccessToken(String token) async {
     final clientId = AnimeStreamEnvironment.simklClientId;
-    final res = await post(
+    final res = await get(
       Uri.parse("https://api.simkl.com/users/settings"),
       headers: {
         'Accept': 'application/json',
-        'Content-Type': 'application/json',
         'Authorization': 'Bearer $token',
         'simkl-api-key': clientId,
       },
@@ -274,7 +273,7 @@ class SimklLogin extends DatabaseLogin {
   Future<UserModal> getUserProfile() async {
     final url = "https://api.simkl.com/users/settings";
     final headers = await SimklMutation.getHeader();
-    final res = await post(Uri.parse(url), headers: headers);
+    final res = await get(Uri.parse(url), headers: headers);
 
     if (res.statusCode == 401) {
       throw SimklException("Unauthorized - Invalid Token", 401);

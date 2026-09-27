@@ -179,12 +179,64 @@ class AnimeStream extends StatefulWidget {
   State<AnimeStream> createState() => _AnimeStreamState();
 }
 
-class _AnimeStreamState extends State<AnimeStream> {
+class _AnimeStreamState extends State<AnimeStream>
+    with WidgetsBindingObserver {
   StreamSubscription<Uri>? _sub;
   late AppLinks _appLinks;
 
+  Timer? _globalDimTimer;
+  bool _globalDimmed = false;
+  static const Duration _globalDimDelay = Duration(seconds: 60);
+
+  bool get _amoledProtectionEnabled =>
+      currentUserSettings?.amoledBackground ?? false;
+
+  bool _handleGlobalKeyEvent(KeyEvent event) {
+    if (event is KeyDownEvent) {
+      _registerUserActivity();
+    }
+    return false;
+  }
+
+  void _registerUserActivity() {
+    _globalDimTimer?.cancel();
+    _globalDimTimer = null;
+
+    if (_globalDimmed && mounted) {
+      setState(() => _globalDimmed = false);
+    }
+
+    if (!_amoledProtectionEnabled) return;
+
+    _globalDimTimer = Timer(_globalDimDelay, () {
+      if (!mounted || !_amoledProtectionEnabled || _globalDimmed) return;
+      setState(() => _globalDimmed = true);
+    });
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _registerUserActivity();
+      return;
+    }
+
+    if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.hidden ||
+        state == AppLifecycleState.detached) {
+      _globalDimTimer?.cancel();
+      _globalDimTimer = null;
+    }
+  }
+
   @override
   void initState() {
+    super.initState();
+
+    WidgetsBinding.instance.addObserver(this);
+    HardwareKeyboard.instance.addHandler(_handleGlobalKeyEvent);
+    _registerUserActivity();
+
     listenDeepLinkCall();
 
     AwesomeNotifications().setListeners(
@@ -204,13 +256,14 @@ class _AnimeStreamState extends State<AnimeStream> {
 
     // if (currentUserSettings?.enableDiscordPresence ?? false)
     // FlutterDiscordRPC.instance.connect(autoRetry: true, retryDelay: Duration(seconds: 10));
-
-    super.initState();
   }
 
   @override
   void dispose() {
     _sub?.cancel();
+    _globalDimTimer?.cancel();
+    HardwareKeyboard.instance.removeHandler(_handleGlobalKeyEvent);
+    WidgetsBinding.instance.removeObserver(this);
 
     // if (currentUserSettings?.enableDiscordPresence ?? false) {
     //   FlutterDiscordRPC.instance.clearActivity();
@@ -325,6 +378,31 @@ class _AnimeStreamState extends State<AnimeStream> {
                   seedColor: (currentUserSettings?.materialTheme ?? false) ? scheme.accentColor : appTheme.accentColor,
                 ),
                 iconTheme: IconThemeData(color: appTheme.textMainColor)),
+            builder: (context, child) {
+              return Listener(
+                behavior: HitTestBehavior.translucent,
+                onPointerDown: (_) => _registerUserActivity(),
+                onPointerMove: (_) => _registerUserActivity(),
+                onPointerHover: (_) => _registerUserActivity(),
+                onPointerSignal: (_) => _registerUserActivity(),
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    if (child != null) child,
+                    IgnorePointer(
+                      child: AnimatedOpacity(
+                        opacity: _amoledProtectionEnabled && _globalDimmed ? 1 : 0,
+                        duration: const Duration(milliseconds: 600),
+                        curve: Curves.easeInOut,
+                        child: Container(
+                          color: const Color.fromARGB(155, 0, 0, 0),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            },
             home: ChangeNotifierProvider(
               create: (context) => MainNavProvider(),
               child: Platform.isWindows || Platform.isLinux ? AppWrapper(firstPage: MainNavigator()) : MainNavigator(),

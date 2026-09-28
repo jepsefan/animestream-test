@@ -1,15 +1,16 @@
-# v1.4.8-beta16
+# v1.4.8-beta17
 
-> Diagnostic test release focused on the AniList-to-SIMKL ID lookup.
+> Test release fixing authenticated AniList-to-SIMKL ID lookup.
 
-## Changes since beta15
+## Changes since beta16
 
-### SIMKL lookup diagnostics
-- Added detailed APP-log output for the SIMKL anime search used to resolve an AniList anime to a SIMKL ID.
-- Logs the AniList lookup query, HTTP status code, SIMKL response body, result count, and resolved SIMKL ID.
-- Non-2xx search responses now include the HTTP status and response body in the thrown error.
-- Unexpected SIMKL search response formats are logged explicitly.
+### SIMKL authenticated lookup
+- SIMKL anime search requests now include the saved SIMKL access token when available.
+- SIMKL anime info requests use the same authenticated headers.
+- Sends `Authorization: Bearer <token>`, `simkl-api-key`, and `Accept: application/json`.
+- Keeps the beta16 lookup diagnostics so HTTP status, response data, result count, and resolved SIMKL ID remain visible in the APP log.
+- Access tokens are never written to the log.
 
-### Purpose
-- Helps diagnose why AnimeStream can sync AniList and MAL while SIMKL is missing from the SyncHandler list.
-- Does not change the SIMKL V2 login or watch-history sync behavior.
+### Why
+- Beta16 confirmed SIMKL returned HTTP 401 `user_token_required` because this client ID requires a user access token on every request.
+- This allows the existing AnimeStream flow to resolve AniList ID -> SIMKL ID before SyncHandler updates SIMKL watch progress.

@@ -2,6 +2,8 @@ import 'dart:convert';
 
 import 'package:animestream/core/app/env.dart';
 import 'package:animestream/core/app/logging.dart';
+import 'package:animestream/core/commons/enums.dart';
+import 'package:animestream/core/data/secureStorage.dart';
 import 'package:animestream/core/database/database.dart';
 import 'package:animestream/core/database/simkl/types.dart';
 import 'package:animestream/core/network/network.dart';
@@ -16,7 +18,10 @@ class Simkl extends Database {
 
     Logs.app.log("[SIMKL LOOKUP]: query=$query");
 
-    final response = await get(Uri.parse(url));
+    final response = await get(
+      Uri.parse(url),
+      headers: await _authenticatedHeaders(),
+    );
 
     Logs.app.log(
       "[SIMKL LOOKUP]: HTTP ${response.statusCode}: ${response.body}",
@@ -66,12 +71,32 @@ class Simkl extends Database {
   }
 
   Future<dynamic> fetch(String url) async {
-    final res = await get(Uri.parse(url));
+    final res = await get(
+      Uri.parse(url),
+      headers: await _authenticatedHeaders(),
+    );
 
     //since 2** means success
     if (res.statusCode < 200 || res.statusCode > 299) {
-      throw Exception("ERR_COULDNT_FETCH_SIMKL");
+      throw Exception(
+        "ERR_COULDNT_FETCH_SIMKL_${res.statusCode}: ${res.body}",
+      );
     }
     return jsonDecode(res.body);
+  }
+
+  Future<Map<String, String>> _authenticatedHeaders() async {
+    final token = await getSecureVal(SecureStorageKey.simklToken);
+
+    final headers = <String, String>{
+      'Accept': 'application/json',
+      'simkl-api-key': AnimeStreamEnvironment.simklClientId,
+    };
+
+    if (token != null && token.isNotEmpty) {
+      headers['Authorization'] = 'Bearer $token';
+    }
+
+    return headers;
   }
 }

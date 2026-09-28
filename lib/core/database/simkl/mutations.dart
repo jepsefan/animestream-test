@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:animestream/core/app/env.dart';
+import 'package:animestream/core/app/logging.dart';
 import 'package:animestream/core/database/simkl/login.dart';
 import 'package:animestream/core/database/types.dart';
 import 'package:animestream/core/network/network.dart';
@@ -51,8 +52,16 @@ class SimklMutation extends DatabaseMutation {
     });
 
     final header = await getHeader();
-    // final res =
-    await post(Uri.parse(url), headers: header, body: body);
+    Logs.app.log("SIMKL DELETE /sync/history/remove -> request simklId=$id");
+    final res = await post(Uri.parse(url), headers: header, body: body);
+    Logs.app.log(
+      "SIMKL DELETE /sync/history/remove -> ${res.statusCode}: ${res.body}",
+    );
+    if (res.statusCode < 200 || res.statusCode >= 300) {
+      throw Exception(
+        "SIMKL remove history failed (${res.statusCode}): ${res.body}",
+      );
+    }
     return null;
   }
 
@@ -70,13 +79,18 @@ class SimklMutation extends DatabaseMutation {
     });
 
     final header = await getHeader();
-    // final res =
-    await post(Uri.parse(url), headers: header, body: body);
-    // print(res.statusCode);
-    // if(res.statusCode != 200) {
-    //   // print(res.body);
-    //   throw Exception("Couldnt Sync Simkl [maybe false report]");
-    // }
+    Logs.app.log(
+      "SIMKL POST /sync/add-to-list -> request simklId=$id status=${getStatusString(status)}",
+    );
+    final res = await post(Uri.parse(url), headers: header, body: body);
+    Logs.app.log(
+      "SIMKL POST /sync/add-to-list -> ${res.statusCode}: ${res.body}",
+    );
+    if (res.statusCode < 200 || res.statusCode >= 300) {
+      throw Exception(
+        "SIMKL add-to-list failed (${res.statusCode}): ${res.body}",
+      );
+    }
   }
 
   Future syncToHistory(int id, int progress,
@@ -107,10 +121,17 @@ class SimklMutation extends DatabaseMutation {
     }
 
     final header = await getHeader();
+    Logs.app.log(
+      "SIMKL POST /sync/history -> request simklId=$id progress=$progress",
+    );
     final res = await post(Uri.parse(url), headers: header, body: body);
-    if (res.statusCode != 201) {
-      // print(res.body);
-      throw Exception("Couldnt Sync Simkl [maybe false report]");
+    Logs.app.log(
+      "SIMKL POST /sync/history -> ${res.statusCode}: ${res.body}",
+    );
+    if (res.statusCode < 200 || res.statusCode >= 300) {
+      throw Exception(
+        "SIMKL history sync failed (${res.statusCode}): ${res.body}",
+      );
     }
   }
 

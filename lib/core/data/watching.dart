@@ -27,8 +27,12 @@ Future<void> storeWatching(
     final hasRemoteAccount = await AniListLogin().isAnilistLoggedIn() ||
         await SimklLogin.isLoggedIn();
     if (hasRemoteAccount) {
-      SyncHandler()
-          .mutateAnimeList(id: id, status: MediaStatus.CURRENT, progress: watched, otherIds: alternateDatabases);
+      await SyncHandler().mutateAnimeList(
+        id: id,
+        status: MediaStatus.CURRENT,
+        progress: watched,
+        otherIds: alternateDatabases,
+      );
     } else {
       var box = await Hive.openBox(_boxName);
       if (!box.isOpen) {
@@ -63,7 +67,7 @@ Future<void> updateWatching(int? id, String title, int watched, List<AlternateDa
         await SimklLogin.isLoggedIn();
     if (hasRemoteAccount) {
       if (id == null) throw Exception("ERR_NO_ID_PROVIDED");
-      SyncHandler().mutateAnimeList(
+      await SyncHandler().mutateAnimeList(
         id: id,
         status: MediaStatus.CURRENT,
         previousStatus: MediaStatus.CURRENT,

@@ -5,15 +5,86 @@ import 'package:animestream/ui/models/providers/playerProvider.dart';
 import 'package:animestream/ui/pages/settingPages/common.dart';
 import 'package:animestream/ui/pages/settingPages/subtitle.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
-class BottomControls extends StatelessWidget {
+class BottomControls extends StatefulWidget {
   final FocusNode? firstFocusNode;
 
   const BottomControls({
     super.key,
     this.firstFocusNode,
   });
+
+  @override
+  State<BottomControls> createState() => _BottomControlsState();
+}
+
+class _BottomControlsState extends State<BottomControls> {
+  final FocusNode _qualityFallbackFocusNode =
+      FocusNode(debugLabel: 'player_quality');
+  final FocusNode _serverFocusNode =
+      FocusNode(debugLabel: 'player_servers');
+  final FocusNode _episodeFocusNode =
+      FocusNode(debugLabel: 'player_episodes');
+  final FocusNode _speedFocusNode =
+      FocusNode(debugLabel: 'player_speed');
+  final FocusNode _subtitleFocusNode =
+      FocusNode(debugLabel: 'player_subtitles');
+  final FocusNode _audioFocusNode =
+      FocusNode(debugLabel: 'player_audio');
+  final FocusNode _pipFocusNode =
+      FocusNode(debugLabel: 'player_pip');
+  final FocusNode _viewModeFocusNode =
+      FocusNode(debugLabel: 'player_view_mode');
+
+  FocusNode get _qualityFocusNode =>
+      widget.firstFocusNode ?? _qualityFallbackFocusNode;
+
+  List<FocusNode> get _horizontalFocusOrder => [
+        _qualityFocusNode,
+        _serverFocusNode,
+        _episodeFocusNode,
+        _speedFocusNode,
+        _subtitleFocusNode,
+        _audioFocusNode,
+        _pipFocusNode,
+        _viewModeFocusNode,
+      ];
+
+  KeyEventResult _handleHorizontalDpad(FocusNode node, KeyEvent event) {
+    if (event is! KeyDownEvent) return KeyEventResult.ignored;
+
+    final isLeft = event.logicalKey == LogicalKeyboardKey.arrowLeft;
+    final isRight = event.logicalKey == LogicalKeyboardKey.arrowRight;
+    if (!isLeft && !isRight) return KeyEventResult.ignored;
+
+    final focused = FocusManager.instance.primaryFocus;
+    final order = _horizontalFocusOrder;
+    final index = order.indexOf(focused);
+    if (index == -1) return KeyEventResult.ignored;
+
+    final nextIndex = isRight ? index + 1 : index - 1;
+    if (nextIndex < 0 || nextIndex >= order.length) {
+      return KeyEventResult.handled;
+    }
+
+    order[nextIndex].requestFocus();
+    return KeyEventResult.handled;
+  }
+
+  @override
+  void dispose() {
+    _qualityFallbackFocusNode.dispose();
+    _serverFocusNode.dispose();
+    _episodeFocusNode.dispose();
+    _speedFocusNode.dispose();
+    _subtitleFocusNode.dispose();
+    _audioFocusNode.dispose();
+    _pipFocusNode.dispose();
+    _viewModeFocusNode.dispose();
+    super.dispose();
+  }
 
   void showSheet(BuildContext context, Widget child) => showModalBottomSheet(
       isScrollControlled: true,
@@ -32,16 +103,18 @@ class BottomControls extends StatelessWidget {
 
     return dataProvider.state.controlsLocked
         ? Container()
-        : Container(
-            height: 40,
-            child: Row(
+        : Focus(
+            onKeyEvent: _handleHorizontalDpad,
+            child: Container(
+              height: 40,
+              child: Row(
               crossAxisAlignment: CrossAxisAlignment.center,
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Row(
                   children: [
                     IconButton(
-                      focusNode: firstFocusNode,
+                      focusNode: _qualityFocusNode,
                       onPressed: () {
                         showModalBottomSheet(
                           isScrollControlled: true,
@@ -120,6 +193,7 @@ class BottomControls extends StatelessWidget {
                       ),
                     ),
                     IconButton(
+                      focusNode: _serverFocusNode,
                       onPressed: () {
                         showSheet(
                           context,
@@ -137,6 +211,7 @@ class BottomControls extends StatelessWidget {
                       ),
                     ),
                     IconButton(
+                      focusNode: _episodeFocusNode,
                       onPressed: () {
                         showModalBottomSheet(
                           isScrollControlled: true,
@@ -211,6 +286,7 @@ class BottomControls extends StatelessWidget {
                 Row(
                   children: [
                     IconButton(
+                      focusNode: _speedFocusNode,
                       onPressed: () {
                         showDialog(
                           context: context,
@@ -226,6 +302,7 @@ class BottomControls extends StatelessWidget {
                       ),
                     ),
                     IconButton(
+                      focusNode: _subtitleFocusNode,
                       onPressed: () {
                         playerProvider.toggleSubs();
                       },
@@ -246,6 +323,7 @@ class BottomControls extends StatelessWidget {
                       ),
                     ),
                     IconButton(
+                      focusNode: _audioFocusNode,
                       onPressed: () {
                         showModalBottomSheet(
                             context: context,
@@ -312,6 +390,7 @@ class BottomControls extends StatelessWidget {
                       color: Colors.white,
                     ),
                     IconButton(
+                      focusNode: _pipFocusNode,
                       onPressed: () async {
                         await playerProvider.setPip(!playerProvider.state.pip);
                       },
@@ -320,6 +399,7 @@ class BottomControls extends StatelessWidget {
                       color: Colors.white,
                     ),
                     IconButton(
+                      focusNode: _viewModeFocusNode,
                       onPressed: () {
                         playerProvider.cycleViewMode();
                       },
@@ -329,7 +409,8 @@ class BottomControls extends StatelessWidget {
                     ),
                   ],
                 )
-              ],
+                ],
+              ),
             ),
           );
   }

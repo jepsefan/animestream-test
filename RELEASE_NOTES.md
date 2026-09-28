@@ -1,10 +1,15 @@
-# v1.4.8-beta15
+# v1.4.8-beta16
 
-> Test release focused on Android launcher icon behavior.
+> Diagnostic test release focused on the AniList-to-SIMKL ID lookup.
 
-## Changes since beta14
+## Changes since beta15
 
-### Android launcher icon
-- The purple AnimeStream icon now uses the standard adaptive launcher resource `@mipmap/ic_launcher`.
-- Android can now apply the same launcher mask/shape behavior as the previous green icon.
-- The purple symbol remains the foreground artwork on a black adaptive-icon background.
+### SIMKL lookup diagnostics
+- Added detailed APP-log output for the SIMKL anime search used to resolve an AniList anime to a SIMKL ID.
+- Logs the AniList lookup query, HTTP status code, SIMKL response body, result count, and resolved SIMKL ID.
+- Non-2xx search responses now include the HTTP status and response body in the thrown error.
+- Unexpected SIMKL search response formats are logged explicitly.
+
+### Purpose
+- Helps diagnose why AnimeStream can sync AniList and MAL while SIMKL is missing from the SyncHandler list.
+- Does not change the SIMKL V2 login or watch-history sync behavior.

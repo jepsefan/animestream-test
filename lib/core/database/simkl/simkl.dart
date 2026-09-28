@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:animestream/core/app/env.dart';
+import 'package:animestream/core/app/logging.dart';
 import 'package:animestream/core/database/database.dart';
 import 'package:animestream/core/database/simkl/types.dart';
 import 'package:animestream/core/network/network.dart';
@@ -12,12 +13,40 @@ class Simkl extends Database {
   Future<List<SimklSearchResult>> search(String query) async {
     final url =
         "https://api.simkl.com/search/anime?q=$query&client_id=${AnimeStreamEnvironment.simklClientId}";
-    final List<dynamic> res = await fetch(url);
+
+    Logs.app.log("[SIMKL LOOKUP]: query=$query");
+
+    final response = await get(Uri.parse(url));
+
+    Logs.app.log(
+      "[SIMKL LOOKUP]: HTTP ${response.statusCode}: ${response.body}",
+    );
+
+    if (response.statusCode < 200 || response.statusCode > 299) {
+      throw Exception(
+        "ERR_COULDNT_FETCH_SIMKL_SEARCH_${response.statusCode}: ${response.body}",
+      );
+    }
+
+    final decoded = jsonDecode(response.body);
+    if (decoded is! List) {
+      Logs.app.log(
+        "[SIMKL LOOKUP]: unexpected response type ${decoded.runtimeType}",
+      );
+      throw Exception("ERR_INVALID_SIMKL_SEARCH_RESPONSE");
+    }
+
+    final List<dynamic> res = decoded;
+    Logs.app.log("[SIMKL LOOKUP]: results=${res.length}");
+
     List<SimklSearchResult> sr = [];
     res.forEach((it) {
+      final simklId = it['ids']?['simkl_id'];
+      Logs.app.log("[SIMKL LOOKUP]: resolved simklId=$simklId");
+
       sr.add(SimklSearchResult(
         cover: imageLink(it['poster']),
-        id: it['ids']['simkl_id'],
+        id: simklId,
         title: {
           'english': it['title_en'] ?? it['title'],
           'romaji': it['title_romaji'] ?? it['title']

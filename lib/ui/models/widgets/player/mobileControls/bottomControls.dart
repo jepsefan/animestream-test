@@ -59,9 +59,8 @@ class _BottomControlsState extends State<BottomControls> {
     final isRight = event.logicalKey == LogicalKeyboardKey.arrowRight;
     if (!isLeft && !isRight) return KeyEventResult.ignored;
 
-    final focused = FocusManager.instance.primaryFocus;
     final order = _horizontalFocusOrder;
-    final index = order.indexOf(focused);
+    final index = order.indexWhere((focusNode) => focusNode.hasFocus);
     if (index == -1) return KeyEventResult.ignored;
 
     final nextIndex = isRight ? index + 1 : index - 1;

@@ -21,3 +21,11 @@
   `AniList results=0 -> MAL fallback`
   `MAL -> SIMKL results=1`
   `resolved simklId=...`
+
+### VTT stacked subtitle colors
+- Added visual separation for overlapping VTT cues in the normal bottom subtitle stack.
+- The newest/bottom cue is white.
+- The cue above it is light gray (`#D0D0D0`).
+- Older cues use gray (`#9E9E9E`).
+- This only affects VTT cues in bottom-aligned groups; status/UI cues and ASS rendering keep their existing behavior.
+

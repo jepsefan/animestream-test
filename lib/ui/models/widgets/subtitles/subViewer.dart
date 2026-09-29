@@ -223,10 +223,8 @@ class _SubViewerState extends State<SubViewer> {
         alignment == SubtitleAlignment.bottomRight;
   }
 
-  Color _bottomStackColor(int index, int total) {
-    final distanceFromBottom = total - 1 - index;
-
-    switch (distanceFromBottom) {
+  Color _bottomStackColor(int index) {
+    switch (index % 3) {
       case 0:
         return Colors.white;
       case 1:
@@ -277,10 +275,7 @@ class _SubViewerState extends State<SubViewer> {
                       return _subtitleWidget(
                         entry.value,
                         textColor: useStackColor
-                            ? _bottomStackColor(
-                                entry.key,
-                                group.value.length,
-                              )
+                            ? _bottomStackColor(entry.key)
                             : null,
                       );
                     }).toList(),

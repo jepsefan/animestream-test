@@ -1,16 +1,16 @@
-# v1.4.8-beta17
+# v1.4.8-beta18
 
-> Test release fixing authenticated AniList-to-SIMKL ID lookup.
+> Test release using MyAnimeList as the primary external-ID lookup for SIMKL.
 
-## Changes since beta16
+## Changes since beta17
 
-### SIMKL authenticated lookup
-- SIMKL anime search requests now include the saved SIMKL access token when available.
-- SIMKL anime info requests use the same authenticated headers.
-- Sends `Authorization: Bearer <token>`, `simkl-api-key`, and `Accept: application/json`.
-- Keeps the beta16 lookup diagnostics so HTTP status, response data, result count, and resolved SIMKL ID remain visible in the APP log.
-- Access tokens are never written to the log.
+### MAL -> SIMKL lookup test
+- When AniList is the active database, AnimeStream now reads the existing MAL ID from the AniList info result first.
+- SIMKL lookup is performed with `https://myanimelist.net/anime/<malId>` instead of the AniList URL in this beta.
+- The APP log explicitly shows that MAL is being used as the SIMKL lookup source.
+- Logs the MAL URL, result count, and resolved SIMKL ID.
+- If no MAL ID is available, the log states that the SIMKL lookup was skipped.
 
-### Why
-- Beta16 confirmed SIMKL returned HTTP 401 `user_token_required` because this client ID requires a user access token on every request.
-- This allows the existing AnimeStream flow to resolve AniList ID -> SIMKL ID before SyncHandler updates SIMKL watch progress.
+### Intended follow-up behavior
+- Beta18 is deliberately MAL-first so the MAL -> SIMKL mapping can be tested independently.
+- After this path is verified, the intended normal behavior is AniList -> SIMKL first, then MAL -> SIMKL only when the AniList lookup returns zero results.

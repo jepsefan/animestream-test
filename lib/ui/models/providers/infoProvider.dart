@@ -258,43 +258,61 @@ class InfoProvider extends ChangeNotifier {
         _loggedIn = true;
 
         try {
-          final malId = info.alternateDatabases
-              .where((entry) => entry.database == Databases.mal)
-              .firstOrNull
-              ?.id;
+          final anilistUrl = "https://anilist.co/anime/$id";
+          Logs.app.log(
+            "[SIMKL LOOKUP SOURCE]: AniList -> SIMKL using $anilistUrl",
+          );
 
-          if (malId == null) {
-            Logs.app.log(
-              "[SIMKL LOOKUP SOURCE]: MAL -> SIMKL skipped, no MAL ID available for AniList id=$id",
-            );
-          } else {
-            final malUrl = "https://myanimelist.net/anime/$malId";
-            Logs.app.log(
-              "[SIMKL LOOKUP SOURCE]: MAL -> SIMKL using $malUrl (AniList id=$id)",
-            );
+          var res = await DatabaseHandler(database: Databases.simkl)
+              .search(anilistUrl);
 
-            final res = await DatabaseHandler(database: Databases.simkl)
-                .search(malUrl);
+          Logs.app.log(
+            "[SIMKL LOOKUP SOURCE]: AniList -> SIMKL results=${res.length}",
+          );
 
-            Logs.app.log(
-              "[SIMKL LOOKUP SOURCE]: MAL -> SIMKL results=${res.length}",
-            );
+          if (res.isEmpty) {
+            final malId = info.alternateDatabases
+                .where((entry) => entry.database == Databases.mal)
+                .firstOrNull
+                ?.id;
 
-            if (res.isNotEmpty) {
-              final simklInfo = await DatabaseHandler(database: Databases.simkl)
-                  .getAnimeInfo(res[0].id);
-              s.addAll(simklInfo.alternateDatabases);
+            if (malId == null) {
               Logs.app.log(
-                "[SIMKL LOOKUP SOURCE]: MAL -> SIMKL resolved simklId=${res[0].id}",
+                "[SIMKL LOOKUP SOURCE]: MAL fallback skipped, no MAL ID available for AniList id=$id",
+              );
+            } else {
+              final malUrl = "https://myanimelist.net/anime/$malId";
+              Logs.app.log(
+                "[SIMKL LOOKUP SOURCE]: AniList results=0 -> MAL fallback using $malUrl",
+              );
+
+              res = await DatabaseHandler(database: Databases.simkl)
+                  .search(malUrl);
+
+              Logs.app.log(
+                "[SIMKL LOOKUP SOURCE]: MAL -> SIMKL results=${res.length}",
               );
             }
           }
+
+          if (res.isNotEmpty) {
+            final simklInfo = await DatabaseHandler(database: Databases.simkl)
+                .getAnimeInfo(res[0].id);
+            s.addAll(simklInfo.alternateDatabases);
+            Logs.app.log(
+              "[SIMKL LOOKUP SOURCE]: resolved simklId=${res[0].id}",
+            );
+          } else {
+            Logs.app.log(
+              "[SIMKL LOOKUP SOURCE]: no SIMKL match found after AniList/MAL lookup",
+            );
+          }
         } catch (err) {
           Logs.app.log(
-            "[INFO] couldnt fetch simkl data via MAL. ${err.toString()}",
+            "[INFO] couldnt fetch simkl data. ${err.toString()}",
           );
           if (currentUserSettings?.showErrors ?? false) {
-            floatingSnackBar("Couldnt fetch simkl data via MAL");
+            floatingSnackBar("Couldnt fetch simkl data");
           }
         }
       }

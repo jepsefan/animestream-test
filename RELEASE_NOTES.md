@@ -1,31 +1,25 @@
-# v1.4.8-beta19
+# v1.4.8-beta20
 
-> SIMKL external-ID lookup now uses AniList first with MyAnimeList as fallback.
+> Subtitle cleanup and VTT overlap-color test release.
 
-## Changes since beta18
+## Changes since beta19
 
-### AniList -> SIMKL primary lookup
-- When AniList is the active database, AnimeStream first searches SIMKL using `https://anilist.co/anime/<id>`.
-- The APP log explicitly shows that AniList is being used as the primary SIMKL lookup source.
+### VTT empty-row cleanup
+- VTT dialogue lines are now cleaned before they are added to a cue.
+- `\\h`, repeated `\\h`, HTML/VTT tags, and surrounding whitespace are removed before deciding whether a line is empty.
+- Lines that become empty after cleanup are skipped instead of creating visible blank rows.
+- A second cleanup is performed when the cue is finalized, so fully empty cues are not created.
+- This is intended to make the status/UI subtitle block behave consistently on mobile and Android TV.
 
-### MAL -> SIMKL fallback
-- If the AniList lookup succeeds but returns `results=0`, AnimeStream reads the MAL ID already provided by AniList.
-- It then retries SIMKL lookup with `https://myanimelist.net/anime/<malId>`.
-- The APP log shows when the fallback is triggered, the MAL URL used, the result count, and the resolved SIMKL ID.
-- If no MAL ID exists, the log states that the fallback was skipped.
+### VTT overlapping cue colors
+- Bottom-aligned VTT cues now cycle through three text colors by cue order:
+  - white
+  - light gray (`#D0D0D0`)
+  - gray (`#9E9E9E`)
+  - then repeat white -> light gray -> gray
+- A single cue therefore uses white.
+- This replaces the beta19 behavior where all cues older than the second one were gray.
+- The color cycling only applies to normal bottom-aligned VTT cues. Status/UI cues and ASS rendering keep their existing behavior.
 
-### Logging
-- Keeps the authenticated SIMKL request diagnostics from beta16/beta17.
-- Typical successful fallback sequence:
-  `AniList -> SIMKL results=0`
-  `AniList results=0 -> MAL fallback`
-  `MAL -> SIMKL results=1`
-  `resolved simklId=...`
-
-### VTT stacked subtitle colors
-- Added visual separation for overlapping VTT cues in the normal bottom subtitle stack.
-- The newest/bottom cue is white.
-- The cue above it is light gray (`#D0D0D0`).
-- Older cues use gray (`#9E9E9E`).
-- This only affects VTT cues in bottom-aligned groups; status/UI cues and ASS rendering keep their existing behavior.
-
+### SIMKL lookup
+- Keeps the beta19 AniList -> SIMKL primary lookup with MAL -> SIMKL fallback when AniList returns zero results.

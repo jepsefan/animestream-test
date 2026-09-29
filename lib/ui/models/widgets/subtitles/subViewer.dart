@@ -199,12 +199,14 @@ class _SubViewerState extends State<SubViewer> {
     SubtitleCue sub, {
     TextAlign textAlign = TextAlign.center,
     double fontScale = 1.0,
+    Color? textColor,
   }) {
     final baseStyle = subTextStyle();
     return SubtitleText(
       text: areSubsLoading ? "Loading Subs" : sub.dialogue,
       style: baseStyle.copyWith(
         fontSize: (baseStyle.fontSize ?? widget.settings.fontSize) * fontScale,
+        color: textColor ?? baseStyle.color,
       ),
       strokeColor: widget.settings.strokeColor,
       strokeWidth: widget.settings.strokeWidth,
@@ -213,6 +215,25 @@ class _SubViewerState extends State<SubViewer> {
       enableShadows: widget.settings.enableShadows,
       textAlign: textAlign,
     );
+  }
+
+  bool _isBottomAlignment(SubtitleAlignment alignment) {
+    return alignment == SubtitleAlignment.bottomLeft ||
+        alignment == SubtitleAlignment.bottomCenter ||
+        alignment == SubtitleAlignment.bottomRight;
+  }
+
+  Color _bottomStackColor(int index, int total) {
+    final distanceFromBottom = total - 1 - index;
+
+    switch (distanceFromBottom) {
+      case 0:
+        return Colors.white;
+      case 1:
+        return const Color(0xFFD0D0D0);
+      default:
+        return const Color(0xFF9E9E9E);
+    }
   }
 
   @override
@@ -248,7 +269,21 @@ class _SubViewerState extends State<SubViewer> {
                   ),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
-                    children: group.value.map(_subtitleWidget).toList(),
+                    children: group.value.asMap().entries.map((entry) {
+                      final useStackColor =
+                          widget.format == SubtitleFormat.VTT &&
+                              _isBottomAlignment(group.key);
+
+                      return _subtitleWidget(
+                        entry.value,
+                        textColor: useStackColor
+                            ? _bottomStackColor(
+                                entry.key,
+                                group.value.length,
+                              )
+                            : null,
+                      );
+                    }).toList(),
                   ),
                 ),
               );

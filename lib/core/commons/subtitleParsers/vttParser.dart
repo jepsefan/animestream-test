@@ -14,16 +14,18 @@ class VttRipper {
 
     void flushCue() {
       if (start != null && end != null && dialogueLines.isNotEmpty) {
-        if (dialogueLines.isNotEmpty) {
+        final cleanedDialogue = dialogueLines
+            .map(_cleanDialogueLine)
+            .where((line) => line.isNotEmpty)
+            .join('\n')
+            .trim();
+
+        if (cleanedDialogue.isNotEmpty) {
           subtitles.add(
             SubtitleCue(
               start: start!,
               end: end!,
-              dialogue: _removeHtml(
-                dialogueLines
-                    .join('\n')
-                    .replaceAll(RegExp(r'(?:\\h)+'), ' '),
-              ),
+              dialogue: cleanedDialogue,
               alignment: alignment,
             ),
           );
@@ -89,7 +91,12 @@ class VttRipper {
         continue;
       }
 
-      dialogueLines.add(line);
+      final cleanedLine = _cleanDialogueLine(line);
+      if (cleanedLine.isEmpty) {
+        continue;
+      }
+
+      dialogueLines.add(cleanedLine);
     }
 
     flushCue();
@@ -100,6 +107,12 @@ class VttRipper {
     return RegExp(
       r'^[mMnNlLbBsSpPcC](?:\s+-?\d+(?:\.\d+)?){2,}(?:\s+.*)?$',
     ).hasMatch(line);
+  }
+
+  String _cleanDialogueLine(String line) {
+    return _removeHtml(
+      line.replaceAll(RegExp(r'(?:\\h)+'), ' '),
+    ).trim();
   }
 
   String _removeHtml(String dialogue) {

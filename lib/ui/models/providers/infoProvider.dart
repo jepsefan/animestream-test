@@ -248,33 +248,57 @@ class InfoProvider extends ChangeNotifier {
 
   Future<void> _getInfo(int id) async {
     final s = _altDatabases.toSet();
-    Future<List<AlternateDatabaseId>>? simklFuture;
 
     try {
-      if (currentUserSettings?.database == Databases.anilist && await AniListLogin().isAnilistLoggedIn()) {
+      final info = await DatabaseHandler().getAnimeInfo(id);
+      s.addAll(info.alternateDatabases);
+
+      if (currentUserSettings?.database == Databases.anilist &&
+          await AniListLogin().isAnilistLoggedIn()) {
         _loggedIn = true;
-        //fetch ids from simkl and save em
-        simklFuture = () async {
-          try {
-            final res = await DatabaseHandler(database: Databases.simkl).search("https://anilist.co/anime/$id");
-            if (res.isEmpty) return <AlternateDatabaseId>[];
-            final info = await DatabaseHandler(database: Databases.simkl).getAnimeInfo(res[0].id);
-            return info.alternateDatabases;
-          } catch (err) {
-            Logs.app.log("[INFO] couldnt fetch simkl data. ${err.toString()}");
-            if (currentUserSettings?.showErrors ?? false) {
-              floatingSnackBar("Couldnt fetch simkl data");
+
+        try {
+          final malId = info.alternateDatabases
+              .where((entry) => entry.database == Databases.mal)
+              .firstOrNull
+              ?.id;
+
+          if (malId == null) {
+            Logs.app.log(
+              "[SIMKL LOOKUP SOURCE]: MAL -> SIMKL skipped, no MAL ID available for AniList id=$id",
+            );
+          } else {
+            final malUrl = "https://myanimelist.net/anime/$malId";
+            Logs.app.log(
+              "[SIMKL LOOKUP SOURCE]: MAL -> SIMKL using $malUrl (AniList id=$id)",
+            );
+
+            final res = await DatabaseHandler(database: Databases.simkl)
+                .search(malUrl);
+
+            Logs.app.log(
+              "[SIMKL LOOKUP SOURCE]: MAL -> SIMKL results=${res.length}",
+            );
+
+            if (res.isNotEmpty) {
+              final simklInfo = await DatabaseHandler(database: Databases.simkl)
+                  .getAnimeInfo(res[0].id);
+              s.addAll(simklInfo.alternateDatabases);
+              Logs.app.log(
+                "[SIMKL LOOKUP SOURCE]: MAL -> SIMKL resolved simklId=${res[0].id}",
+              );
             }
-            return <AlternateDatabaseId>[];
           }
-        }();
+        } catch (err) {
+          Logs.app.log(
+            "[INFO] couldnt fetch simkl data via MAL. ${err.toString()}",
+          );
+          if (currentUserSettings?.showErrors ?? false) {
+            floatingSnackBar("Couldnt fetch simkl data via MAL");
+          }
+        }
       }
 
-      final futures = await Future.wait([DatabaseHandler().getAnimeInfo(id), if (simklFuture != null) simklFuture]);
-
-      final info = futures[0] as DatabaseInfo;
-      s.addAll(info.alternateDatabases);
-      s.addAll(futures.length > 1 ? futures[1] as List<AlternateDatabaseId> : <AlternateDatabaseId>[]);
       _altDatabases = s.toList();
       _dataLoaded = true;
       _data = info;
@@ -282,7 +306,10 @@ class InfoProvider extends ChangeNotifier {
       notifyListeners();
     } catch (err) {
       Logs.app.log(err.toString());
-      if (currentUserSettings!.showErrors != null && currentUserSettings!.showErrors!) floatingSnackBar(err.toString());
+      if (currentUserSettings!.showErrors != null &&
+          currentUserSettings!.showErrors!) {
+        floatingSnackBar(err.toString());
+      }
       _infoLoadError = true;
       notifyListeners();
       rethrow;

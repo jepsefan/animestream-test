@@ -1,25 +1,26 @@
-# v1.4.8-beta20
+# v1.4.8-beta21
 
-> Subtitle cleanup and VTT overlap-color test release.
+> Adds optional multi-color VTT cue styling.
 
-## Changes since beta19
+## Changes since beta20
 
-### VTT empty-row cleanup
-- VTT dialogue lines are now cleaned before they are added to a cue.
-- `\\h`, repeated `\\h`, HTML/VTT tags, and surrounding whitespace are removed before deciding whether a line is empty.
-- Lines that become empty after cleanup are skipped instead of creating visible blank rows.
-- A second cleanup is performed when the cue is finalized, so fully empty cues are not created.
-- This is intended to make the status/UI subtitle block behave consistently on mobile and Android TV.
-
-### VTT overlapping cue colors
-- Bottom-aligned VTT cues now cycle through three text colors by cue order:
+### VTT cue color cycle
+- Bottom-aligned VTT cues now cycle through four colors:
   - white
-  - light gray (`#D0D0D0`)
   - gray (`#9E9E9E`)
-  - then repeat white -> light gray -> gray
-- A single cue therefore uses white.
-- This replaces the beta19 behavior where all cues older than the second one were gray.
-- The color cycling only applies to normal bottom-aligned VTT cues. Status/UI cues and ASS rendering keep their existing behavior.
+  - light yellow (`#CCBF51`) with a black stroke
+  - green (`#53FB57`) with a black stroke and black background
+  - then repeat from white
+- A single cue starts as white.
+- Status/UI cues to the left are not part of this color cycle.
+
+### Subtitle setting
+- Added a new `VTT cue colors` toggle in Subtitle Settings.
+- The setting is enabled by default, including for existing installs that do not yet have the saved value.
+- Turning it off restores the normal configured subtitle text/stroke/background colors instead of using the cue color cycle.
+
+### VTT cleanup
+- Keeps the beta20 cleanup that removes empty, whitespace-only, tag-only, and `\\h`-only rows before they can create visible blank subtitle lines.
 
 ### SIMKL lookup
 - Keeps the beta19 AniList -> SIMKL primary lookup with MAL -> SIMKL fallback when AniList returns zero results.

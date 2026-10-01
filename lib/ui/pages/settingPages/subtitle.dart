@@ -248,6 +248,16 @@ class _SubtitleSettingPageState extends State<SubtitleSettingPage> {
                                         saveSubSettings();
                                       });
                                     }),
+                                ToggleItem(
+                                    label: "VTT cue colors",
+                                    value: settings.enableCueColors,
+                                    onTapFunction: () {
+                                      setState(() {
+                                        settings = settings.copyWith(
+                                            enableCueColors: !settings.enableCueColors);
+                                        saveSubSettings();
+                                      });
+                                    }),
                                 _itemTitle("Font Size"),
                                 Padding(
                                   padding: const EdgeInsets.only(left: 20, right: 20, bottom: 40),

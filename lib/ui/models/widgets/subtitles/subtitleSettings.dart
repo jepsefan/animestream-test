@@ -19,6 +19,7 @@ class SubtitleSettings {
 
   final bool bold;
   final bool enableShadows;
+  final bool enableCueColors;
 
   const SubtitleSettings({
     this.backgroundColor = Colors.black,
@@ -31,6 +32,7 @@ class SubtitleSettings {
     this.fontFamily = "Rubik",
     this.bold = false,
     this.enableShadows = true,
+    this.enableCueColors = true,
   });
 
   SubtitleSettings copyWith({
@@ -44,6 +46,7 @@ class SubtitleSettings {
     double? backgroundTransparency,
     bool? bold,
     bool? enableShadows,
+    bool? enableCueColors,
   }) {
     return SubtitleSettings(
       textColor: textColor ?? this.textColor,
@@ -56,6 +59,7 @@ class SubtitleSettings {
       backgroundTransparency: backgroundTransparency ?? this.backgroundTransparency,
       bold: bold ?? this.bold,
       enableShadows: enableShadows ?? this.enableShadows,
+      enableCueColors: enableCueColors ?? this.enableCueColors,
     );
   }
 
@@ -71,6 +75,7 @@ class SubtitleSettings {
       'backgroundTransparency': backgroundTransparency,
       'bold': bold,
       'enableShadows': enableShadows,
+      'enableCueColors': enableCueColors,
     };
   }
 
@@ -85,7 +90,8 @@ class SubtitleSettings {
         bottomMargin: (map['bottomMargin'] ?? 30) as double,
         backgroundTransparency: (map['backgroundTransparency'] ?? 0) as double,
         bold: (map['bold'] ?? false) as bool,
-        enableShadows: (map['enableShadows'] ?? true) as bool);
+        enableShadows: (map['enableShadows'] ?? true) as bool,
+        enableCueColors: (map['enableCueColors'] ?? true) as bool);
   }
 
   String toJson() => json.encode(toMap());
@@ -95,6 +101,6 @@ class SubtitleSettings {
 
   @override
   String toString() {
-    return 'SubtitleSettings(textColor: $textColor, strokeColor: $strokeColor, backgroundColor: $backgroundColor, fontFamily: $fontFamily, strokeWidth: $strokeWidth, fontSize: $fontSize, bottomMargin: $bottomMargin, backgroundTransparency: $backgroundTransparency, bold: $bold, enableShadows: $enableShadows)';
+    return 'SubtitleSettings(textColor: $textColor, strokeColor: $strokeColor, backgroundColor: $backgroundColor, fontFamily: $fontFamily, strokeWidth: $strokeWidth, fontSize: $fontSize, bottomMargin: $bottomMargin, backgroundTransparency: $backgroundTransparency, bold: $bold, enableShadows: $enableShadows, enableCueColors: $enableCueColors)';
   }
 }

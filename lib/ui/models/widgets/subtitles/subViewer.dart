@@ -200,6 +200,9 @@ class _SubViewerState extends State<SubViewer> {
     TextAlign textAlign = TextAlign.center,
     double fontScale = 1.0,
     Color? textColor,
+    Color? strokeColor,
+    Color? backgroundColor,
+    double? backgroundTransparency,
   }) {
     final baseStyle = subTextStyle();
     return SubtitleText(
@@ -208,10 +211,11 @@ class _SubViewerState extends State<SubViewer> {
         fontSize: (baseStyle.fontSize ?? widget.settings.fontSize) * fontScale,
         color: textColor ?? baseStyle.color,
       ),
-      strokeColor: widget.settings.strokeColor,
+      strokeColor: strokeColor ?? widget.settings.strokeColor,
       strokeWidth: widget.settings.strokeWidth,
-      backgroundColor: widget.settings.backgroundColor,
-      backgroundTransparency: widget.settings.backgroundTransparency,
+      backgroundColor: backgroundColor ?? widget.settings.backgroundColor,
+      backgroundTransparency:
+          backgroundTransparency ?? widget.settings.backgroundTransparency,
       enableShadows: widget.settings.enableShadows,
       textAlign: textAlign,
     );
@@ -224,14 +228,25 @@ class _SubViewerState extends State<SubViewer> {
   }
 
   Color _bottomStackColor(int index) {
-    switch (index % 3) {
+    switch (index % 4) {
       case 0:
         return Colors.white;
       case 1:
-        return const Color(0xFFD0D0D0);
-      default:
         return const Color(0xFF9E9E9E);
+      case 2:
+        return const Color(0xFFCCBF51);
+      default:
+        return const Color(0xFF53FB57);
     }
+  }
+
+  bool _bottomStackUsesBlackStroke(int index) {
+    final slot = index % 4;
+    return slot == 2 || slot == 3;
+  }
+
+  bool _bottomStackUsesBlackBackground(int index) {
+    return index % 4 == 3;
   }
 
   @override
@@ -269,14 +284,25 @@ class _SubViewerState extends State<SubViewer> {
                     mainAxisSize: MainAxisSize.min,
                     children: group.value.asMap().entries.map((entry) {
                       final useStackColor =
-                          widget.format == SubtitleFormat.VTT &&
+                          widget.settings.enableCueColors &&
+                              widget.format == SubtitleFormat.VTT &&
                               _isBottomAlignment(group.key);
+                      final useBlackStroke = useStackColor &&
+                          _bottomStackUsesBlackStroke(entry.key);
+                      final useBlackBackground = useStackColor &&
+                          _bottomStackUsesBlackBackground(entry.key);
 
                       return _subtitleWidget(
                         entry.value,
                         textColor: useStackColor
                             ? _bottomStackColor(entry.key)
                             : null,
+                        strokeColor:
+                            useBlackStroke ? Colors.black : null,
+                        backgroundColor:
+                            useBlackBackground ? Colors.black : null,
+                        backgroundTransparency:
+                            useBlackBackground ? 0.65 : null,
                       );
                     }).toList(),
                   ),

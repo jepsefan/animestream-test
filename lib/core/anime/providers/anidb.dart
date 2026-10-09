@@ -136,7 +136,7 @@ abstract class AniDBSeBase implements AnimeProvider {
     // A site may expose episode numbers in links rather than controls.
     // Only accept links whose slug matches this exact series.
     final expected = RegExp(
-      '^${RegExp.escape(slug)}-episode-(\\\\d+)-english-subbed/?\\$',
+      '^${RegExp.escape(slug)}-episode-([0-9]+)-english-subbed/?'+r'$',
       caseSensitive: false,
     );
     for (final anchor in document.querySelectorAll('a[href]')) {

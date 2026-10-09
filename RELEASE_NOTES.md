@@ -2,7 +2,12 @@
 
 > Planned changes on branch `beta25-anidb-episodes`. These are **not yet implemented or verified**. The current app version remains unchanged.
 
-### Planned episode discovery
+### Implemented in source (not yet build-tested)
+- Replaced the retired anidb.app JSON API with an initial anidb.se HTML provider for search, episode discovery, and direct media URL extraction.
+- Episode candidates are constructed from anime slug and episode number; only pages with media indicators are listed.
+- Embedded iframe players are not yet resolved, and live site behavior has not been verified.
+
+### Intended behavior / pending validation
 - Read episode numbers from the anime series page rather than trusting placeholder `href="#"` links.
 - Construct candidate episode URLs from the series slug and episode number, following `https://anidb.se/<anime-slug>-episode-<number>-english-subbed/`.
 - Prefer a valid episode link provided by the site when one exists; use constructed URLs when links are missing or placeholders.

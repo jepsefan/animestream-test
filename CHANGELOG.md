@@ -1,3 +1,11 @@
+# v1.4.8-beta27
+
+- Separate AniDB V1 (series-specific links), V2 (episode controls), and V3 (both discovery methods).
+- Stop rejecting dynamically loaded player pages solely because HTML lacks video elements.
+- Verify series and episode identity using page metadata; keep 404/canonical checks.
+- Based on beta26, preserving earlier fixes.
+- Not yet build- or playback-tested.
+
 # v1.4.8-beta26
 
 ## AniDB.se fixes

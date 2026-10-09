@@ -1,3 +1,22 @@
+# v1.4.8-beta26
+
+> AniDB.se episode-selection fix on the full beta24 baseline.
+
+## Changes since beta24
+- Retains beta24's code and Android test package ID (`app.animestream.test`).
+- Limits AniDB.se episode links to the selected anime, addressing wrong-series playback observed in beta25.
+- Checks episode HTTP responses and canonical URLs, skipping 404 and mismatched pages.
+- Requires video/embed elements or recognizable media URLs before adding an episode.
+- Adds diagnostic logs for skipped and verified episodes.
+
+## Known limitations
+- Build and playback have not yet been verified.
+- Embedded players without detectable video links may still be missed.
+- Search-result matching may need further correction after testing.
+
+## Version
+- `1.4.8-beta26+1`
+
 # v1.4.8-beta24
 
 > Fixes AniDB.se episode targets that were resolving to `https://anidb.se#`.

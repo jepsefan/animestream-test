@@ -10,8 +10,11 @@
 - Treat network errors separately from confirmed missing episodes to avoid hiding available content.
 - Keep episode-page stream/embed extraction as a separate step and preserve existing provider functionality.
 
-### Implementation note
-- The current `master` AniDB provider uses `anidb.app` JSON API. The `anidb.se` HTML-based behavior from earlier beta24 testing needs to be integrated and tested before these items can be marked completed.
+### Provider migration (required)
+- Remove all reliance on the discontinued `anidb.app` API, including search, episode-list and stream endpoints.
+- Implement HTML-based search, episode discovery and episode-page stream extraction for `anidb.se`.
+- Validate published episodes before displaying them; do not treat network errors as proof that episodes are unavailable.
+- The current `master` AniDB provider still uses the old JSON API. This migration is required and is **not yet implemented or tested**.
 - No beta25 APK or release has been published yet.
 
 ---

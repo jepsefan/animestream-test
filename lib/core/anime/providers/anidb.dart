@@ -5,8 +5,10 @@ import 'package:html/parser.dart' as html;
 
 /// HTML-based AniDB.se provider. No dependency on the retired anidb.app API.
 class AniDB implements AnimeProvider {
+  final int variant;
+  AniDB({this.variant = 3});
   @override
-  final String providerName = 'Anidb';
+  String get providerName => 'AniDB V$variant';
 
   static const _baseUrl = 'https://anidb.se';
   static const _headers = {'User-Agent': 'Mozilla/5.0'};
@@ -80,7 +82,7 @@ class AniDB implements AnimeProvider {
           ? int.tryParse(textMatch?.group(1) ?? '')
           : int.tryParse(match.group(1)!);
       if (number == null || number < 1) continue;
-      final validLink = href.isNotEmpty && href != '#' &&
+      final validLink = variant != 1 && href.isNotEmpty && href != '#' &&
           absolute.host == seriesUrl.host && match != null;
       candidates[number] = validLink
           ? absolute.toString() : _episodeUrl(slug, number);
@@ -93,10 +95,11 @@ class AniDB implements AnimeProvider {
       final url = candidates[number]!;
       try {
         final page = html.parse(await _page(Uri.parse(url)));
+        print('[AniDB V$variant] Checking episode $number: $url');
         // A successful HTTP response alone is not proof of publication.
         final canonical = page.querySelector('link[rel="canonical"]')
             ?.attributes['href'];
-        if (canonical != null &&
+        if (variant != 1 && canonical != null &&
             Uri.parse(url).resolve(canonical).path != Uri.parse(url).path) {
           continue;
         }
@@ -104,7 +107,7 @@ class AniDB implements AnimeProvider {
             page.querySelectorAll('script').any((s) =>
                 RegExp(r'm3u8|mp4|embed|sources?\s*:', caseSensitive: false)
                     .hasMatch(s.text));
-        if (!hasEpisode) continue;
+        if (variant != 1 && !hasEpisode) continue;
         episodes.add({
           'episodeLink': url,
           'episodeNumber': number.toString(),
@@ -157,3 +160,7 @@ class AniDB implements AnimeProvider {
     throw UnimplementedError();
   }
 }
+
+class AniDBV1 extends AniDB { AniDBV1() : super(variant: 1); }
+class AniDBV2 extends AniDB { AniDBV2() : super(variant: 2); }
+class AniDBV3 extends AniDB { AniDBV3() : super(variant: 3); }

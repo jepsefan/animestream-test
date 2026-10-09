@@ -245,8 +245,22 @@ class _SubViewerState extends State<SubViewer> {
     return slot == 2 || slot == 3;
   }
 
-  bool _bottomStackUsesBlackBackground(int index) {
-    return index % 4 == 3;
+  int _stableBottomCueIndex(SubtitleCue sub) {
+    var bottomIndex = 0;
+
+    for (final candidate in subs) {
+      if (!_isBottomAlignment(candidate.alignment)) {
+        continue;
+      }
+
+      if (identical(candidate, sub)) {
+        return bottomIndex;
+      }
+
+      bottomIndex++;
+    }
+
+    return 0;
   }
 
   @override
@@ -287,22 +301,19 @@ class _SubViewerState extends State<SubViewer> {
                           widget.settings.enableCueColors &&
                               widget.format == SubtitleFormat.VTT &&
                               _isBottomAlignment(group.key);
+                      final cueColorIndex = useStackColor
+                          ? _stableBottomCueIndex(entry.value)
+                          : 0;
                       final useBlackStroke = useStackColor &&
-                          _bottomStackUsesBlackStroke(entry.key);
-                      final useBlackBackground = useStackColor &&
-                          _bottomStackUsesBlackBackground(entry.key);
+                          _bottomStackUsesBlackStroke(cueColorIndex);
 
                       return _subtitleWidget(
                         entry.value,
                         textColor: useStackColor
-                            ? _bottomStackColor(entry.key)
+                            ? _bottomStackColor(cueColorIndex)
                             : null,
                         strokeColor:
                             useBlackStroke ? Colors.black : null,
-                        backgroundColor:
-                            useBlackBackground ? Colors.black : null,
-                        backgroundTransparency:
-                            useBlackBackground ? 0.65 : null,
                       );
                     }).toList(),
                   ),

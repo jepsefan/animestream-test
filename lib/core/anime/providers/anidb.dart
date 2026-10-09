@@ -3,6 +3,7 @@ import 'package:animestream/core/anime/providers/types.dart';
 import 'package:animestream/core/network/network.dart';
 import 'package:html/parser.dart' as html;
 import 'dart:convert';
+import 'package:http/http.dart' as http;
 
 /// HTML-based AniDB.se provider. No dependency on the retired anidb.app API.
 class AniDB implements AnimeProvider {
@@ -74,20 +75,24 @@ class AniDB implements AnimeProvider {
     final seriesUrl = _uri('/anime/$slug/');
     final document = html.parse(await _page(seriesUrl));
     final candidates = <int, String>{};
-    for (final a in document.querySelectorAll('a')) {
+    // Do not treat sidebar 'Ongoing Animes' episode links as this series.
+    // Match the exact series slug, not merely an episode number.
+    final ownEpisode = RegExp(
+      '^/' + RegExp.escape(slug) + r'-episode-(\d+)-english-subbed/?$',
+      caseSensitive: false,
+    );
+    for (final a in document.querySelectorAll('a[href]')) {
       final href = a.attributes['href'] ?? '';
       final absolute = seriesUrl.resolve(href);
-      final match = _episodePattern.firstMatch(absolute.path);
-      final textMatch = _numberPattern.firstMatch(a.text);
-      final number = match == null
-          ? int.tryParse(textMatch?.group(1) ?? '')
-          : int.tryParse(match.group(1)!);
+      if (absolute.host != seriesUrl.host) continue;
+      final match = ownEpisode.firstMatch(absolute.path);
+      if (match == null) continue;
+      final number = int.tryParse(match.group(1)!);
       if (number == null || number < 1) continue;
-      final validLink = variant != 1 && href.isNotEmpty && href != '#' &&
-          absolute.host == seriesUrl.host && match != null;
-      candidates[number] = validLink
-          ? absolute.toString() : _episodeUrl(slug, number);
+      candidates[number] = variant == 1
+          ? _episodeUrl(slug, number) : absolute.toString();
     }
+    print('[AniDB V$variant] series=$slug own episodes=${candidates.length}');
     if (candidates.isEmpty) {
       throw Exception('AniDB series page contains no recognizable episode numbers');
     }
@@ -204,6 +209,27 @@ class AniDB implements AnimeProvider {
       await _resolve(Uri.parse(episodeId), urls, <String>{}, 0);
       print('[AniDB V' + variant.toString() +
           '] stream candidates=' + urls.length.toString());
+      for (final url in urls) {
+        print('[AniDB V$variant] candidate: $url');
+      }
+      if (variant == 1) {
+        // HEAD probes metadata only: avoid downloading a whole video.
+        for (final url in urls.take(3)) {
+          try {
+            final response = await http.head(Uri.parse(url), headers: {
+              ..._headers, 'Referer': episodeId,
+            }).timeout(const Duration(seconds: 8));
+            print('[AniDB V1] HEAD status=${response.statusCode} '
+                'type=${response.headers['content-type']} '
+                'length=${response.headers['content-length']}');
+            if (response.statusCode == 403 || response.statusCode == 405) {
+              print('[AniDB V1] HEAD may be blocked even if GET works');
+            }
+          } catch (e) {
+            print('[AniDB V1] HEAD probe error: $e');
+          }
+        }
+      }
       update(urls.map((url) => VideoStream(
         url: url, quality: 'default', server: 'AniDB V' + variant.toString(),
         backup: false, customHeaders: {'referer': episodeId},

@@ -2,6 +2,13 @@
 
 > Planned changes on branch `beta25-anidb-episodes`. These are **not yet implemented or verified**. The current app version remains unchanged.
 
+### In-app AniDB test sources (not yet build-tested)
+- Added three selectable built-in providers: **AniDB V1**, **AniDB V2**, and **AniDB V3**.
+- V1 uses generated episode URLs and does not require a media indicator to list an episode.
+- V2 validates episode pages for media indicators and can use valid page links.
+- V3 currently shares V2's verification behavior; its fallback stream strategy is not implemented yet.
+- Legacy AniDB identifier maps to V3 for compatibility.
+
 ### Implemented in source (not yet build-tested)
 - Replaced the retired anidb.app JSON API with an initial anidb.se HTML provider for search, episode discovery, and direct media URL extraction.
 - Episode candidates are constructed from anime slug and episode number; only pages with media indicators are listed.

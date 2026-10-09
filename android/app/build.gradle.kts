@@ -49,7 +49,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "app.animestream"
+        applicationId = "app.animestream.test"
         minSdk = 24
         targetSdk = 35
         versionCode = flutterVersionCode.toInt()

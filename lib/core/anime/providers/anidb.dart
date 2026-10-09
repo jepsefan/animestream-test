@@ -109,150 +109,89 @@ abstract class AniDBSeBase implements AnimeProvider {
       cacheDuration: const Duration(minutes: 5),
     );
 
+    if (res.statusCode < 200 || res.statusCode >= 300) {
+      throw Exception('AniDB series HTTP ${res.statusCode}: $animeUri');
+    }
+
     final document = html.parse(res.body);
-    final episodes = <Map<String, dynamic>>[];
-    final seen = <String>{};
+    final slug = animeUri.pathSegments.where((s) => s.isNotEmpty).last;
+    final numbers = <int>{};
+    final numberPattern = RegExp(r'(?:episode|ep)[\\s#:_-]*(\\d+)', caseSensitive: false);
 
+    // The series page can contain unrelated recommendations and episode
+    // widgets. Only extract numbers from episode controls, never their URLs.
     for (final element in document.querySelectorAll(
-      'a[href], button, [data-url], [data-href], [data-src], [data-link], '
-      '[data-episode-url], [data-video], [data-embed], [data-player], [onclick]',
+      '.eplister a, .episodelist a, .episode-list a, '
+      '[data-episode], [data-ep], [data-number], a[href="#"]',
     )) {
-      final text = _cleanText(
-        element.attributes['title'] ??
-            element.querySelector('img')?.attributes['alt'] ??
-            element.text,
-      );
-
-      String? link = element.attributes['href'];
-
-      if (link == null ||
-          link.isEmpty ||
-          link == '#' ||
-          link.startsWith('javascript:')) {
-        for (final key in [
-          'data-url',
-          'data-href',
-          'data-src',
-          'data-link',
-          'data-episode-url',
-          'data-video',
-          'data-embed',
-          'data-player',
-        ]) {
-          final value = element.attributes[key];
-          if (value != null && value.trim().isNotEmpty && value != '#') {
-            link = value.trim();
-            break;
-          }
-        }
-      }
-
-      if ((link == null || link.isEmpty || link == '#') &&
-          element.attributes['onclick'] != null) {
-        final onclick = element.attributes['onclick']!;
-        final quotedUrl = RegExp(
-          r'''["'](https?://[^"']+|/[^"']+)["']''',
-          caseSensitive: false,
-        ).firstMatch(onclick);
-        if (quotedUrl != null) {
-          link = quotedUrl.group(1);
-        }
-      }
-
-      final episodeNumber = _episodeNumber(text, link ?? '');
-      if (episodeNumber == null) continue;
-
-      String absolute;
-      if (link == null ||
-          link.isEmpty ||
-          link == '#' ||
-          link.startsWith('javascript:')) {
-        // anidb.se currently renders some episode controls as href="#".
-        // Keep the anime page as the target and attach the episode number
-        // so getStreams can inspect the episode block on the same page.
-        absolute = animeUri.replace(fragment: 'episode=$episodeNumber').toString();
-
-        Logs.app.log(
-          "[ANIDB.SE $variantName] episode $episodeNumber uses same-page target; "
-          "attributes=${element.attributes}",
-        );
-      } else {
-        absolute = animeUri.resolve(link).toString();
-      }
-
-      final uniqueKey = '$episodeNumber|$absolute';
-      if (!seen.add(uniqueKey)) continue;
-
-      episodes.add({
-        'episodeLink': absolute,
-        'episodeNumber': episodeNumber,
-        'episodeTitle': text.isEmpty ? null : text,
-        'thumbnail': element.querySelector('img')?.attributes['src'],
-        'hasDub': dub,
-        'isFiller': false,
-      });
-    }
-
-    // Some themes keep episode URLs only inside inline JavaScript/JSON.
-    // Try common episode+URL object layouts if the DOM did not expose them.
-    for (final script in document.querySelectorAll('script')) {
-      final body = script.text;
-
-      final episodeThenUrl = RegExp(
-        r'''(?:episode|number)["']?\s*[:=]\s*["']?(\d+(?:\.\d+)?)["']?[^{}]{0,300}?(?:url|link|href|embed)["']?\s*[:=]\s*["']([^"']+)["']''',
-        caseSensitive: false,
-      );
-
-      final urlThenEpisode = RegExp(
-        r'''(?:url|link|href|embed)["']?\s*[:=]\s*["']([^"']+)["'][^{}]{0,300}?(?:episode|number)["']?\s*[:=]\s*["']?(\d+(?:\.\d+)?)["']?''',
-        caseSensitive: false,
-      );
-
-      for (final match in episodeThenUrl.allMatches(body)) {
-        final number = match.group(1)!;
-        final link = match.group(2)!;
-        final absolute = animeUri.resolve(link).toString();
-        final uniqueKey = '$number|$absolute';
-        if (!seen.add(uniqueKey)) continue;
-
-        episodes.add({
-          'episodeLink': absolute,
-          'episodeNumber': number,
-          'episodeTitle': 'Episode $number',
-          'thumbnail': null,
-          'hasDub': dub,
-          'isFiller': false,
-        });
-      }
-
-      for (final match in urlThenEpisode.allMatches(body)) {
-        final link = match.group(1)!;
-        final number = match.group(2)!;
-        final absolute = animeUri.resolve(link).toString();
-        final uniqueKey = '$number|$absolute';
-        if (!seen.add(uniqueKey)) continue;
-
-        episodes.add({
-          'episodeLink': absolute,
-          'episodeNumber': number,
-          'episodeTitle': 'Episode $number',
-          'thumbnail': null,
-          'hasDub': dub,
-          'isFiller': false,
-        });
+      final descriptor = '${element.text} ${element.attributes['title'] ?? ''} '
+          '${element.attributes['data-episode'] ?? ''}';
+      final match = numberPattern.firstMatch(descriptor);
+      if (match != null) {
+        final number = int.tryParse(match.group(1)!);
+        if (number != null && number > 0) numbers.add(number);
       }
     }
 
-    episodes.sort((a, b) {
-      final aa = double.tryParse(a['episodeNumber'].toString()) ?? 0;
-      final bb = double.tryParse(b['episodeNumber'].toString()) ?? 0;
-      return aa.compareTo(bb);
-    });
-
-    Logs.app.log(
-      "[ANIDB.SE $variantName] episodes=${episodes.length}",
+    // A site may expose episode numbers in links rather than controls.
+    // Only accept links whose slug matches this exact series.
+    final expected = RegExp(
+      '^${RegExp.escape(slug)}-episode-(\\\\d+)-english-subbed/?\\$',
+      caseSensitive: false,
     );
+    for (final anchor in document.querySelectorAll('a[href]')) {
+      final href = anchor.attributes['href'];
+      if (href == null || href == '#') continue;
+      final uri = animeUri.resolve(href);
+      if (uri.host != animeUri.host) continue;
+      final leaf = uri.pathSegments.where((s) => s.isNotEmpty).lastOrNull ?? '';
+      final match = expected.firstMatch(leaf);
+      if (match != null) numbers.add(int.parse(match.group(1)!));
+    }
 
+    final episodes = <Map<String, dynamic>>[];
+    for (final number in numbers.toList()..sort()) {
+      final episodeUri = Uri.parse(
+        '$baseUrl/$slug-episode-$number-english-subbed/',
+      );
+      try {
+        final episodeRes = await get(
+          episodeUri,
+          headers: headers,
+          cacheDuration: const Duration(minutes: 5),
+        );
+        if (episodeRes.statusCode != 200) {
+          Logs.app.log('[ANIDB.SE $variantName] skipping episode $number: '
+              'HTTP ${episodeRes.statusCode}');
+          continue;
+        }
+        final page = html.parse(episodeRes.body);
+        final canonical = page.querySelector('link[rel="canonical"]')
+            ?.attributes['href'];
+        if (canonical != null &&
+            episodeUri.resolve(canonical).path != episodeUri.path) {
+          Logs.app.log('[ANIDB.SE $variantName] skipping episode $number: '
+              'canonical mismatch');
+          continue;
+        }
+        final hasMedia = page.querySelector(
+          'video[src], video source[src], iframe[src]',
+        ) != null || RegExp(r'\\.m3u8|\\.mp4', caseSensitive: false)
+            .hasMatch(episodeRes.body);
+        if (!hasMedia) continue;
+        episodes.add({
+          'episodeLink': episodeUri.toString(),
+          'episodeNumber': number.toString(),
+          'episodeTitle': 'Episode $number',
+          'thumbnail': null,
+          'hasDub': false,
+          'isFiller': false,
+        });
+      } catch (error) {
+        Logs.app.log('[ANIDB.SE $variantName] episode $number failed: $error');
+      }
+    }
+    Logs.app.log('[ANIDB.SE $variantName] verified episodes=${episodes.length}');
     return episodes;
   }
 

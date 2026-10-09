@@ -355,7 +355,7 @@ class AniDBSeV3 extends AniDBSeBase {
 
     final res = await get(
       uri,
-      headers: headers,
+      headers: AniDBSeBase.headers,
       cacheDuration: const Duration(minutes: 5),
     );
 

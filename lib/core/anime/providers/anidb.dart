@@ -200,6 +200,15 @@ class AniDB implements AnimeProvider {
     }
   }
 
+  Map<String, String> _streamHeaders(String episodeId) {
+    final headers = <String, String>{'Referer': episodeId};
+    if (variant >= 2) {
+      headers['Origin'] = 'https://anidb.se';
+      headers['User-Agent'] = 'Mozilla/5.0 (Linux; Android 12; Android TV) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
+    }
+    return headers;
+  }
+
   @override
   Future<void> getStreams(String episodeId,
       Function(List<VideoStream>, bool) update,
@@ -212,27 +221,35 @@ class AniDB implements AnimeProvider {
       for (final url in urls) {
         print('[AniDB V$variant] candidate: $url');
       }
-      if (variant == 1) {
-        // HEAD probes metadata only: avoid downloading a whole video.
+      if (variant == 3) {
+        for (final url in urls.take(3)) {
+          final client = http.Client();
+          try {
+            final request = http.Request('GET', Uri.parse(url))
+              ..headers.addAll({..._streamHeaders(episodeId), 'Range': 'bytes=0-1023'});
+            final response = await client.send(request).timeout(const Duration(seconds: 12));
+            final bytes = <int>[];
+            await for (final chunk in response.stream.timeout(const Duration(seconds: 12))) {
+              bytes.addAll(chunk.take(1024 - bytes.length));
+              if (bytes.length >= 1024) break;
+            }
+            final prefix = utf8.decode(bytes.take(80).toList(), allowMalformed: true).toLowerCase();
+            final mp4 = bytes.length >= 8 && ascii.decode(bytes.sublist(4, 8), allowInvalid: true) == 'ftyp';
+            print('[AniDB V3] Range GET status=${response.statusCode} type=${response.headers['content-type']} range=${response.headers['content-range']} length=${response.headers['content-length']} bytes=${bytes.length} mp4Ftyp=$mp4 html=${prefix.contains('<html')}');
+          } catch (e) { print('[AniDB V3] Range GET error: $e'); }
+          finally { client.close(); }
+        }
+      } else if (variant == 1) {
         for (final url in urls.take(3)) {
           try {
-            final response = await http.head(Uri.parse(url), headers: {
-              ..._headers, 'Referer': episodeId,
-            }).timeout(const Duration(seconds: 8));
-            print('[AniDB V1] HEAD status=${response.statusCode} '
-                'type=${response.headers['content-type']} '
-                'length=${response.headers['content-length']}');
-            if (response.statusCode == 403 || response.statusCode == 405) {
-              print('[AniDB V1] HEAD may be blocked even if GET works');
-            }
-          } catch (e) {
-            print('[AniDB V1] HEAD probe error: $e');
-          }
+            final response = await http.head(Uri.parse(url), headers: _streamHeaders(episodeId)).timeout(const Duration(seconds: 8));
+            print('[AniDB V1] HEAD status=${response.statusCode} type=${response.headers['content-type']} length=${response.headers['content-length']}');
+          } catch (e) { print('[AniDB V1] HEAD error: $e'); }
         }
       }
       update(urls.map((url) => VideoStream(
         url: url, quality: 'default', server: 'AniDB V' + variant.toString(),
-        backup: false, customHeaders: {'referer': episodeId},
+        backup: false, customHeaders: _streamHeaders(episodeId),
       )).toList(), true);
     } catch (e) {
       print('[AniDB V' + variant.toString() + '] Stream error: ' + e.toString());

@@ -9,7 +9,7 @@ class AniDB implements AnimeProvider {
   @override
   final String providerName = "Anidb";
 
-  static const _baseUrl = "https://anidb.app";
+  static const _baseUrl = "https://anidb.se";
   static const Map<String, String> _headers = {
     "User-Agent": "Chrome",
   };

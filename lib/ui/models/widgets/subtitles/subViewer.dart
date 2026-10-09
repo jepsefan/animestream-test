@@ -46,6 +46,9 @@ class _SubViewerState extends State<SubViewer> {
 
   List<SubtitleCue> activeSubtitles = [];
 
+  final Map<SubtitleCue, int> _cueColorSlots = {};
+  int _nextCueColorSlot = 0;
+
   bool areSubsLoading = true;
 
   String? _loadedSubsUrl;
@@ -56,6 +59,8 @@ class _SubViewerState extends State<SubViewer> {
         areSubsLoading = true;
       });
       subs.clear(); // clear the old subs (if any)
+      _cueColorSlots.clear();
+      _nextCueColorSlot = 0;
       print("[SUBVIEWER]: Loading ${widget.format.name} subs");
       if (widget.isOffline) {
         subs = await Subtitleparsers().parseSubsFromFile(widget.subtitleSource, widget.format);
@@ -245,22 +250,11 @@ class _SubViewerState extends State<SubViewer> {
     return slot == 2 || slot == 3;
   }
 
-  int _stableBottomCueIndex(SubtitleCue sub) {
-    var bottomIndex = 0;
-
-    for (final candidate in subs) {
-      if (!_isBottomAlignment(candidate.alignment)) {
-        continue;
-      }
-
-      if (identical(candidate, sub)) {
-        return bottomIndex;
-      }
-
-      bottomIndex++;
-    }
-
-    return 0;
+  int _lockedCueColorIndex(SubtitleCue sub) {
+    return _cueColorSlots.putIfAbsent(
+      sub,
+      () => _nextCueColorSlot++,
+    );
   }
 
   @override
@@ -302,7 +296,7 @@ class _SubViewerState extends State<SubViewer> {
                               widget.format == SubtitleFormat.VTT &&
                               _isBottomAlignment(group.key);
                       final cueColorIndex = useStackColor
-                          ? _stableBottomCueIndex(entry.value)
+                          ? _lockedCueColorIndex(entry.value)
                           : 0;
                       final useBlackStroke = useStackColor &&
                           _bottomStackUsesBlackStroke(cueColorIndex);

@@ -29,3 +29,7 @@
 
 ### SIMKL lookup
 - Keeps the AniList -> SIMKL primary lookup with MAL -> SIMKL fallback.
+
+### AniDB provider
+- Updated the AniDB source base URL from `https://anidb.app` to `https://anidb.se`.
+

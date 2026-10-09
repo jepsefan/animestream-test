@@ -1,3 +1,16 @@
+# v1.4.8-beta27
+
+## AniDB test sources
+- V1: exact episode hyperlinks for the selected series.
+- V2: numbered controls within episode-list widgets.
+- V3: combines both episode-discovery strategies.
+- All variants validate episode page title and canonical URL, skip missing pages, and no longer require video elements in initial HTML.
+
+## Notes
+- Version `1.4.8-beta27+1`; based on beta26 with all prior fixes retained.
+- These are different discovery strategies, not three independent video stream extractors.
+- Build and playback not yet verified; site HTML changes may require further fixes.
+
 # v1.4.8-beta26
 
 > AniDB.se episode-selection fix on the full beta24 baseline.

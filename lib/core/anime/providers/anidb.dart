@@ -25,7 +25,7 @@ abstract class AniDBSeBase implements AnimeProvider {
 
     final res = await get(
       uri,
-      headers: headers,
+      headers: AniDBSeBase.headers,
       cacheDuration: const Duration(minutes: 5),
     );
 
@@ -58,7 +58,7 @@ abstract class AniDBSeBase implements AnimeProvider {
       final path = uri?.path ?? href;
       if (path == '/anime/' || path == '/anime') return;
 
-      final absolute = Uri.parse(baseUrl).resolve(href).toString();
+      final absolute = Uri.parse(AniDBSeBase.baseUrl).resolve(href).toString();
       if (!seen.add(absolute)) return;
 
       final img = anchor.querySelector('img');
@@ -99,7 +99,7 @@ abstract class AniDBSeBase implements AnimeProvider {
   }) async {
     final animeUri = Uri.tryParse(aliasId)?.hasScheme == true
         ? Uri.parse(aliasId)
-        : Uri.parse(baseUrl).resolve(aliasId);
+        : Uri.parse(AniDBSeBase.baseUrl).resolve(aliasId);
 
     Logs.app.log("[ANIDB.SE $variantName] anime page: $animeUri");
 
@@ -126,7 +126,7 @@ abstract class AniDBSeBase implements AnimeProvider {
       final episodeNumber = _episodeNumber(text, href);
       if (episodeNumber == null) continue;
 
-      final absolute = Uri.parse(baseUrl).resolve(href).toString();
+      final absolute = Uri.parse(AniDBSeBase.baseUrl).resolve(href).toString();
       if (!seen.add(absolute)) continue;
 
       episodes.add({
@@ -177,7 +177,7 @@ abstract class AniDBSeBase implements AnimeProvider {
   }) async {
     final episodeUri = Uri.tryParse(episodeId)?.hasScheme == true
         ? Uri.parse(episodeId)
-        : Uri.parse(baseUrl).resolve(episodeId);
+        : Uri.parse(AniDBSeBase.baseUrl).resolve(episodeId);
 
     Logs.app.log("[ANIDB.SE $variantName] episode page: $episodeUri");
 
@@ -223,7 +223,7 @@ abstract class AniDBSeBase implements AnimeProvider {
       for (final match in pattern.allMatches(body)) {
         final value = match.groupCount > 0 ? match.group(1) : match.group(0);
         if (value != null && value.contains('.m3u8')) {
-          candidates.add(Uri.parse(baseUrl).resolve(value).toString());
+          candidates.add(Uri.parse(AniDBSeBase.baseUrl).resolve(value).toString());
         }
       }
     }
@@ -304,7 +304,7 @@ class AniDBSeV1 extends AniDBSeBase {
 
   @override
   Uri buildSearchUri(String query) {
-    return Uri.parse(baseUrl).replace(
+    return Uri.parse(AniDBSeBase.baseUrl).replace(
       queryParameters: {'s': query},
     );
   }
@@ -322,7 +322,7 @@ class AniDBSeV2 extends AniDBSeBase {
 
   @override
   Uri buildSearchUri(String query) {
-    return Uri.parse('$baseUrl/anime/').replace(
+    return Uri.parse('${AniDBSeBase.baseUrl}/anime/').replace(
       queryParameters: {'s': query},
     );
   }
@@ -345,7 +345,7 @@ class AniDBSeV3 extends AniDBSeBase {
         .replaceAll(RegExp(r'[^a-z0-9]+'), '-')
         .replaceAll(RegExp(r'^-+|-+$'), '');
 
-    return Uri.parse('$baseUrl/anime/$slug/');
+    return Uri.parse('${AniDBSeBase.baseUrl}/anime/$slug/');
   }
 
   @override

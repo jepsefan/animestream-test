@@ -30,7 +30,9 @@ class SourceManager {
     "AniZone",
     "Anikoto",
     "Animegg",
-    "AniDB",
+    "AniDB.se v1",
+    "AniDB.se v2",
+    "AniDB.se v3",
   ]
       .map((e) => ProviderDetails(
           name: e,
@@ -107,6 +109,9 @@ final Map<String, AnimeProvider> sources = {
   "anizone": AniZone(),
   "animegg": Animegg(),
   "anikoto": Anikoto(),
+  "anidb.se v1": AniDBSeV1(),
+  "anidb.se v2": AniDBSeV2(),
+  "anidb.se v3": AniDBSeV3(),
   "anidb": AniDB(),
 };
 

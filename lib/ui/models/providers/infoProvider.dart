@@ -370,6 +370,10 @@ class InfoProvider extends ChangeNotifier {
 
   Future<void> _search(String query) async {
     final sr = await sourceManager.searchInSource(selectedSource.identifier, query);
+    if (sr.isEmpty) {
+      throw Exception("No results found from ${selectedSource.name} for: $query");
+    }
+
     //to find a exact match
     List<Map<String, String?>> match = sr
         .where(

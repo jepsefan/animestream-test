@@ -1,26 +1,31 @@
-# v1.4.8-beta21
+# v1.4.8-beta22
 
-> Adds optional multi-color VTT cue styling.
+> Locks VTT cue colors so visible subtitles do not change color when another cue ends.
 
-## Changes since beta20
+## Changes since beta21
+
+### Locked VTT cue colors
+- Each normal bottom-aligned VTT cue gets a color slot the first time it is shown.
+- That cue keeps the same color for its lifetime, even if an older overlapping cue disappears.
+- New colorized cues continue the four-color sequence instead of recalculating colors from the current visible stack.
+- Status/UI cues shown on the left do not consume a color slot.
 
 ### VTT cue color cycle
-- Bottom-aligned VTT cues now cycle through four colors:
+- The enabled cue-color sequence remains:
   - white
   - gray (`#9E9E9E`)
-  - light yellow (`#CCBF51`) with a black stroke
-  - green (`#53FB57`) with a black stroke and black background
+  - light yellow (`#CCBF51`) with black stroke
+  - green (`#53FB57`) with black stroke
   - then repeat from white
-- A single cue starts as white.
-- Status/UI cues to the left are not part of this color cycle.
+- Green no longer forces a black background.
 
 ### Subtitle setting
-- Added a new `VTT cue colors` toggle in Subtitle Settings.
-- The setting is enabled by default, including for existing installs that do not yet have the saved value.
-- Turning it off restores the normal configured subtitle text/stroke/background colors instead of using the cue color cycle.
+- Keeps the `VTT cue colors` toggle from beta21.
+- It remains enabled by default.
+- Turning it off restores the configured normal subtitle colors.
 
 ### VTT cleanup
-- Keeps the beta20 cleanup that removes empty, whitespace-only, tag-only, and `\\h`-only rows before they can create visible blank subtitle lines.
+- Keeps the beta20 cleanup for empty, whitespace-only, tag-only, and `\\h`-only rows.
 
 ### SIMKL lookup
-- Keeps the beta19 AniList -> SIMKL primary lookup with MAL -> SIMKL fallback when AniList returns zero results.
+- Keeps the AniList -> SIMKL primary lookup with MAL -> SIMKL fallback.

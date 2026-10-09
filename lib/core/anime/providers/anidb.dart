@@ -116,39 +116,36 @@ abstract class AniDBSeBase implements AnimeProvider {
     final document = html.parse(res.body);
     final slug = animeUri.pathSegments.where((s) => s.isNotEmpty).last;
     final numbers = <int>{};
-    final numberPattern = RegExp(r'(?:episode|ep)[\\s#:_-]*(\\d+)', caseSensitive: false);
-
-    // The series page can contain unrelated recommendations and episode
-    // widgets. Only extract numbers from episode controls, never their URLs.
-    for (final element in document.querySelectorAll(
-      '.eplister a, .episodelist a, .episode-list a, '
-      '[data-episode], [data-ep], [data-number], a[href="#"]',
-    )) {
-      final descriptor = '${element.text} ${element.attributes['title'] ?? ''} '
-          '${element.attributes['data-episode'] ?? ''}';
-      final match = numberPattern.firstMatch(descriptor);
-      if (match != null) {
-        final number = int.tryParse(match.group(1)!);
-        if (number != null && number > 0) numbers.add(number);
-      }
-    }
-
-    // A site may expose episode numbers in links rather than controls.
-    // Only accept links whose slug matches this exact series.
+    final numberPattern = RegExp(r'(?:episode|ep)[\s#:_-]*(\d+)', caseSensitive: false);
     final expected = RegExp(
-      '^${RegExp.escape(slug)}-episode-([0-9]+)-english-subbed/?'+r'$',
+      '^${RegExp.escape(slug)}-episode-([0-9]+)-english-subbed/?' + r'$',
       caseSensitive: false,
     );
-    for (final anchor in document.querySelectorAll('a[href]')) {
-      final href = anchor.attributes['href'];
-      if (href == null || href == '#') continue;
-      final uri = animeUri.resolve(href);
-      if (uri.host != animeUri.host) continue;
-      final leaf = uri.pathSegments.where((s) => s.isNotEmpty).lastOrNull ?? '';
-      final match = expected.firstMatch(leaf);
-      if (match != null) numbers.add(int.parse(match.group(1)!));
+    // V1: only series-specific episode hyperlinks.
+    if (variantName == 'v1' || variantName == 'v3') {
+      for (final anchor in document.querySelectorAll('a[href]')) {
+        final href = anchor.attributes['href'];
+        if (href == null || href == '#') continue;
+        final uri = animeUri.resolve(href);
+        if (uri.host != animeUri.host) continue;
+        final match = expected.firstMatch(uri.path.replaceFirst(RegExp(r'^/'), ''));
+        if (match != null) numbers.add(int.parse(match.group(1)!));
+      }
     }
-
+    // V2: only controls within episode widgets, not recommendations.
+    if (variantName == 'v2' || variantName == 'v3') {
+      for (final element in document.querySelectorAll(
+        '.eplister a, .episodelist a, .episode-list a, '
+        '[data-episode], [data-ep], [data-number]',
+      )) {
+        final descriptor = '${element.text} ${element.attributes['title'] ?? ''} '
+            '${element.attributes['data-episode'] ?? ''} '
+            '${element.attributes['data-ep'] ?? ''}';
+        final match = numberPattern.firstMatch(descriptor);
+        if (match != null) numbers.add(int.parse(match.group(1)!));
+      }
+    }
+    Logs.app.log('[ANIDB.SE $variantName] candidates=${numbers.length}');
     final episodes = <Map<String, dynamic>>[];
     for (final number in numbers.toList()..sort()) {
       final episodeUri = Uri.parse(
@@ -174,11 +171,19 @@ abstract class AniDBSeBase implements AnimeProvider {
               'canonical mismatch');
           continue;
         }
-        final hasMedia = page.querySelector(
-          'video[src], video source[src], iframe[src]',
-        ) != null || RegExp(r'\\.m3u8|\\.mp4', caseSensitive: false)
-            .hasMatch(episodeRes.body);
-        if (!hasMedia) continue;
+        // Dynamic players are injected after page load; validate page identity
+        // instead of requiring video elements in the initial HTML.
+        final title = [
+          page.querySelector('title')?.text ?? '',
+          page.querySelector('h1')?.text ?? '',
+          page.querySelector('meta[property="og:title"]')?.attributes['content'] ?? '',
+        ].join(' ').toLowerCase();
+        final normalized = title.replaceAll(RegExp(r'[^a-z0-9]+'), ' ').trim();
+        if (!normalized.contains(slug.replaceAll('-', ' ')) ||
+            !RegExp('episode\\s*$number\\b', caseSensitive: false).hasMatch(title)) {
+          Logs.app.log('[ANIDB.SE $variantName] skipping episode $number: title mismatch');
+          continue;
+        }
         episodes.add({
           'episodeLink': episodeUri.toString(),
           'episodeNumber': number.toString(),

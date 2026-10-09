@@ -1,3 +1,36 @@
+# Beta25 – AniDB episode URL handling (in development)
+
+> Planned changes on branch `beta25-anidb-episodes`. These are **not yet implemented or verified**. The current app version remains unchanged.
+
+### In-app AniDB test sources (not yet build-tested)
+- Added three selectable built-in providers: **AniDB V1**, **AniDB V2**, and **AniDB V3**.
+- V1 uses generated episode URLs and does not require a media indicator to list an episode.
+- V2 validates episode pages for media indicators and can use valid page links.
+- V3 currently shares V2's verification behavior; its fallback stream strategy is not implemented yet.
+- Legacy AniDB identifier maps to V3 for compatibility.
+
+### Implemented in source (not yet build-tested)
+- Replaced the retired anidb.app JSON API with an initial anidb.se HTML provider for search, episode discovery, and direct media URL extraction.
+- Episode candidates are constructed from anime slug and episode number; only pages with media indicators are listed.
+- Embedded iframe players are not yet resolved, and live site behavior has not been verified.
+
+### Intended behavior / pending validation
+- Read episode numbers from the anime series page rather than trusting placeholder `href="#"` links.
+- Construct candidate episode URLs from the series slug and episode number, following `https://anidb.se/<anime-slug>-episode-<number>-english-subbed/`.
+- Prefer a valid episode link provided by the site when one exists; use constructed URLs when links are missing or placeholders.
+- Show only episodes confirmed as published, excluding future or unavailable episodes without renumbering the remaining entries.
+- Treat network errors separately from confirmed missing episodes to avoid hiding available content.
+- Keep episode-page stream/embed extraction as a separate step and preserve existing provider functionality.
+
+### Provider migration (required)
+- Remove all reliance on the discontinued `anidb.app` API, including search, episode-list and stream endpoints.
+- Implement HTML-based search, episode discovery and episode-page stream extraction for `anidb.se`.
+- Validate published episodes before displaying them; do not treat network errors as proof that episodes are unavailable.
+- The current `master` AniDB provider still uses the old JSON API. This migration is required and is **not yet implemented or tested**.
+- No beta25 APK or release has been published yet.
+
+---
+
 # v1.4.8-beta5
 
 > Test release. The subtitle renderer changes are still experimental and may need further tuning on Android TV.

@@ -1,3 +1,21 @@
+# Beta25 – AniDB episode URL handling (in development)
+
+> Planned changes on branch `beta25-anidb-episodes`. These are **not yet implemented or verified**. The current app version remains unchanged.
+
+### Planned episode discovery
+- Read episode numbers from the anime series page rather than trusting placeholder `href="#"` links.
+- Construct candidate episode URLs from the series slug and episode number, following `https://anidb.se/<anime-slug>-episode-<number>-english-subbed/`.
+- Prefer a valid episode link provided by the site when one exists; use constructed URLs when links are missing or placeholders.
+- Show only episodes confirmed as published, excluding future or unavailable episodes without renumbering the remaining entries.
+- Treat network errors separately from confirmed missing episodes to avoid hiding available content.
+- Keep episode-page stream/embed extraction as a separate step and preserve existing provider functionality.
+
+### Implementation note
+- The current `master` AniDB provider uses `anidb.app` JSON API. The `anidb.se` HTML-based behavior from earlier beta24 testing needs to be integrated and tested before these items can be marked completed.
+- No beta25 APK or release has been published yet.
+
+---
+
 # v1.4.8-beta5
 
 > Test release. The subtitle renderer changes are still experimental and may need further tuning on Android TV.

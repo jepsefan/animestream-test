@@ -2,6 +2,7 @@ import 'package:animestream/core/anime/providers/animeProvider.dart';
 import 'package:animestream/core/anime/providers/types.dart';
 import 'package:animestream/core/network/network.dart';
 import 'package:html/parser.dart' as html;
+import 'dart:convert';
 
 /// HTML-based AniDB.se provider. No dependency on the retired anidb.app API.
 class AniDB implements AnimeProvider {
@@ -103,11 +104,7 @@ class AniDB implements AnimeProvider {
             Uri.parse(url).resolve(canonical).path != Uri.parse(url).path) {
           continue;
         }
-        final hasEpisode = page.querySelector('iframe[src], video[src], video source[src], [data-src], [data-video]') != null ||
-            page.querySelectorAll('script').any((s) =>
-                RegExp(r'm3u8|mp4|embed|sources?\s*:', caseSensitive: false)
-                    .hasMatch(s.text));
-        if (variant != 1 && !hasEpisode) continue;
+        // Player markup may be injected after page load; keep valid episode links.
         episodes.add({
           'episodeLink': url,
           'episodeNumber': number.toString(),
@@ -125,32 +122,97 @@ class AniDB implements AnimeProvider {
     return episodes;
   }
 
+  // V1: direct media URLs. V2: attributes + embeds.
+  // V3: V2 + Base64 inline JS; UVP config is not a media URL.
+  static final _media = RegExp(
+      r'''https?://[^\s"'<>\\]+?\.(?:mp4|m3u8|mpd|webm)(?:\?[^\s"'<>\\]*)?''',
+      caseSensitive: false);
+
+  void _scan(String input, Uri base, Set<String> urls) {
+    final text = input.replaceAll(r'\/', '/').replaceAll(r'\u0026', '&');
+    for (final m in _media.allMatches(text)) {
+      final uri = Uri.tryParse(m.group(0)!);
+      if (uri != null && (uri.scheme == 'http' || uri.scheme == 'https')) {
+        urls.add(uri.toString());
+      }
+    }
+  }
+
+  Future<void> _resolve(Uri page, Set<String> urls, Set<String> visited,
+      int depth) async {
+    if (depth > 2 || !visited.add(page.toString())) return;
+    final markup = await _page(page);
+    if (variant == 1) {
+      _scan(markup, page, urls);
+      return;
+    }
+    final doc = html.parse(markup);
+    for (final el in doc.querySelectorAll(
+        'video, source, [data-src], [data-video], [data-file], [data-hls]')) {
+      for (final key in const [
+        'src', 'data-src', 'data-video', 'data-file', 'data-hls'
+      ]) {
+        final value = el.attributes[key];
+        if (value == null) continue;
+        final uri = page.resolve(value.startsWith('//')
+            ? page.scheme + ':' + value : value);
+        if (RegExp(r'\.(mp4|m3u8|mpd|webm)(\?|$)', caseSensitive: false)
+            .hasMatch(uri.toString()) &&
+            (uri.scheme == 'http' || uri.scheme == 'https')) {
+          urls.add(uri.toString());
+        }
+      }
+    }
+    for (final script in doc.querySelectorAll('script')) {
+      _scan(script.text, page, urls);
+      if (variant == 3) {
+        final src = script.attributes['src'] ?? '';
+        const prefix = 'data:text/javascript;base64,';
+        if (src.startsWith(prefix)) {
+          try {
+            _scan(utf8.decode(base64.decode(src.substring(prefix.length))),
+                page, urls);
+          } catch (_) {
+            print('[AniDB V3] Invalid Base64 script');
+          }
+        }
+      }
+    }
+    if (variant == 3) {
+      print('[AniDB V3] UVP=' + markup.contains('uvp-player-js').toString() +
+          ' media=' + urls.length.toString());
+    }
+    for (final el in doc.querySelectorAll('iframe[src], iframe[data-src]')) {
+      final src = el.attributes['src'] ?? el.attributes['data-src'];
+      if (src == null) continue;
+      final uri = page.resolve(src);
+      if (uri.scheme != 'https' && uri.scheme != 'http') continue;
+      try {
+        await _resolve(uri, urls, visited, depth + 1);
+      } catch (e) {
+        print('[AniDB V' + variant.toString() + '] Embed error: ' + e.toString());
+      }
+    }
+  }
+
   @override
   Future<void> getStreams(String episodeId,
       Function(List<VideoStream>, bool) update,
       {bool dub = false, String? metadata}) async {
-    final pageUrl = Uri.parse(episodeId);
-    final document = html.parse(await _page(pageUrl));
     final urls = <String>{};
-    for (final element in document.querySelectorAll('video[src], video source[src]')) {
-      final src = element.attributes['src'];
-      if (src != null) urls.add(pageUrl.resolve(src).toString());
+    try {
+      await _resolve(Uri.parse(episodeId), urls, <String>{}, 0);
+      print('[AniDB V' + variant.toString() +
+          '] stream candidates=' + urls.length.toString());
+      update(urls.map((url) => VideoStream(
+        url: url, quality: 'default', server: 'AniDB V' + variant.toString(),
+        backup: false, customHeaders: {'referer': episodeId},
+      )).toList(), true);
+    } catch (e) {
+      print('[AniDB V' + variant.toString() + '] Stream error: ' + e.toString());
+      update([], true);
+      rethrow;
     }
-    final direct = RegExp(
-        r'''https?:[^\s"'<>]+\.(?:m3u8|mp4)(?:\?[^\s"'<>]*)?''',
-        caseSensitive: false);
-    for (final match in direct.allMatches(document.outerHtml.replaceAll(r'\/', '/'))) {
-      urls.add(match.group(0)!);
-    }
-    for (final url in urls) {
-      update([
-        VideoStream(url: url, quality: 'default', server: 'Anidb',
-            backup: false, customHeaders: {'referer': episodeId})
-      ], false);
-    }
-    // Embed-only players need a site-specific resolver; do not pretend
-    // that an iframe URL is a playable media URL.
-    update([], true);
   }
 
   @override

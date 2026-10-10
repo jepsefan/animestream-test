@@ -36,6 +36,7 @@ class _ExternalAssOverlayState extends State<ExternalAssOverlay> {
   bool _rendering = false;
   int _generation = 0;
   int _lastPosition = -1;
+  int _loadedGeneration = -1;
 
   @override
   void initState() {
@@ -89,6 +90,7 @@ class _ExternalAssOverlayState extends State<ExternalAssOverlay> {
         'height': 720,
       });
       if (!mounted || generation != _generation) return;
+      _loadedGeneration = generation;
       _ready = true;
       _timer = Timer.periodic(const Duration(milliseconds: 100), (_) => _render());
       _render();
@@ -99,6 +101,7 @@ class _ExternalAssOverlayState extends State<ExternalAssOverlay> {
 
   Future<void> _render() async {
     if (!_ready || _rendering || !mounted) return;
+    final generation = _loadedGeneration;
     final position = widget.controller.position;
     if (position == null || position == _lastPosition) return;
     _rendering = true;
@@ -106,7 +109,7 @@ class _ExternalAssOverlayState extends State<ExternalAssOverlay> {
       final frame = await _channel.invokeMethod<Uint8List>(
         'render', {'timeMs': position},
       );
-      if (!mounted || !_ready) return;
+      if (!mounted || !_ready || generation != _generation) return;
       _lastPosition = position;
       setState(() => _frame = frame);
     } catch (error) {

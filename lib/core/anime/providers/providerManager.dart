@@ -7,47 +7,47 @@ import 'package:animestream/core/network/network.dart';
 class ProviderManager {
   static const String _fileBaseUrl =
       "https://raw.githubusercontent.com/frostnova721/provins/master/lib/providers/";
-
   static const String _indexUrl =
       "https://raw.githubusercontent.com/frostnova721/provins/master/index.json";
 
   final _providersPreferences = ProvidersPreferences();
 
-  /// Get the saved(Installed) provider's code.
-  Future<String?> getSavedProviderCode(String providerIdentifier) async {
-    return (await _providersPreferences.getProvider(providerIdentifier))?.code;
+  Future<String?> getSavedProviderCode(String identifier) async =>
+      (await _providersPreferences.getProvider(identifier))?.code;
+
+  Future<List<ProviderDetails>> getSavedProviders() =>
+      _providersPreferences.listAllProviders();
+
+  Future<void> saveProvider(ProviderDetails provider) =>
+      _providersPreferences.saveProvider(provider);
+
+  Future<void> removeProvider(ProviderDetails provider) =>
+      _providersPreferences.removeProvider(provider);
+
+  Future<String?> fetchProviderCode(String identifier) async {
+    if (!RegExp(r'^[a-zA-Z0-9_-]+$').hasMatch(identifier)) {
+      throw const FormatException('Invalid provider identifier');
+    }
+    final response = await get(Uri.parse('$_fileBaseUrl$identifier/$identifier.dart'));
+    if (response.statusCode != 200) {
+      throw Exception('Provider download failed: HTTP ${response.statusCode}');
+    }
+    if (response.body.trim().isEmpty) {
+      throw const FormatException('Provider source is empty');
+    }
+    return response.body;
   }
 
-  /// Get the list of all saved providers.
-  Future<List<ProviderDetails>> getSavedProviders() async {
-    return await _providersPreferences.listAllProviders();
-  }
-
-  /// Save/Install a provider.
-  Future<void> saveProvider(ProviderDetails provider) async {
-    return await _providersPreferences.saveProvider(provider);
-  }
-
-  /// Remove/Uninstall a provider.
-  Future<void> removeProvider(ProviderDetails provider) async {
-    return await _providersPreferences.removeProvider(provider.identifier);
-  }
-
-  /// Fetch the code for the provider from the repo.
-  Future<String?> fetchProviderCode(String providerIdentifier) async {
-    final url = _fileBaseUrl + "$providerIdentifier/$providerIdentifier.dart";
-    final res = await get(Uri.parse(url));
-    return res.statusCode == 200 ? res.body : null;
-  }
-
-  /// Yeah, fetch the repo.
   Future<List<ProviderDetails>> fetchProvidersRepo() async {
-    final availableProviders = await get(Uri.parse(_indexUrl));
-    final List<dynamic> jsoned =
-        jsonDecode(availableProviders.body) as List<dynamic>;
-    final List<Map<String, dynamic>> mapped =
-        jsoned.map((e) => Map.from(e as Map).cast<String, dynamic>()).toList();
-    final classed = mapped.map((e) => ProviderDetails.fromMap(e)).toList();
-    return classed;
+    final response = await get(Uri.parse(_indexUrl));
+    if (response.statusCode != 200) {
+      throw Exception('Provider repository unavailable: HTTP ${response.statusCode}');
+    }
+    final decoded = jsonDecode(response.body);
+    if (decoded is! List) {
+      throw const FormatException('Expected a JSON list of providers');
+    }
+    return decoded.map((entry) =>
+      ProviderDetails.fromMap(Map<String, dynamic>.from(entry as Map))).toList();
   }
 }

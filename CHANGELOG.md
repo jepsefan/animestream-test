@@ -10,7 +10,7 @@ Promoted from the `v1.4.8-beta23` source baseline. The application changes teste
 See release notes for details.
 
 ### v1.4.8-beta2
-BetterPlayer test fork baseline.
+BetterPlayer test fork baseline. Android TV playback compatibility: reverting Better Player's SurfaceProducer migration to SurfaceTextureEntry restored H.264 playback on SDMC DV8919-KST (Amlogic). In 1280×720 tests, SurfaceProducer requested 23 DPB buffers but received 21 and failed; SurfaceTextureEntry requested 8 with 14 allocated and worked. Fix: Better Player `b214c1da` (reported A/B/A tests).
 
 ### v1.4.8-beta3
 Experimental Stable Overlap subtitle renderer and Android TV media-key work.

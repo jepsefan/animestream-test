@@ -1,6 +1,7 @@
 package app.animestream
 
 import dalvik.system.DexClassLoader
+import dalvik.system.DexFile
 import android.widget.Toast
 import android.content.pm.PackageManager
 import android.content.pm.FeatureInfo
@@ -94,7 +95,8 @@ class MainActivity: FlutterActivity() {
         }
     }
 
-    // Diagnostic only: resolve the class without initializing or instantiating it.
+    // Diagnostic only: enumerate APK DEX classes and resolve without initialization.
+    // This does not instantiate or execute extension source classes.
     private fun inspectExtensionClass(packageName: String): Map<String, Any?> {
         val pm = packageManager
         val info = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -105,13 +107,38 @@ class MainActivity: FlutterActivity() {
         }
         val rawClass = info.metaData?.getString("tachiyomi.animeextension.class")
         if (rawClass.isNullOrBlank()) return mapOf("status" to "no_source_class")
-        val className = if (rawClass.startsWith(".")) packageName + rawClass else rawClass
-        return try {
-            val loader = DexClassLoader(info.sourceDir, codeCacheDir.absolutePath, info.nativeLibraryDir, javaClass.classLoader)
-            val clazz = Class.forName(className, false, loader)
-            mapOf("status" to "class_found", "className" to clazz.name)
+        val expected = if (rawClass.startsWith(".")) packageName + rawClass else rawClass
+        val classes = mutableListOf<String>()
+        try {
+            val dex = DexFile(info.sourceDir)
+            try {
+                val names = dex.entries()
+                while (names.hasMoreElements()) {
+                    classes.add(names.nextElement())
+                }
+            } finally {
+                dex.close()
+            }
         } catch (e: Throwable) {
-            mapOf("status" to "class_load_failed", "className" to className, "error" to (e.javaClass.simpleName + ": " + (e.message ?: "")))
+            return mapOf("status" to "dex_scan_failed", "className" to expected,
+                "error" to (e.javaClass.simpleName + ": " + (e.message ?: "")))
+        }
+        val simpleName = rawClass.substringAfterLast('.')
+        val candidates = classes.filter { it == expected || it.substringAfterLast('.') == simpleName }.take(15)
+        val target = if (expected in classes) expected else candidates.firstOrNull()
+        if (target == null) return mapOf("status" to "class_not_in_dex",
+            "className" to expected, "dexClassCount" to classes.size,
+            "candidates" to candidates.joinToString(", "))
+        return try {
+            val loader = DexClassLoader(info.sourceDir, codeCacheDir.absolutePath,
+                info.nativeLibraryDir, javaClass.classLoader)
+            val clazz = Class.forName(target, false, loader)
+            mapOf("status" to "class_found", "className" to clazz.name,
+                "dexClassCount" to classes.size, "candidates" to candidates.joinToString(", "))
+        } catch (e: Throwable) {
+            mapOf("status" to "class_load_failed", "className" to target,
+                "dexClassCount" to classes.size, "candidates" to candidates.joinToString(", "),
+                "error" to (e.javaClass.simpleName + ": " + (e.message ?: "")))
         }
     }
 

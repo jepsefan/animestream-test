@@ -1,6 +1,9 @@
+import 'package:animestream/core/anime/providers/providerDetails.dart';
+import 'package:animestream/core/anime/providers/providerManager.dart';
 import 'package:animestream/core/app/runtimeDatas.dart';
 import 'package:flutter/material.dart';
 
+/// Experimental catalog and local source storage. Execution is not supported yet.
 class PluginPage extends StatefulWidget {
   const PluginPage({super.key});
 
@@ -8,198 +11,129 @@ class PluginPage extends StatefulWidget {
   State<PluginPage> createState() => _PluginPageState();
 }
 
-class _PluginPageState extends State<PluginPage> with TickerProviderStateMixin {
+class _PluginPageState extends State<PluginPage> {
+  final ProviderManager _manager = ProviderManager();
+  List<ProviderDetails> _installed = [];
+  List<ProviderDetails> _available = [];
+  bool _loading = true;
+  String? _error;
+  String? _busyId;
+
   @override
-  initState() {
+  void initState() {
     super.initState();
-    // _tabController = TabController(length: 2, vsync: this);
-    // getProviders();
+    _refresh();
   }
 
-  // final _providerManager = ProviderManager();
+  Future<void> _refresh() async {
+    setState(() { _loading = true; _error = null; });
+    try {
+      final installed = await _manager.getSavedProviders();
+      List<ProviderDetails> available = [];
+      String? error;
+      try {
+        available = await _manager.fetchProvidersRepo();
+      } catch (e) {
+        error = 'Could not load the Provins catalog: $e';
+      }
+      if (!mounted) return;
+      final ids = installed.map((e) => e.identifier).toSet();
+      setState(() {
+        _installed = installed;
+        _available = available.where((e) => !ids.contains(e.identifier)).toList();
+        _error = error;
+      });
+    } catch (e) {
+      if (mounted) setState(() => _error = 'Could not load saved providers: $e');
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
 
-  // late TabController _tabController;
+  Future<void> _install(ProviderDetails item) async {
+    setState(() => _busyId = item.identifier);
+    try {
+      final code = await _manager.fetchProviderCode(item.identifier);
+      if (code == null) throw Exception('No source code returned');
+      await _manager.saveProvider(item.copyWith(code: code));
+      await _refresh();
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Install failed: $e')));
+    } finally {
+      if (mounted) setState(() => _busyId = null);
+    }
+  }
 
-  // List<ProviderDetails>? _availableProviders = null;
-  // List<ProviderDetails>? _installedProviders = null;
+  Future<void> _remove(ProviderDetails item) async {
+    setState(() => _busyId = item.identifier);
+    try {
+      await _manager.removeProvider(item);
+      await _refresh();
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Remove failed: $e')));
+    } finally {
+      if (mounted) setState(() => _busyId = null);
+    }
+  }
 
-  // Future<void> getProviders() async {
-    // final saved = await _providerManager.getSavedProviders();
-    // setState(() {
-      // _installedProviders = saved;
-    // });
-
-  //   if(kDebugMode)
-  //   _providerManager.fetchProvidersRepo().then((val) {
-  //     final savedSet = saved.map((e) => e.identifier).toSet();
-  //     val.removeWhere((it) => savedSet.contains(it.identifier));
-  //     setState(() {
-  //       _availableProviders = val;
-  //     });
-  //   });
-  // }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: Padding(
-        padding: MediaQuery.paddingOf(context),
-        child: 
-        Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.only(bottom: 10),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Row(
-                    children: [
-                      IconButton(
-                          onPressed: () => Navigator.pop(context),
-                          icon: Icon(
-                            Icons.arrow_back_rounded,
-                            color: appTheme.textMainColor,
-                            size: 28,
-                          )),
-                      Container(
-                        padding: EdgeInsets.only(left: 10, right: 20),
-                        child: Text(
-                          "Manage Providers [Beta]",
-                          style: TextStyle(fontFamily: "Rubik", fontWeight: FontWeight.bold, fontSize: 20),
-                        ),
-                      ),
-                    ],
-                  ),
-                  IconButton(onPressed: () {}, icon: Icon(Icons.science_sharp, size: 25, color: appTheme.textMainColor,))
-                ],
-              ),
-            ),
-
-            Expanded(child: Center(child: Text("Should arrive soon!"),))
-            
-            // TabBar(
-            //   controller: _tabController,
-            //   labelColor: appTheme.accentColor,
-            //   indicatorColor: appTheme.accentColor,
-            //   unselectedLabelColor: appTheme.textSubColor,
-            //   labelStyle: TextStyle(
-            //     fontWeight: FontWeight.bold,
-            //     fontFamily: "NotoSans",
-            //   ),
-            //   // dividerHeight: 0,
-            //   // indicatorSize: TabBarIndicatorSize.tab,
-            //   tabs: [
-            //     Container(
-            //         height: 50,
-            //         alignment: Alignment.center,
-            //         child: Text(
-            //           "Installed",
-            //           style: _textStyle(),
-            //         )),
-            //     Container(height: 50, alignment: Alignment.center, child: Text("Available", style: _textStyle())),
-            //   ],
-            // ),
-            // Expanded(
-            //     child: TabBarView(
-            //   controller: _tabController,
-            //   children: [
-            //     _installedProviders == null
-            //         ? Center(child: AnimeStreamLoading(color: appTheme.accentColor))
-            //         : _list(_installedProviders!),
-            //     _availableProviders == null
-            //         ? Center(child: AnimeStreamLoading(color: appTheme.accentColor))
-            //         : _list(_availableProviders!),
-            //   ],
-            // )),
-          ],
-        ),
-      ),
+  Widget _items(List<ProviderDetails> items, {required bool installed}) {
+    if (items.isEmpty) return const Center(child: Text('No providers found'));
+    return ListView.builder(
+      itemCount: items.length,
+      itemBuilder: (context, index) {
+        final item = items[index];
+        return ListTile(
+          title: Text(item.name),
+          subtitle: Text('v${item.version} • ${item.identifier}'),
+          trailing: _busyId == item.identifier
+              ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator())
+              : TextButton(
+                  onPressed: _busyId != null ? null :
+                      () => installed ? _remove(item) : _install(item),
+                  child: Text(installed ? 'Remove' : 'Save code'),
+                ),
+        );
+      },
     );
   }
 
-  // Widget _list(List<ProviderDetails> data) {
-  //   return data.isEmpty
-  //       ? Center(child: Text("Nothing to see here..."))
-  //       : ListView.builder(
-  //           padding: EdgeInsets.only(top: 16),
-  //           itemCount: data.length,
-  //           itemBuilder: (context, index) {
-  //             final item = data[index];
-  //             return Container(
-  //               margin: EdgeInsets.symmetric(horizontal: 8, vertical: 5),
-  //               padding: EdgeInsets.all(8),
-  //               decoration: BoxDecoration(
-  //                 borderRadius: BorderRadius.circular(20),
-  //                 color: appTheme.backgroundSubColor,
-  //               ),
-  //               clipBehavior: Clip.hardEdge,
-  //               child: Row(
-  //                 children: [
-  //                   ClipRRect(
-  //                     child: item.icon != null
-  //                         ? CachedNetworkImage(
-  //                             imageUrl: item.icon!,
-  //                             alignment: Alignment.center,
-  //                             height: 75,
-  //                           )
-  //                         : null,
-  //                     borderRadius: BorderRadius.circular(15),
-  //                   ),
-  //                   Padding(
-  //                     padding: const EdgeInsets.only(left: 16),
-  //                     child: Column(
-  //                       crossAxisAlignment: CrossAxisAlignment.start,
-  //                       children: [
-  //                         Text(
-  //                           item.name,
-  //                           style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
-  //                         ),
-  //                         Text("v" + item.version),
-  //                       ],
-  //                     ),
-  //                   ),
-  //                   Spacer(),
-  //                   Padding(
-  //                     padding: const EdgeInsets.only(right: 10),
-  //                     child: TextButton(
-  //                       onPressed: () async {
-  //                         // item.code can indicate the install status.
-  //                         //since we are only storing the code when plugin is installed
-  //                         if (item.code == null) {
-  //                           try {
-  //                             final code = await _providerManager.fetchProviderCode(item.identifier);
-  //                             if (code == null) floatingSnackBar("couldnt install the provider. Install failed");
-  //                             await _providerManager.saveProvider(item.copyWith(code: code));
-  //                             getProviders();
-  //                           } catch (err) {
-  //                             print(err);
-  //                             floatingSnackBar("Install failed. Failed to fetch the code.");
-  //                             if (currentUserSettings?.showErrors ?? false)
-  //                               floatingSnackBar(err.toString(), waitForPreviousToFinish: true);
-  //                           }
-  //                         } else {
-  //                           await _providerManager.removeProvider(item);
-  //                           getProviders();
-  //                         }
-  //                       },
-  //                       child: Text(item.code == null ? "install" : "remove"),
-  //                       style: TextButton.styleFrom(
-  //                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(13)),
-  //                           backgroundColor: appTheme.accentColor,
-  //                           foregroundColor: appTheme.onAccent),
-  //                     ),
-  //                   )
-  //                 ],
-  //               ),
-  //             );
-  //           });
-  // }
-
-  // TextStyle _textStyle() {
-    // return TextStyle(
-      // color: appTheme.textMainColor,
-      // fontFamily: "NotoSans-Bold",
-      // fontSize: 17,
-    // );
-  // }
+  @override
+  Widget build(BuildContext context) {
+    return DefaultTabController(
+      length: 2,
+      child: Scaffold(
+        backgroundColor: appTheme.backgroundColor,
+        appBar: AppBar(
+          title: const Text('Manage Providers [Beta]'),
+          actions: [
+            IconButton(onPressed: _loading ? null : _refresh,
+              icon: const Icon(Icons.refresh), tooltip: 'Refresh catalog'),
+          ],
+          bottom: const TabBar(tabs: [
+            Tab(text: 'Installed'),
+            Tab(text: 'Available'),
+          ]),
+        ),
+        body: Column(children: [
+          const Padding(
+            padding: EdgeInsets.all(12),
+            child: Text('Experimental: providers can be downloaded and stored, '
+              'but cannot run or appear as playable sources yet. '
+              'Only install code from sources you trust.'),
+          ),
+          if (_error != null)
+            Padding(padding: const EdgeInsets.all(12),
+              child: SelectableText(_error!, style: const TextStyle(color: Colors.orange))),
+          Expanded(child: _loading
+              ? const Center(child: CircularProgressIndicator())
+              : TabBarView(children: [
+                  _items(_installed, installed: true),
+                  _items(_available, installed: false),
+                ])),
+        ]),
+      ),
+    );
+  }
 }

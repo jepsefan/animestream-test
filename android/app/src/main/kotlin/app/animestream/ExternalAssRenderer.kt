@@ -1,6 +1,7 @@
 package app.animestream
 
 import android.graphics.Bitmap
+import android.util.Log
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
 import io.github.assrender.AssDirectBridge
@@ -16,6 +17,7 @@ class ExternalAssRenderer : MethodChannel.MethodCallHandler {
     private var width = 0
     private var height = 0
     private var bitmap: Bitmap? = null
+    private var lastEmptySecond: Long = -1
 
     override fun onMethodCall(call: MethodCall, result: MethodChannel.Result) {
         try {
@@ -33,6 +35,7 @@ class ExternalAssRenderer : MethodChannel.MethodCallHandler {
                         throw IllegalArgumentException("Invalid ASS/SSA script")
                     }
                     bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+                    Log.i("ASSRENDER", "Script loaded: bytes=${script.size}, size=${width}x${height}")
                     result.success(null)
                 }
                 "render" -> {
@@ -42,6 +45,10 @@ class ExternalAssRenderer : MethodChannel.MethodCallHandler {
                     } else {
                         val timeMs = (call.argument<Number>("timeMs") ?: 0).toLong()
                         if (!AssDirectBridge.nativeRender(handle, timeMs, target)) {
+                            if (timeMs / 1000 != lastEmptySecond) {
+                                lastEmptySecond = timeMs / 1000
+                                Log.i("ASSRENDER", "Native render produced no image at ${timeMs}ms; check libass event timing and fonts")
+                            }
                             result.success(null)
                         } else {
                             val output = ByteArrayOutputStream()

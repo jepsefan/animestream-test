@@ -9,6 +9,7 @@ import 'package:animestream/ui/models/playerControllers/betterPlayer.dart';
 import 'package:animestream/ui/models/widgets/player/controls.dart';
 import 'package:animestream/ui/models/widgets/player/gestureOverlay.dart';
 import 'package:animestream/ui/models/widgets/subtitles/subViewer.dart';
+import 'package:animestream/ui/models/widgets/subtitles/externalAssOverlay.dart';
 import 'package:better_player/better_player.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -652,15 +653,26 @@ class _WatchState extends State<Watch> with WidgetsBindingObserver {
                 children: [
                   Player(controller),
                   if (playerProvider.state.showSubs && playerDataProvider.state.currentStream.subtitle != null)
-                    SubViewer(
-                      controller: controller,
-                      format: SubtitleFormat.fromName(
-                          playerDataProvider.state.currentStream.subtitleFormat ?? SubtitleFormat.ASS.name),
-                      subtitleSource: playerDataProvider.state.currentStream.subtitle!,
-                      settings: playerDataProvider.subtitleSettings,
-                      headers: playerDataProvider.state.currentStream.customHeaders,
-                      isOffline: widget.localSource,
-                    ),
+                    // ASS is rendered by native libass on Android; VTT/SRT and
+                    // non-Android platforms retain the existing SubViewer.
+                    if (Platform.isAndroid &&
+                        (playerDataProvider.state.currentStream.subtitleFormat ?? 'ASS').toLowerCase() == 'ass')
+                      ExternalAssOverlay(
+                        controller: controller,
+                        subtitleSource: playerDataProvider.state.currentStream.subtitle!,
+                        headers: playerDataProvider.state.currentStream.customHeaders ?? const {},
+                        isOffline: widget.localSource,
+                      )
+                    else
+                      SubViewer(
+                        controller: controller,
+                        format: SubtitleFormat.fromName(
+                            playerDataProvider.state.currentStream.subtitleFormat ?? SubtitleFormat.ASS.name),
+                        subtitleSource: playerDataProvider.state.currentStream.subtitle!,
+                        settings: playerDataProvider.subtitleSettings,
+                        headers: playerDataProvider.state.currentStream.customHeaders,
+                        isOffline: widget.localSource,
+                      ),
                   IgnorePointer(
                     child: AnimatedOpacity(
                       duration: const Duration(milliseconds: 500),

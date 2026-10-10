@@ -150,7 +150,7 @@ class _PluginPageState extends State<PluginPage> {
                           '${ext.packageName} • v${ext.version} • Detected, not executable yet'
                           '${ext.sourceClass != null ? "\nSource class: ${ext.sourceClass}" : ""}'
                           '${ext.sourceFactory != null ? "\nSource factory: ${ext.sourceFactory}" : ""}',
-                        ),
+                        )),
                     const Divider(),
                     Expanded(child: _items(_installed, installed: true)),
                   ]),

@@ -143,9 +143,9 @@ class MainActivity: FlutterActivity() {
             val chain = generateSequence(e) { it.cause }.take(6).joinToString(" -> ") {
                 it.javaClass.simpleName + ": " + (it.message ?: "")
             }
-            mapOf("status" to "class_load_failed", "className" to target,
+            // A class present in DEX can still fail to resolve because Aniyomi/Tachiyomi\n            // runtime APIs are absent from AnimeStream. Report that separately.\n            val missingDependency = generateSequence(e) { it.cause }.filterIsInstance<ClassNotFoundException>().firstOrNull()?.message\n            val unresolvedApi = missingDependency?.contains("tachiyomi", ignoreCase = true) == true ||\n                missingDependency?.contains("aniyomi", ignoreCase = true) == true\n            mapOf("status" to if (unresolvedApi) "missing_host_api" else "class_load_failed", "className" to target,
                 "dexClassCount" to classes.size, "candidates" to candidates.joinToString(", "),
-                "error" to chain, "classInDex" to (target in classes))
+                "error" to chain, "missingDependency" to missingDependency,\n                "diagnosis" to if (unresolvedApi) "Extension class is in APK but needs Aniyomi/Tachiyomi host API classes" else "Extension class resolution failed",\n                "classInDex" to (target in classes))
         }
     }
 

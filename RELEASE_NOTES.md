@@ -19,6 +19,21 @@ Original upstream notes: dub support for a source; retry for failed downloads; W
 
 Historical summary reconstructed from beta5 retrospective; original GitHub release reused beta1 notes.
 
+### Android TV Amlogic decoder compatibility (beta2 test investigation)
+
+On an **SDMC DV8919-KST (Telia Nordic STB, Android API 31)** using `OMX.amlogic.avc.decoder.awesome2` and Media3 `1.9.2`, migrating Better Player from Flutter `SurfaceTextureEntry` to `TextureRegistry.SurfaceProducer` correlated with a reproducible H.264 DASH playback failure at 1280×720:
+
+| Rendering path | Required DPB | Allocated output buffers | Playback |
+| --- | ---: | ---: | --- |
+| SurfaceTextureEntry (working beta3 reference) | 8 | 14 | Works |
+| SurfaceProducer (failing beta4 reference) | 23 | 21 | Fails |
+| SurfaceProducer without `setSize()` | 23 | 21 | Fails |
+| SurfaceTextureEntry restored (beta2 test build) | 8 | 14 | Works |
+
+The failing decoder reported `Failed to provide requested picture buffers. (Got 21, requested 23)` and entered error state 2. Disabling `surfaceProducer.setSize()` alone did not fix it; fully restoring the SurfaceTextureEntry path did. The exact mechanism behind the DPB change remains unknown.
+
+Relevant Better Player commits: last known working `54e1a2e`, SurfaceProducer migration `2849caa`, setSize-disabled test `41a12a3`, SurfaceTexture restoration `b214c1da`. AnimeStream dependency update: `563edfcd`; beta2 test build: `ab0c3aa`. This is a historical test finding, not a claim that all Amlogic devices are affected.
+
 ---
 
 # v1.4.8-beta3

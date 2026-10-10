@@ -104,7 +104,7 @@ class AnimeOnsen extends AnimeProvider {
         backup: false,
         subtitle: subtitleUrl,
         customHeaders: {'Referer': "https://www.animeonsen.xyz/"},
-        subtitleFormat: SubtitleFormat.ASS.name);
+        subtitleFormat: SubtitleFormat.ASS.name); // AnimeOnsen external subtitles always use ASS
 
     update([result], true);
   }

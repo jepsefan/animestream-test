@@ -1,4 +1,5 @@
 import 'package:animestream/core/anime/providers/providerDetails.dart';
+import 'package:animestream/core/anime/providers/aniyomiExtensionBridge.dart';
 import 'package:animestream/core/anime/providers/providerManager.dart';
 import 'package:animestream/core/app/runtimeDatas.dart';
 import 'package:flutter/material.dart';
@@ -14,6 +15,7 @@ class PluginPage extends StatefulWidget {
 class _PluginPageState extends State<PluginPage> {
   final ProviderManager _manager = ProviderManager();
   List<ProviderDetails> _installed = [];
+  List<AniyomiExtensionInfo> _apkExtensions = [];
   List<ProviderDetails> _available = [];
   bool _loading = true;
   String? _error;
@@ -29,6 +31,13 @@ class _PluginPageState extends State<PluginPage> {
     setState(() { _loading = true; _error = null; });
     try {
       final installed = await _manager.getSavedProviders();
+      List<AniyomiExtensionInfo> apkExtensions = [];
+      String? apkError;
+      try {
+        apkExtensions = await AniyomiExtensionBridge.listInstalledExtensions();
+      } catch (e) {
+        apkError = 'Could not scan installed Android extensions: $e';
+      }
       List<ProviderDetails> available = [];
       String? error;
       try {
@@ -40,8 +49,10 @@ class _PluginPageState extends State<PluginPage> {
       final ids = installed.map((e) => e.identifier).toSet();
       setState(() {
         _installed = installed;
+        _apkExtensions = apkExtensions;
         _available = available.where((e) => !ids.contains(e.identifier)).toList();
-        _error = error;
+        _error = [if (apkError != null) apkError, if (error != null) error].join('\n');
+        if (_error!.isEmpty) _error = null;
       });
     } catch (e) {
       if (mounted) setState(() => _error = 'Could not load saved providers: $e');
@@ -129,7 +140,16 @@ class _PluginPageState extends State<PluginPage> {
           Expanded(child: _loading
               ? const Center(child: CircularProgressIndicator())
               : TabBarView(children: [
-                  _items(_installed, installed: true),
+                  Column(children: [
+                    const Padding(padding: EdgeInsets.all(8), child: Text('Detected Android APK extensions (not loaded)')),
+                    if (_apkExtensions.isEmpty)
+                      const Padding(padding: EdgeInsets.all(8), child: Text('No installed Aniyomi APK extensions detected')),
+                    for (final ext in _apkExtensions)
+                      ListTile(title: Text(ext.name),
+                        subtitle: Text('${ext.packageName} • v${ext.version} • Detected, not executable yet')),
+                    const Divider(),
+                    Expanded(child: _items(_installed, installed: true)),
+                  ]),
                   _items(_available, installed: false),
                 ])),
         ]),

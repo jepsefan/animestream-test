@@ -5,6 +5,7 @@ import 'package:animestream/ui/pages/settingPages/common.dart';
 import 'package:animestream/ui/pages/settingPages/downloader.dart';
 import 'package:animestream/ui/pages/settingPages/general.dart';
 import 'package:animestream/ui/pages/settingPages/player.dart';
+import 'package:animestream/ui/pages/settingPages/plugin.dart';
 import 'package:animestream/ui/pages/settingPages/ui.dart';
 import 'package:flutter/material.dart';
 
@@ -51,6 +52,11 @@ class _SettingsPageState extends State<SettingsPage> {
         description: "Configure your downloads",
         icon: Icons.download_rounded,
         navigateTo: DownloaderSettings()),
+    SettingItem(
+        icon: Icons.extension_rounded,
+        label: "Manage Providers [Beta]",
+        description: "Experimental provider catalog",
+        navigateTo: PluginPage()),
     SettingItem(
         icon: Icons.tune_rounded,
         label: "General",

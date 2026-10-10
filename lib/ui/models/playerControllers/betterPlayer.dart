@@ -9,6 +9,8 @@ class BetterPlayerWrapper implements VideoController {
   late BetterPlayerController controller = BetterPlayerController(_config);
 
   final List<VoidCallback?> listeners = [];
+  static String? _lastException;
+  static DateTime? _lastExceptionAt;
 
   final key = GlobalKey();
 
@@ -26,7 +28,15 @@ class BetterPlayerWrapper implements VideoController {
     },
     eventListener: (ev) {
       if (ev.betterPlayerEventType == BetterPlayerEventType.exception) {
-        Logs.player.log("[PLAYER] Oooooooh! We've got some issues!!! \n${ev.parameters}");
+        final details = ev.parameters?.toString() ?? 'unknown';
+        final now = DateTime.now();
+        if (_lastException == details && _lastExceptionAt != null &&
+            now.difference(_lastExceptionAt!) < const Duration(seconds: 5)) {
+          return;
+        }
+        _lastException = details;
+        _lastExceptionAt = now;
+        Logs.player.log('[PLAYER] Source exception: $details');
       }
     },
     autoDispose: true,
@@ -40,7 +50,12 @@ class BetterPlayerWrapper implements VideoController {
     final ds = offline
         ? BetterPlayerDataSource.file(url)
         : await dataSourceConfig(url, headers: headers);
-    await controller.setupDataSource(ds);
+    try {
+      await controller.setupDataSource(ds);
+    } catch (e, stack) {
+      Logs.player.log('[PLAYER] setupDataSource failed: $e\n$stack');
+      rethrow;
+    }
   }
 
   @override

@@ -1,0 +1,36 @@
+name: Import assrender AAR
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  import:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: v1.4.9-beta11-assrender-test
+          persist-credentials: true
+      - name: Download latest successful assrender AAR
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          run_id="$(gh api "repos/jepsefan/assrender/actions/workflows/build-aar.yml/runs?status=success&per_page=10" --jq '.workflow_runs[0].id')"
+          test -n "$run_id" && test "$run_id" != "null"
+          mkdir -p android/app/libs
+          gh run download "$run_id" -R jepsefan/assrender -n assrender-android-aar -D android/app/libs
+          test -s android/app/libs/assrender-release.aar
+          unzip -t android/app/libs/assrender-release.aar
+      - name: Commit library to beta11 branch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -f android/app/libs/assrender-release.aar
+          if ! git diff --cached --quiet; then
+            git commit -m "Bundle verified assrender AAR for beta11 Android builds"
+            git push origin HEAD:v1.4.9-beta11-assrender-test
+          fi

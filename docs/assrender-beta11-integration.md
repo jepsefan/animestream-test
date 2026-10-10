@@ -1,38 +1,26 @@
-# Beta11: assrender integration (work in progress)
+# Beta11 assrender integration — corrected architecture
 
-## Verified repositories
-- assrender fork: https://github.com/jepsefan/assrender
-- Better Player fork: https://github.com/jepsefan/betterplayer-test (subtitle-renderer-test)
-- AnimeStream branch: v1.4.9-beta11-assrender-test
+## Confirmed current behavior
+In `lib/ui/pages/watch.dart`, `Player(controller)` and `SubViewer(...)` are sibling widgets in a Flutter `Stack`.
+`lib/ui/models/widgets/subtitles/subViewer.dart` loads external subtitles using AnimeStream's own `Subtitleparsers` and synchronizes cues against `VideoController.position`.
+Therefore external ASS subtitles are rendered by AnimeStream, not by Better Player.
 
-## Technical compatibility
-assrender's README describes `AssHandler`, `AssRenderersFactory`,
-`AssExtractorsFactory` and `SubtitleOverlayView`.
-Its Gradle build uses Media3 1.5.1 (compileOnly), while Better Player uses
-Media3 1.8.0. Do not add an untested AAR to the app: API compatibility and
-transitive native dependencies must be validated first.
+## Correct integration target
+Keep Better Player and its existing video playback path unchanged.
+Keep AnimeStream's `SubViewer` for VTT/SRT and existing Stable Overlap behavior.
+For ASS/SSA, add an opt-in native libass renderer exposed to Flutter as a bitmap/texture or platform-view overlay, synchronized with `VideoController.position` and respecting seeking and pause.
 
-Better Player creates `ExoPlayer.Builder(context)` inside
-`android/src/main/kotlin/com/jhomlala/better_player/BetterPlayer.kt`
-and renders video to a Flutter `SurfaceTexture`. The assrender example
-assumes control of the ExoPlayer factory and a native Android overlay View.
-Adding only the assrender dependency does not enable ASS rendering.
+## Compatibility caveat
+The fork `jepsefan/assrender` is currently designed around Media3/ExoPlayer extraction:
+`AssHandler`, `AssRenderersFactory`, `AssExtractorsFactory`, and `SubtitleOverlayView`.
+These cannot simply be dropped into AnimeStream's Flutter `SubViewer`.
+We must first inspect/reuse its native libass bridge and support external ASS files directly, rather than requiring a second ExoPlayer instance or modifying Better Player.
 
-## Required implementation steps
-1. Build the assrender fork as an Android AAR, or publish it to a resolvable
-   Maven repository; verify arm64-v8a and armeabi-v7a native libraries.
-2. Adapt its Media3 API to 1.8.0 and compile against the Better Player fork.
-3. In BetterPlayer.kt, opt in to AssRenderersFactory/AssExtractorsFactory
-   without affecting existing HLS/DASH/DRM and caching paths.
-4. Bridge ASS bitmaps into Flutter's video widget overlay (or use an
-   Android PlatformView); a native SubtitleOverlayView alone will not
-   automatically appear over the Flutter texture.
-5. Expose a renderer toggle through Better Player's Flutter controller;
-   keep existing Stable Overlap VTT behavior unchanged.
-6. Support external ASS files as well as embedded ASS tracks; assrender's
-   extractor path is primarily for embedded tracks.
-7. Test Android TV seeking, playback speed, track switching, PiP,
-   overlapping subtitles, and release builds.
+## Next code steps
+1. Identify native libass API and font/bitmap output in assrender.
+2. Add a Flutter-to-Android interface for loading an external ASS/SSA file, viewport sizing and rendering at a given timestamp.
+3. Present the bitmap overlay in the same `Stack` as `SubViewer`; do not display two subtitle renderers simultaneously.
+4. Preserve VTT/SRT path, player controls, Android TV key behavior, and subtitle settings.
+5. Verify release APK, arm64/armv7, subtitle synchronization, overlapping cues, and no playback regressions.
 
-## Current status
-Planning only. Beta11 is NOT yet an assrender-enabled APK.
+Status: design corrected; native integration is not yet implemented or build-tested.

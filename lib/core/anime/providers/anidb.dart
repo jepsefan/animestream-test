@@ -1,388 +1,271 @@
 import 'package:animestream/core/anime/providers/animeProvider.dart';
 import 'package:animestream/core/anime/providers/types.dart';
-import 'package:animestream/core/app/logging.dart';
-import 'package:html/dom.dart';
-import 'package:html/parser.dart' as html;
 import 'package:animestream/core/network/network.dart';
+import 'package:html/parser.dart' as html;
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 
-abstract class AniDBSeBase implements AnimeProvider {
-  static const baseUrl = "https://anidb.se";
-  static const Map<String, String> headers = {
-    "User-Agent":
-        "Mozilla/5.0 (Linux; Android 13) AppleWebKit/537.36 Chrome/124 Safari/537.36",
-    "Accept":
-        "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-  };
+/// HTML-based AniDB.se provider. No dependency on the retired anidb.app API.
+class AniDB implements AnimeProvider {
+  final int variant;
+  AniDB({this.variant = 3});
+  @override
+  String get providerName => 'AniDB V$variant';
 
-  String get variantName;
+  static const _baseUrl = 'https://anidb.se';
+  static const _headers = {'User-Agent': 'Mozilla/5.0'};
+  static final _episodePattern = RegExp(
+    r'-episode-(\d+)-english-subbed/?$', caseSensitive: false);
+  static final _numberPattern = RegExp(
+    r'(?:episode|ep)\s*#?\s*(\d+)', caseSensitive: false);
 
-  Uri buildSearchUri(String query);
+  Uri _uri(String path) => Uri.parse(_baseUrl).resolve(path);
+
+  String _slug(String alias) {
+    final uri = Uri.tryParse(alias);
+    final segments = (uri?.path ?? alias).split('/').where((s) => s.isNotEmpty).toList();
+    if (segments.isEmpty) throw FormatException('Missing AniDB anime slug');
+    return segments.last;
+  }
+
+  String _episodeUrl(String slug, int number) =>
+      '$_baseUrl/$slug-episode-$number-english-subbed/';
+
+  Future<String> _page(Uri uri) async {
+    final response = await get(uri,
+        headers: _headers, cacheDuration: const Duration(minutes: 5));
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw Exception('AniDB HTTP ${response.statusCode}: $uri');
+    }
+    return response.body;
+  }
 
   @override
   Future<List<Map<String, String?>>> search(String query) async {
-    final uri = buildSearchUri(query);
-    Logs.app.log("[ANIDB.SE $variantName] search: $uri");
-
-    final res = await get(
-      uri,
-      headers: AniDBSeBase.headers,
-      cacheDuration: const Duration(minutes: 5),
-    );
-
-    Logs.app.log(
-      "[ANIDB.SE $variantName] search HTTP ${res.statusCode}, bytes=${res.body.length}",
-    );
-
-    final document = html.parse(res.body);
-    final results = _extractAnimeResults(document, query);
-
-    Logs.app.log(
-      "[ANIDB.SE $variantName] search results=${results.length}",
-    );
-
-    return results;
-  }
-
-  List<Map<String, String?>> _extractAnimeResults(
-    Document document,
-    String query,
-  ) {
+    final document = html.parse(await _page(
+        _uri('/?s=${Uri.encodeQueryComponent(query)}')));
     final results = <Map<String, String?>>[];
     final seen = <String>{};
-
-    void addAnchor(Element anchor) {
-      final href = anchor.attributes['href'];
-      if (href == null || !href.contains('/anime/')) return;
-
-      final uri = Uri.tryParse(href);
-      final path = uri?.path ?? href;
-      if (path == '/anime/' || path == '/anime') return;
-
-      final absolute = Uri.parse(AniDBSeBase.baseUrl).resolve(href).toString();
-      if (!seen.add(absolute)) return;
-
-      final img = anchor.querySelector('img');
-      final title = _cleanText(
-        anchor.attributes['title'] ??
-            img?.attributes['alt'] ??
-            anchor.querySelector('h1,h2,h3,h4,p,.title')?.text ??
-            anchor.text,
-      );
-
-      if (title.isEmpty) return;
-
+    for (final a in document.querySelectorAll('a[href]')) {
+      final href = a.attributes['href'];
+      if (href == null) continue;
+      final url = _uri(href);
+      if (url.host != Uri.parse(_baseUrl).host ||
+          !url.path.startsWith('/anime/')) continue;
+      final slug = _slug(url.toString());
+      if (!seen.add(slug)) continue;
+      final image = a.querySelector('img');
+      final title = a.attributes['title'] ?? image?.attributes['alt'] ??
+          a.text.trim();
+      if (title.isEmpty) continue;
+      final src = image?.attributes['src'];
       results.add({
         'name': title,
-        'alias': absolute,
-        'imageUrl': img?.attributes['src'],
+        'alias': url.toString(),
+        'imageUrl': src == null ? null : url.resolve(src).toString(),
       });
     }
-
-    for (final selector in [
-      'a[href*="/anime/"]',
-      '.anime-grid a',
-      'article a[href*="/anime/"]',
-      '.search-results a[href*="/anime/"]',
-    ]) {
-      for (final anchor in document.querySelectorAll(selector)) {
-        addAnchor(anchor);
-      }
-    }
-
     return results;
   }
 
   @override
-  Future<List<Map<String, dynamic>>> getAnimeEpisodeLink(
-    String aliasId, {
-    bool dub = false,
-  }) async {
-    final animeUri = Uri.tryParse(aliasId)?.hasScheme == true
-        ? Uri.parse(aliasId)
-        : Uri.parse(AniDBSeBase.baseUrl).resolve(aliasId);
-
-    Logs.app.log("[ANIDB.SE $variantName] anime page: $animeUri");
-
-    final res = await get(
-      animeUri,
-      headers: headers,
-      cacheDuration: const Duration(minutes: 5),
+  Future<List<Map<String, dynamic>>> getAnimeEpisodeLink(String aliasId,
+      {bool dub = false}) async {
+    final slug = _slug(aliasId);
+    final seriesUrl = _uri('/anime/$slug/');
+    final document = html.parse(await _page(seriesUrl));
+    final candidates = <int, String>{};
+    // Do not treat sidebar 'Ongoing Animes' episode links as this series.
+    // Match the exact series slug, not merely an episode number.
+    final ownEpisode = RegExp(
+      '^/' + RegExp.escape(slug) + r'-episode-(\d+)-english-subbed/?$',
+      caseSensitive: false,
     );
-
-    final document = html.parse(res.body);
-    final episodes = <Map<String, dynamic>>[];
-    final seen = <String>{};
-
-    for (final anchor in document.querySelectorAll('a[href]')) {
-      final href = anchor.attributes['href'];
-      if (href == null) continue;
-
-      final text = _cleanText(
-        anchor.attributes['title'] ??
-            anchor.querySelector('img')?.attributes['alt'] ??
-            anchor.text,
-      );
-
-      final episodeNumber = _episodeNumber(text, href);
-      if (episodeNumber == null) continue;
-
-      final absolute = Uri.parse(AniDBSeBase.baseUrl).resolve(href).toString();
-      if (!seen.add(absolute)) continue;
-
-      episodes.add({
-        'episodeLink': absolute,
-        'episodeNumber': episodeNumber,
-        'episodeTitle': text.isEmpty ? null : text,
-        'thumbnail': anchor.querySelector('img')?.attributes['src'],
-        'hasDub': dub,
-        'isFiller': false,
-      });
+    for (final a in document.querySelectorAll('a[href]')) {
+      final href = a.attributes['href'] ?? '';
+      final absolute = seriesUrl.resolve(href);
+      if (absolute.host != seriesUrl.host) continue;
+      final match = ownEpisode.firstMatch(absolute.path);
+      if (match == null) continue;
+      final number = int.tryParse(match.group(1)!);
+      if (number == null || number < 1) continue;
+      candidates[number] = variant == 1
+          ? _episodeUrl(slug, number) : absolute.toString();
     }
-
-    episodes.sort((a, b) {
-      final aa = double.tryParse(a['episodeNumber'].toString()) ?? 0;
-      final bb = double.tryParse(b['episodeNumber'].toString()) ?? 0;
-      return aa.compareTo(bb);
-    });
-
-    Logs.app.log(
-      "[ANIDB.SE $variantName] episodes=${episodes.length}",
-    );
-
+    print('[AniDB V$variant] series=$slug own episodes=${candidates.length}');
+    if (candidates.isEmpty) {
+      throw Exception('AniDB series page contains no recognizable episode numbers');
+    }
+    final episodes = <Map<String, dynamic>>[];
+    for (final number in candidates.keys.toList()..sort()) {
+      final url = candidates[number]!;
+      try {
+        final page = html.parse(await _page(Uri.parse(url)));
+        print('[AniDB V$variant] Checking episode $number: $url');
+        // A successful HTTP response alone is not proof of publication.
+        final canonical = page.querySelector('link[rel="canonical"]')
+            ?.attributes['href'];
+        if (variant != 1 && canonical != null &&
+            Uri.parse(url).resolve(canonical).path != Uri.parse(url).path) {
+          continue;
+        }
+        // Player markup may be injected after page load; keep valid episode links.
+        episodes.add({
+          'episodeLink': url,
+          'episodeNumber': number.toString(),
+          'episodeTitle': null,
+          'thumbnail': null,
+          'hasDub': false,
+          'isFiller': false,
+        });
+      } catch (_) {
+        // Network failures are not evidence of an unpublished episode.
+        // Propagate instead of silently hiding potentially valid episodes.
+        rethrow;
+      }
+    }
     return episodes;
   }
 
-  String? _episodeNumber(String text, String href) {
-    final patterns = [
-      RegExp(r'episode[\s_-]*(\d+(?:\.\d+)?)', caseSensitive: false),
-      RegExp(r'ep[\s_-]*(\d+(?:\.\d+)?)', caseSensitive: false),
-    ];
+  // V1: direct media URLs. V2: attributes + embeds.
+  // V3: V2 + Base64 inline JS; UVP config is not a media URL.
+  static final _media = RegExp(
+      r'''https?://[^\s"'<>\\]+?\.(?:mp4|m3u8|mpd|webm)(?:\?[^\s"'<>\\]*)?''',
+      caseSensitive: false);
 
-    for (final source in [text, href]) {
-      for (final pattern in patterns) {
-        final match = pattern.firstMatch(source);
-        if (match != null) return match.group(1);
+  void _scan(String input, Uri base, Set<String> urls) {
+    final text = input.replaceAll(r'\/', '/').replaceAll(r'\u0026', '&');
+    for (final m in _media.allMatches(text)) {
+      final uri = Uri.tryParse(m.group(0)!);
+      if (uri != null && (uri.scheme == 'http' || uri.scheme == 'https')) {
+        urls.add(uri.toString());
       }
     }
-
-    return null;
   }
 
-  @override
-  Future<void> getStreams(
-    String episodeId,
-    Function(List<VideoStream>, bool) update, {
-    bool dub = false,
-    String? metadata,
-  }) async {
-    final episodeUri = Uri.tryParse(episodeId)?.hasScheme == true
-        ? Uri.parse(episodeId)
-        : Uri.parse(AniDBSeBase.baseUrl).resolve(episodeId);
-
-    Logs.app.log("[ANIDB.SE $variantName] episode page: $episodeUri");
-
-    final found = <String>{};
-    await _extractStreamsFromPage(
-      episodeUri,
-      found,
-      update,
-      depth: 0,
-    );
-
-    Logs.app.log(
-      "[ANIDB.SE $variantName] streams=${found.length}",
-    );
-    update([], true);
-  }
-
-  Future<void> _extractStreamsFromPage(
-    Uri uri,
-    Set<String> found,
-    Function(List<VideoStream>, bool) update, {
-    required int depth,
-  }) async {
-    final res = await get(
-      uri,
-      headers: headers,
-      cacheDuration: const Duration(minutes: 15),
-    );
-
-    final body = res.body;
-    final document = html.parse(body);
-
-    final candidates = <String>{};
-
-    for (final pattern in [
-      RegExp(r'''https?://[^"'\s<>]+\.m3u8[^"'\s<>]*''',
-          caseSensitive: false),
-      RegExp(r'''file\s*[:=]\s*["']([^"']+)["']''',
-          caseSensitive: false),
-      RegExp(r'''source\s*[:=]\s*["']([^"']+)["']''',
-          caseSensitive: false),
-    ]) {
-      for (final match in pattern.allMatches(body)) {
-        final value = match.groupCount > 0 ? match.group(1) : match.group(0);
-        if (value != null && value.contains('.m3u8')) {
-          candidates.add(Uri.parse(AniDBSeBase.baseUrl).resolve(value).toString());
+  Future<void> _resolve(Uri page, Set<String> urls, Set<String> visited,
+      int depth) async {
+    if (depth > 2 || !visited.add(page.toString())) return;
+    final markup = await _page(page);
+    if (variant == 1) {
+      _scan(markup, page, urls);
+      return;
+    }
+    final doc = html.parse(markup);
+    for (final el in doc.querySelectorAll(
+        'video, source, [data-src], [data-video], [data-file], [data-hls]')) {
+      for (final key in const [
+        'src', 'data-src', 'data-video', 'data-file', 'data-hls'
+      ]) {
+        final value = el.attributes[key];
+        if (value == null) continue;
+        final uri = page.resolve(value.startsWith('//')
+            ? page.scheme + ':' + value : value);
+        if (RegExp(r'\.(mp4|m3u8|mpd|webm)(\?|$)', caseSensitive: false)
+            .hasMatch(uri.toString()) &&
+            (uri.scheme == 'http' || uri.scheme == 'https')) {
+          urls.add(uri.toString());
         }
       }
     }
-
-    for (final element in document.querySelectorAll(
-      'video source[src], video[src], a[href*=".m3u8"]',
-    )) {
-      final value = element.attributes['src'] ?? element.attributes['href'];
-      if (value != null) {
-        candidates.add(uri.resolve(value).toString());
+    for (final script in doc.querySelectorAll('script')) {
+      _scan(script.text, page, urls);
+      if (variant == 3) {
+        final src = script.attributes['src'] ?? '';
+        const prefix = 'data:text/javascript;base64,';
+        if (src.startsWith(prefix)) {
+          try {
+            _scan(utf8.decode(base64.decode(src.substring(prefix.length))),
+                page, urls);
+          } catch (_) {
+            print('[AniDB V3] Invalid Base64 script');
+          }
+        }
       }
     }
-
-    for (final url in candidates) {
-      if (!found.add(url)) continue;
-      update(
-        [
-          VideoStream(
-            url: url,
-            quality: 'default',
-            server: 'AniDB.se $variantName',
-            backup: false,
-            customHeaders: headers,
-          ),
-        ],
-        false,
-      );
+    if (variant == 3) {
+      print('[AniDB V3] UVP=' + markup.contains('uvp-player-js').toString() +
+          ' media=' + urls.length.toString());
     }
-
-    if (found.isNotEmpty || depth >= 1) return;
-
-    final embeds = <String>{};
-    for (final element in document.querySelectorAll('iframe[src], embed[src]')) {
-      final src = element.attributes['src'];
-      if (src != null && src.isNotEmpty) {
-        embeds.add(uri.resolve(src).toString());
-      }
-    }
-
-    for (final embed in embeds.take(5)) {
+    for (final el in doc.querySelectorAll('iframe[src], iframe[data-src]')) {
+      final src = el.attributes['src'] ?? el.attributes['data-src'];
+      if (src == null) continue;
+      final uri = page.resolve(src);
+      if (uri.scheme != 'https' && uri.scheme != 'http') continue;
       try {
-        await _extractStreamsFromPage(
-          Uri.parse(embed),
-          found,
-          update,
-          depth: depth + 1,
-        );
-      } catch (err) {
-        Logs.app.log(
-          "[ANIDB.SE $variantName] embed failed: $embed -> $err",
-        );
+        await _resolve(uri, urls, visited, depth + 1);
+      } catch (e) {
+        print('[AniDB V' + variant.toString() + '] Embed error: ' + e.toString());
       }
     }
   }
 
-  String _cleanText(String value) =>
-      value.replaceAll(RegExp(r'\s+'), ' ').trim();
+  Map<String, String> _streamHeaders(String episodeId) {
+    final headers = <String, String>{'Referer': episodeId};
+    if (variant >= 2) {
+      headers['Origin'] = 'https://anidb.se';
+      headers['User-Agent'] = 'Mozilla/5.0 (Linux; Android 12; Android TV) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
+    }
+    return headers;
+  }
 
   @override
-  Future<void> getDownloadSources(
-    String episodeUrl,
-    Function(List<VideoStream>, bool) update, {
-    bool dub = false,
-    String? metadata,
-  }) async {
+  Future<void> getStreams(String episodeId,
+      Function(List<VideoStream>, bool) update,
+      {bool dub = false, String? metadata}) async {
+    final urls = <String>{};
+    try {
+      await _resolve(Uri.parse(episodeId), urls, <String>{}, 0);
+      print('[AniDB V' + variant.toString() +
+          '] stream candidates=' + urls.length.toString());
+      for (final url in urls) {
+        print('[AniDB V$variant] candidate: $url');
+      }
+      if (variant == 3) {
+        for (final url in urls.take(3)) {
+          final client = http.Client();
+          try {
+            final request = http.Request('GET', Uri.parse(url))
+              ..headers.addAll({..._streamHeaders(episodeId), 'Range': 'bytes=0-1023'});
+            final response = await client.send(request).timeout(const Duration(seconds: 12));
+            final bytes = <int>[];
+            await for (final chunk in response.stream.timeout(const Duration(seconds: 12))) {
+              bytes.addAll(chunk.take(1024 - bytes.length));
+              if (bytes.length >= 1024) break;
+            }
+            final prefix = utf8.decode(bytes.take(80).toList(), allowMalformed: true).toLowerCase();
+            final mp4 = bytes.length >= 8 && ascii.decode(bytes.sublist(4, 8), allowInvalid: true) == 'ftyp';
+            print('[AniDB V3] Range GET status=${response.statusCode} type=${response.headers['content-type']} range=${response.headers['content-range']} length=${response.headers['content-length']} bytes=${bytes.length} mp4Ftyp=$mp4 html=${prefix.contains('<html')}');
+          } catch (e) { print('[AniDB V3] Range GET error: $e'); }
+          finally { client.close(); }
+        }
+      } else if (variant == 1) {
+        for (final url in urls.take(3)) {
+          try {
+            final response = await http.head(Uri.parse(url), headers: _streamHeaders(episodeId)).timeout(const Duration(seconds: 8));
+            print('[AniDB V1] HEAD status=${response.statusCode} type=${response.headers['content-type']} length=${response.headers['content-length']}');
+          } catch (e) { print('[AniDB V1] HEAD error: $e'); }
+        }
+      }
+      update(urls.map((url) => VideoStream(
+        url: url, quality: 'default', server: 'AniDB V' + variant.toString(),
+        backup: false, customHeaders: _streamHeaders(episodeId),
+      )).toList(), true);
+    } catch (e) {
+      print('[AniDB V' + variant.toString() + '] Stream error: ' + e.toString());
+      update([], true);
+      rethrow;
+    }
+  }
+
+  @override
+  Future<void> getDownloadSources(String episodeUrl,
+      Function(List<VideoStream>, bool) update,
+      {bool dub = false, String? metadata}) async {
     throw UnimplementedError();
   }
 }
 
-/// v1: use the site's normal WordPress-style search, matching the URL
-/// visible in the browser: https://anidb.se/?s=<title>
-class AniDBSeV1 extends AniDBSeBase {
-  @override
-  final String providerName = "AniDB.se v1";
-
-  @override
-  String get variantName => "v1";
-
-  @override
-  Uri buildSearchUri(String query) {
-    return Uri.parse(AniDBSeBase.baseUrl).replace(
-      queryParameters: {'s': query},
-    );
-  }
-}
-
-/// v2: search through the /anime/ archive with the same search parameter.
-/// Kept separate so it can be tested independently if the root search
-/// template changes.
-class AniDBSeV2 extends AniDBSeBase {
-  @override
-  final String providerName = "AniDB.se v2";
-
-  @override
-  String get variantName => "v2";
-
-  @override
-  Uri buildSearchUri(String query) {
-    return Uri.parse('${AniDBSeBase.baseUrl}/anime/').replace(
-      queryParameters: {'s': query},
-    );
-  }
-}
-
-/// v3: direct English-title slug lookup. This matches URLs such as:
-/// /anime/the-exiled-heavy-knight-knows-how-to-game-the-system/
-class AniDBSeV3 extends AniDBSeBase {
-  @override
-  final String providerName = "AniDB.se v3";
-
-  @override
-  String get variantName => "v3";
-
-  @override
-  Uri buildSearchUri(String query) {
-    final slug = query
-        .toLowerCase()
-        .replaceAll(RegExp(r"['’]"), '')
-        .replaceAll(RegExp(r'[^a-z0-9]+'), '-')
-        .replaceAll(RegExp(r'^-+|-+$'), '');
-
-    return Uri.parse('${AniDBSeBase.baseUrl}/anime/$slug/');
-  }
-
-  @override
-  Future<List<Map<String, String?>>> search(String query) async {
-    final uri = buildSearchUri(query);
-    Logs.app.log("[ANIDB.SE v3] direct slug: $uri");
-
-    final res = await get(
-      uri,
-      headers: AniDBSeBase.headers,
-      cacheDuration: const Duration(minutes: 5),
-    );
-
-    if (res.statusCode < 200 || res.statusCode >= 400) {
-      Logs.app.log("[ANIDB.SE v3] direct slug HTTP ${res.statusCode}");
-      return [];
-    }
-
-    final document = html.parse(res.body);
-    final title = document
-            .querySelector('h1')
-            ?.text
-            .replaceAll(RegExp(r'\s+'), ' ')
-            .trim() ??
-        query;
-
-    return [
-      {
-        'name': title,
-        'alias': uri.toString(),
-        'imageUrl': document
-            .querySelector('img')
-            ?.attributes['src'],
-      }
-    ];
-  }
-}
-
-// Keep the old class name as an alias for compatibility with any old code.
-class AniDB extends AniDBSeV1 {}
+class AniDBV1 extends AniDB { AniDBV1() : super(variant: 1); }
+class AniDBV2 extends AniDB { AniDBV2() : super(variant: 2); }
+class AniDBV3 extends AniDB { AniDBV3() : super(variant: 3); }

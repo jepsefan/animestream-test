@@ -68,7 +68,10 @@ class _PluginPageState extends State<PluginPage> {
       final data = await AniyomiExtensionBridge.inspectExtensionClass(ext.packageName);
       if (!mounted) return;
       setState(() => _classDiagnostics[ext.packageName] =
-          '${data['status']}: ${data['className'] ?? ''} ${data['error'] ?? ''}'.trim());
+          '${data['status']}: ${data['className'] ?? ''}'
+          '${data['dexClassCount'] != null ? "\nDEX classes: ${data['dexClassCount']}" : ""}'
+          '${(data['candidates'] ?? '').toString().isNotEmpty ? "\nCandidates: ${data['candidates']}" : ""}'
+          '${data['error'] != null ? "\nError: ${data['error']}" : ""}'.trim());
     } catch (e) {
       if (mounted) setState(() => _classDiagnostics[ext.packageName] = 'Inspection error: $e');
     }

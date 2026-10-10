@@ -136,9 +136,12 @@ class MainActivity: FlutterActivity() {
             mapOf("status" to "class_found", "className" to clazz.name,
                 "dexClassCount" to classes.size, "candidates" to candidates.joinToString(", "))
         } catch (e: Throwable) {
+            val chain = generateSequence(e) { it.cause }.take(6).joinToString(" -> ") {
+                it.javaClass.simpleName + ": " + (it.message ?: "")
+            }
             mapOf("status" to "class_load_failed", "className" to target,
                 "dexClassCount" to classes.size, "candidates" to candidates.joinToString(", "),
-                "error" to (e.javaClass.simpleName + ": " + (e.message ?: "")))
+                "error" to chain, "classInDex" to (target in classes))
         }
     }
 

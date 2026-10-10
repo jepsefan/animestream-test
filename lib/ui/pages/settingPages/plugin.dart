@@ -161,18 +161,28 @@ class _PluginPageState extends State<PluginPage> {
                     if (_apkExtensions.isEmpty)
                       const Padding(padding: EdgeInsets.all(8), child: Text('No installed Aniyomi APK extensions detected')),
                     for (final ext in _apkExtensions)
-                      ListTile(
+                      ExpansionTile(
                         title: Text(ext.name),
-                        subtitle: Text(
-                          '${ext.packageName} • v${ext.version} • Detected, not executable yet'
-                          '${ext.sourceClass != null ? "\nSource class: ${ext.sourceClass}" : ""}'
-                          '${ext.sourceFactory != null ? "\nSource factory: ${ext.sourceFactory}" : ""}'
-                          '${_classDiagnostics[ext.packageName] != null ? "\n${_classDiagnostics[ext.packageName]}" : ""}',
-                        ),
-                        trailing: TextButton(
-                          onPressed: () => _inspectClass(ext),
-                          child: const Text('Test class'),
-                        ),
+                        subtitle: Text('${ext.packageName} • v${ext.version}'),
+                        childrenPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        children: [
+                          Align(
+                            alignment: Alignment.centerLeft,
+                            child: SelectableText(
+                              'Detected, not executable yet'
+                              '\nSource class: ${ext.sourceClass ?? "unknown"}'
+                              '${ext.sourceFactory != null ? "\nSource factory: ${ext.sourceFactory}" : ""}'
+                              '${_classDiagnostics[ext.packageName] != null ? "\n\n${_classDiagnostics[ext.packageName]}" : ""}',
+                            ),
+                          ),
+                          Align(
+                            alignment: Alignment.centerRight,
+                            child: TextButton(
+                              onPressed: () => _inspectClass(ext),
+                              child: const Text('Test class'),
+                            ),
+                          ),
+                        ],
                       ),
                     const Divider(),
                     if (_installed.isEmpty)

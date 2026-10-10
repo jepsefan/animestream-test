@@ -65,7 +65,7 @@ class VidtubeExtractor implements AnimeExtractor {
           if (path.endsWith('.ass') || path.endsWith('.ssa')) return 'ass';
           if (path.endsWith('.srt')) return 'srt';
           if (path.endsWith('.vtt')) return 'vtt';
-          return 'vtt'; // Preserve existing fallback for unknown URLs.
+          return null; // Unknown format: do not mislabel as VTT.
         })(),
         customHeaders: {
           "Referer": "https://vidtube.site/",

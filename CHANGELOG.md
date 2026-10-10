@@ -1,5 +1,11 @@
 # Changelog
 
+## v1.4.9-beta1 (experimental AniDB)
+
+- Based on v1.4.9 stable source, with only AniDB provider and source registration replaced by the beta30 AniDB tests.
+- AniDB V1/V2/V3 search, episode discovery, media URL extraction and HTTP header/Range diagnostics restored for testing.
+- Playback on Android TV is not yet verified; previous AniDB MP4 streams stalled in the player.
+
 ## v1.4.9
 
 Promoted from the `v1.4.8-beta23` source baseline. The application changes tested in beta24–beta30 are **not included**. See `RELEASE_NOTES.md` for full beta history and known limitations.

@@ -61,7 +61,7 @@ class VidtubeExtractor implements AnimeExtractor {
         backup: false,
         subtitle: sub,
         subtitleFormat: sub == null ? null : (() {
-          final path = Uri.tryParse(sub)?.path.toLowerCase() ?? '';
+          final path = Uri.tryParse(sub!)?.path.toLowerCase() ?? '';
           if (path.endsWith('.ass') || path.endsWith('.ssa')) return 'ass';
           if (path.endsWith('.srt')) return 'srt';
           if (path.endsWith('.vtt')) return 'vtt';

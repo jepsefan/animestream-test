@@ -141,7 +141,11 @@ class ASSRIPPER {
     }
 
     // Clean formatting tags from dialogue and normalize explicit ASS newline markers
-    final dialogue = _removeASSFormatting(rawText).replaceAll(r"\N", "\n").trim();
+    final dialogue = _removeASSFormatting(rawText)
+        .replaceAll(r"\N", "\n")
+        .replaceAll(r"\n", "\n")
+        .replaceAll(r"\h", " ")
+        .trim();
 
     return SubtitleCue(dialogue: dialogue, end: end, start: start, alignment: alignment);
   }

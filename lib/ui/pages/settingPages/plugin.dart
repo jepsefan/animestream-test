@@ -20,6 +20,7 @@ class _PluginPageState extends State<PluginPage> {
   bool _loading = true;
   String? _error;
   String? _busyId;
+  final Map<String, String> _classDiagnostics = {};
 
   @override
   void initState() {
@@ -58,6 +59,18 @@ class _PluginPageState extends State<PluginPage> {
       if (mounted) setState(() => _error = 'Could not load saved providers: $e');
     } finally {
       if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  Future<void> _inspectClass(AniyomiExtensionInfo ext) async {
+    setState(() => _classDiagnostics[ext.packageName] = 'Checking class...');
+    try {
+      final data = await AniyomiExtensionBridge.inspectExtensionClass(ext.packageName);
+      if (!mounted) return;
+      setState(() => _classDiagnostics[ext.packageName] =
+          '${data['status']}: ${data['className'] ?? ''} ${data['error'] ?? ''}'.trim());
+    } catch (e) {
+      if (mounted) setState(() => _classDiagnostics[ext.packageName] = 'Inspection error: $e');
     }
   }
 
@@ -145,12 +158,19 @@ class _PluginPageState extends State<PluginPage> {
                     if (_apkExtensions.isEmpty)
                       const Padding(padding: EdgeInsets.all(8), child: Text('No installed Aniyomi APK extensions detected')),
                     for (final ext in _apkExtensions)
-                      ListTile(title: Text(ext.name),
+                      ListTile(
+                        title: Text(ext.name),
                         subtitle: Text(
                           '${ext.packageName} • v${ext.version} • Detected, not executable yet'
                           '${ext.sourceClass != null ? "\nSource class: ${ext.sourceClass}" : ""}'
-                          '${ext.sourceFactory != null ? "\nSource factory: ${ext.sourceFactory}" : ""}',
-                        )),
+                          '${ext.sourceFactory != null ? "\nSource factory: ${ext.sourceFactory}" : ""}'
+                          '${_classDiagnostics[ext.packageName] != null ? "\n${_classDiagnostics[ext.packageName]}" : ""}',
+                        ),
+                        trailing: TextButton(
+                          onPressed: () => _inspectClass(ext),
+                          child: const Text('Test class'),
+                        ),
+                      ),
                     const Divider(),
                     Expanded(child: _items(_installed, installed: true)),
                   ]),

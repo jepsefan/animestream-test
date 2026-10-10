@@ -5,6 +5,12 @@ class AniyomiExtensionBridge {
   static const MethodChannel _channel =
       MethodChannel('animestream.app/aniyomi_extensions');
 
+  static Future<Map<String, dynamic>> inspectExtensionClass(String packageName) async {
+    final raw = await _channel.invokeMethod<Map<dynamic, dynamic>>(
+      'inspectExtensionClass', {'packageName': packageName});
+    return Map<String, dynamic>.from(raw ?? const {});
+  }
+
   static Future<List<AniyomiExtensionInfo>> listInstalledExtensions() async {
     final raw = await _channel.invokeMethod<List<dynamic>>('listInstalledExtensions');
     return (raw ?? const <dynamic>[])

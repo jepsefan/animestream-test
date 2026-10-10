@@ -12,6 +12,7 @@ class Subtitleparsers {
   Future<List<SubtitleCue>> parseSubs(String source, SubtitleFormat format) async {
     switch (format) {
       case SubtitleFormat.ASS:
+        print('[SUBTITLES] ASS parser selected');
         return ASSRIPPER().parseASS(source);
       case SubtitleFormat.VTT:
         return VttRipper().parseVtt(source);

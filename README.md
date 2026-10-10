@@ -1,4 +1,4 @@
-# animestream
+# animestream For TV
 
 A Flutter project made to stream and download Anime with Anilist tracking.
 

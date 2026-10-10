@@ -68,7 +68,7 @@ class _SourceTileState extends State<SourceTile> {
                     ),
                     SizedBox(height: 4),
                     Text(
-                      "${widget.source.quality}${widget.source.subtitle != null && widget.source.subtitle!.isNotEmpty && widget.source.subtitleFormat?.toLowerCase() == 'ass' ? ' • ASS' : ''}${widget.source.backup ? ' • Backup' : ''}",
+                      "${widget.source.quality}${widget.source.subtitle != null && widget.source.subtitle!.isNotEmpty && ['ass', 'vtt', 'srt'].contains(widget.source.subtitleFormat?.toLowerCase()) ? ' • ${widget.source.subtitleFormat!.toUpperCase()}' : ''}${widget.source.backup ? ' • Backup' : ''}",
                       style: TextStyle(
                         fontSize: 14,
                         color: appTheme.textSubColor,

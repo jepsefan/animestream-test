@@ -1,8 +1,6 @@
 package app.animestream
 
 import android.graphics.Bitmap
-import android.os.Handler
-import android.os.Looper
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
 import io.github.assrender.AssDirectBridge

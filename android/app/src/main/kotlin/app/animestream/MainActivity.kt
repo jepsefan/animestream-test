@@ -2,6 +2,7 @@ package app.animestream
 
 import android.widget.Toast
 import android.content.pm.PackageManager
+import android.content.pm.FeatureInfo
 import android.os.Build
 import android.os.Looper
 import android.os.Handler
@@ -52,25 +53,29 @@ class MainActivity: FlutterActivity() {
     // Android 11+ package visibility is declared in AndroidManifest.xml.
     private fun listInstalledAnimeExtensions(): List<Map<String, Any?>> {
         val pm = packageManager
-        val flags = PackageManager.GET_META_DATA.toLong()
+        val flags = (PackageManager.GET_META_DATA or PackageManager.GET_CONFIGURATIONS).toLong()
         val packages = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             pm.getInstalledPackages(PackageManager.PackageInfoFlags.of(flags))
         } else {
             @Suppress("DEPRECATION")
-            pm.getInstalledPackages(PackageManager.GET_META_DATA)
+            pm.getInstalledPackages(PackageManager.GET_META_DATA or PackageManager.GET_CONFIGURATIONS)
         }
         return packages.mapNotNull { pkg ->
             val info = pkg.applicationInfo ?: return@mapNotNull null
-            val metadata = info.metaData ?: return@mapNotNull null
-            val sourceClass = metadata.getString("tachiyomi.animeextension.class")
-            val sourceFactory = metadata.getString("tachiyomi.animeextension.factory")
-            if (sourceClass.isNullOrBlank() && sourceFactory.isNullOrBlank()) return@mapNotNull null
+            val metadata = info.metaData
+            val sourceClass = metadata?.getString("tachiyomi.animeextension.class")
+            val sourceFactory = metadata?.getString("tachiyomi.animeextension.factory")
+            val hasExtensionFeature = pkg.reqFeatures?.any {
+                it.name == "tachiyomi.animeextension"
+            } == true
+            if (!hasExtensionFeature && sourceClass.isNullOrBlank() && sourceFactory.isNullOrBlank()) return@mapNotNull null
             mapOf(
                 "packageName" to pkg.packageName,
                 "name" to pm.getApplicationLabel(info).toString(),
                 "version" to (pkg.versionName ?: ""),
                 "sourceClass" to sourceClass,
                 "sourceFactory" to sourceFactory,
+                "hasExtensionFeature" to hasExtensionFeature,
                 "status" to "detected_not_loaded"
             )
         }

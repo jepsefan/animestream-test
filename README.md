@@ -14,6 +14,12 @@ A Flutter project made to stream and download Anime with Anilist tracking.
     <img src="lib/assets/icons/logo.png" width="256" height="256" alt="project logo">
 </p>
 
+## Current fork version
+
+- **Stable baseline:** v1.4.9 (based on v1.4.8-beta23).
+- **Experimental branch:** [v1.4.9-beta2](https://github.com/jepsefan/animestream-test/tree/v1.4.9-beta2-anidb-player-fix) — AniDB playback diagnostics and Android TV player-exit recovery (not yet device-verified).
+- **Version history:** [CHANGELOG.md](CHANGELOG.md) and [RELEASE_NOTES.md](RELEASE_NOTES.md). The README intentionally does not list every v1.4.8 beta.
+
 ## Tech Stack
 
 Built with ❤️ using Flutter

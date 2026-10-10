@@ -1,3 +1,9 @@
+# v1.4.9-beta3 — Manage Providers experiment
+
+Based directly on the master baseline, not beta1/beta2. Adds a visible Manage Providers screen with Installed and Available tabs, refresh, local Dart source download/storage/removal, and error reporting. Fixes null handling and Hive box lifecycle in provider preferences. The upstream Provins catalog URL currently returns 404, so Available cannot populate until a valid compatible repository is configured. External provider execution remains disabled; downloaded code is not playable. No APK build or device test has been performed.
+
+---
+
 # v1.4.9-beta1 — AniDB playback experiment
 
 Based on `v1.4.9` master. Reintroduces the AniDB V1/V2/V3 implementations and source registrations from the earlier beta30 test branch, without changing the Better Player fork or unrelated playback code. V1 uses Referer and HEAD diagnostics; V2 uses Referer, Origin and User-Agent; V3 adds a bounded HTTP Range GET probe to inspect media response status and MP4 signatures. This is a test release; AniDB playback remains unverified and may still fail.

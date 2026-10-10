@@ -339,7 +339,7 @@ class Anikoto implements AnimeProvider {
           'Origin': 'https://megaplay.buzz',
         },
         subtitle: cleanedSubLink,
-        subtitleFormat: subtitleFormat ?? "vtt",
+        subtitleFormat: subtitleFormat,
       )
     ];
   }

@@ -146,7 +146,7 @@ class _PluginPageState extends State<PluginPage> {
                       const Padding(padding: EdgeInsets.all(8), child: Text('No installed Aniyomi APK extensions detected')),
                     for (final ext in _apkExtensions)
                       ListTile(title: Text(ext.name),
-                        subtitle: Text('${ext.packageName} • v${ext.version} • Detected, not executable yet')),
+                        subtitle: Text('${ext.packageName} • v${ext.version} • Detected, not executable yet'\n                          '${ext.sourceClass != null ? "\\nSource class: ${ext.sourceClass}" : ""}'\n                          '${ext.sourceFactory != null ? "\\nSource factory: ${ext.sourceFactory}" : ""}')),
                     const Divider(),
                     Expanded(child: _items(_installed, installed: true)),
                   ]),

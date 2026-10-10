@@ -1,5 +1,6 @@
 package app.animestream
 
+import dalvik.system.DexClassLoader
 import android.widget.Toast
 import android.content.pm.PackageManager
 import android.content.pm.FeatureInfo
@@ -23,6 +24,18 @@ class MainActivity: FlutterActivity() {
         extensionChannel = MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "animestream.app/aniyomi_extensions")
         extensionChannel.setMethodCallHandler { call, result ->
             when (call.method) {
+                "inspectExtensionClass" -> {
+                    val packageName = call.argument<String>("packageName")
+                    if (packageName.isNullOrBlank()) {
+                        result.error("INVALID_PACKAGE", "Missing packageName", null)
+                    } else {
+                        try {
+                            result.success(inspectExtensionClass(packageName))
+                        } catch (e: Exception) {
+                            result.error("CLASS_INSPECTION_FAILED", e.toString(), null)
+                        }
+                    }
+                }
                 "listInstalledExtensions" -> {
                     try {
                         result.success(listInstalledAnimeExtensions())
@@ -78,6 +91,27 @@ class MainActivity: FlutterActivity() {
                 "hasExtensionFeature" to hasExtensionFeature,
                 "status" to "detected_not_loaded"
             )
+        }
+    }
+
+    // Diagnostic only: resolve the class without initializing or instantiating it.
+    private fun inspectExtensionClass(packageName: String): Map<String, Any?> {
+        val pm = packageManager
+        val info = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            pm.getApplicationInfo(packageName, PackageManager.ApplicationInfoFlags.of(PackageManager.GET_META_DATA.toLong()))
+        } else {
+            @Suppress("DEPRECATION")
+            pm.getApplicationInfo(packageName, PackageManager.GET_META_DATA)
+        }
+        val rawClass = info.metaData?.getString("tachiyomi.animeextension.class")
+        if (rawClass.isNullOrBlank()) return mapOf("status" to "no_source_class")
+        val className = if (rawClass.startsWith(".")) packageName + rawClass else rawClass
+        return try {
+            val loader = DexClassLoader(info.sourceDir, codeCacheDir.absolutePath, info.nativeLibraryDir, javaClass.classLoader)
+            val clazz = Class.forName(className, false, loader)
+            mapOf("status" to "class_found", "className" to clazz.name)
+        } catch (e: Throwable) {
+            mapOf("status" to "class_load_failed", "className" to className, "error" to (e.javaClass.simpleName + ": " + (e.message ?: "")))
         }
     }
 

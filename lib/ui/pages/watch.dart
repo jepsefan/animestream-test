@@ -91,6 +91,15 @@ class _WatchState extends State<Watch> with WidgetsBindingObserver {
   }
 
   void _initialize() async {
+    try {
+      await _initializePlayback();
+    } catch (e, stack) {
+      Logs.player.log('[PLAYER] Initialization failed: $e\n$stack');
+      if (mounted) setState(() => isInitiated = false);
+    }
+  }
+
+  Future<void> _initializePlayback() async {
     /// Set black title bar
     context.read<AppProvider>().setTitlebarColor(appTheme.backgroundColor);
 
@@ -109,6 +118,7 @@ class _WatchState extends State<Watch> with WidgetsBindingObserver {
 
       await controller.initiateVideo(dataProvider.state.currentStream.url,
           headers: dataProvider.state.currentStream.customHeaders);
+      if (!mounted) return;
 
       controller.setQuality(q);
 
@@ -124,6 +134,7 @@ class _WatchState extends State<Watch> with WidgetsBindingObserver {
       }
     } else {
       await controller.initiateVideo(dataProvider.state.currentStream.url, offline: true);
+      if (!mounted) return;
     }
 
     final lastWatchPct = (dataProvider.lastWatchDuration ?? 0).clamp(0, 100);
@@ -133,11 +144,13 @@ class _WatchState extends State<Watch> with WidgetsBindingObserver {
     // await dataProvider.updateDiscordPresence();
 
     // Seek to last watched part
+    if (!mounted) return;
     await controller.seekTo(Duration(milliseconds: lastWatchDuration)); //percentage to value
 
     if (mounted) context.read<PlayerProvider>().toggleSubs(action: dataProvider.state.currentStream.subtitle != null);
 
     // Placed here for safety. placing it above might cause issues with custom controls functions
+    if (!mounted) return;
     setState(() {
       isInitiated = true;
     });
@@ -906,7 +919,7 @@ class _WatchState extends State<Watch> with WidgetsBindingObserver {
       if (!widget.localSource) print("SAVED WATCH DURATION");
     }
 
-    controller.removeListener(_listener);
+    if (isInitiated) controller.removeListener(_listener);
     controller.dispose();
     _controlsTimer?.cancel();
     _oledPauseProtectionTimer?.cancel();

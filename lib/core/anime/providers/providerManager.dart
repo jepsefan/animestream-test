@@ -22,7 +22,7 @@ class ProviderManager {
       _providersPreferences.saveProvider(provider);
 
   Future<void> removeProvider(ProviderDetails provider) =>
-      _providersPreferences.removeProvider(provider);
+      _providersPreferences.removeProvider(provider.identifier);
 
   Future<String?> fetchProviderCode(String identifier) async {
     if (!RegExp(r'^[a-zA-Z0-9_-]+$').hasMatch(identifier)) {

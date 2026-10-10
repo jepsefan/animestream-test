@@ -19,9 +19,13 @@ class MainActivity: FlutterActivity() {
 
     private lateinit var channel: MethodChannel
     private lateinit var extensionChannel: MethodChannel
+    private lateinit var assRenderChannel: MethodChannel
+    private val externalAssRenderer = ExternalAssRenderer()
 
     override fun configureFlutterEngine(@NonNull flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
+        assRenderChannel = MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "animestream.app/assrender")
+        assRenderChannel.setMethodCallHandler(externalAssRenderer)
         extensionChannel = MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "animestream.app/aniyomi_extensions")
         extensionChannel.setMethodCallHandler { call, result ->
             when (call.method) {

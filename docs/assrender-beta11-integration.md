@@ -27,3 +27,6 @@ Status: Native libass script loading has been added to jepsefan/assrender (nativ
 
 ## AAR build preparation (2026-10-10)
 An AAR build workflow was committed to jepsefan/assrender at `.github/workflows/build-aar.yml` for arm64-v8a and armeabi-v7a. This workflow is unverified. The existing CMake configuration still expects FFmpeg, fontconfig and expat shared libraries; the existing libass build script disables fontconfig, so native dependency compatibility must be resolved before claiming a successful AAR. The AnimeStream Gradle dependency, channel registration and watch.dart switch remain intentionally pending until a valid AAR is available.
+
+## Native build simplification
+The assrender fork now has `ASSRENDER_ENABLE_FFMPEG=OFF` by default. The CMake target uses only `ass_direct.c` and `ass_direct_jni.c` and links libass/Freetype/FriBidi/HarfBuzz. The AAR workflow builds libass for both Android ABIs without invoking the FFmpeg build script. Font provider selection changed to `ASS_FONTPROVIDER_AUTODETECT`. These changes are committed but have NOT been compiled or verified in GitHub Actions. AnimeStream channel registration and Gradle dependency are still pending a valid AAR.

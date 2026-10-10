@@ -84,6 +84,7 @@ class _ExternalAssOverlayState extends State<ExternalAssOverlay> {
         }
       }
       if (!mounted || generation != _generation) return;
+      debugPrint('[ASSRENDER] Loading ${bytes.length} bytes from ${widget.subtitleSource}');
       await _channel.invokeMethod<void>('load', {
         'script': bytes,
         'width': 1280,
@@ -92,6 +93,7 @@ class _ExternalAssOverlayState extends State<ExternalAssOverlay> {
       if (!mounted || generation != _generation) return;
       _loadedGeneration = generation;
       _ready = true;
+      debugPrint('[ASSRENDER] Script loaded successfully');
       _timer = Timer.periodic(const Duration(milliseconds: 100), (_) => _render());
       _render();
     } catch (error) {
@@ -110,6 +112,7 @@ class _ExternalAssOverlayState extends State<ExternalAssOverlay> {
         'render', {'timeMs': position},
       );
       if (!mounted || !_ready || generation != _generation) return;
+      if (frame == null) debugPrint('[ASSRENDER] Native renderer returned null at ${position}ms');
       _lastPosition = position;
       setState(() => _frame = frame);
     } catch (error) {

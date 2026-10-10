@@ -135,45 +135,24 @@ class _ExternalAssOverlayState extends State<ExternalAssOverlay> {
   }
 
   static int? _parseAssTime(String value) {
-    final match = RegExp(r'^(\\d+):(\\d{1,2}):(\\d{1,2})[.](\\d{1,2})
-    ++_generation;
-    _timer?.cancel();
-    if (_ready) {
-      _channel.invokeMethod<void>('dispose').catchError((Object _) {});
-    }
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final frame = _frame;
-    return IgnorePointer(
-      child: frame == null
-          ? const SizedBox.expand()
-          : SizedBox.expand(
-              child: Image.memory(
-                frame,
-                fit: BoxFit.contain,
-                gaplessPlayback: true,
-                filterQuality: FilterQuality.low,
-              ),
-            ),
-    );
-  }
-}
-).firstMatch(value.trim());
-    if (match == null) return null;
-    return ((int.parse(match[1]!) * 3600 + int.parse(match[2]!) * 60 + int.parse(match[3]!)) * 1000) +
-        int.parse(match[4]!.padRight(2, '0')) * 10;
+    final parts = value.trim().split(':');
+    if (parts.length != 3) return null;
+    final seconds = parts[2].split('.');
+    if (seconds.length != 2) return null;
+    final h = int.tryParse(parts[0]);
+    final m = int.tryParse(parts[1]);
+    final s = int.tryParse(seconds[0]);
+    final cs = int.tryParse(seconds[1]);
+    if (h == null || m == null || s == null || cs == null) return null;
+    return ((h * 3600 + m * 60 + s) * 1000) + cs * 10;
   }
 
   void _inspectCueTimes(Uint8List bytes) {
-    // Diagnostic only: native libass remains responsible for ASS parsing/rendering.
     final script = String.fromCharCodes(bytes);
     var inEvents = false;
     var startIndex = 1;
     var endIndex = 2;
-    for (final raw in script.split(RegExp(r'\\r?\\n'))) {
+    for (final raw in script.split('\n')) {
       final line = raw.trim();
       if (line.startsWith('[')) {
         inEvents = line.toLowerCase() == '[events]';

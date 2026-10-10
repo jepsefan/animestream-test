@@ -1,5 +1,12 @@
 # Changelog
 
+## v1.4.9-beta2 (player recovery)
+
+- Permit Android TV Back to leave the player when playback initialization fails, even if controls remain visible.
+- Guard asynchronous player initialization against disposed widgets and log setup exceptions.
+- Deduplicate identical Better Player exception messages within five seconds.
+- AniDB HTTP probe logging from beta1 retained. Underlying Media3 HTTP status is not yet captured; source errors may still occur.
+
 ## v1.4.9-beta1 (experimental AniDB)
 
 - Based on v1.4.9 stable source, with only AniDB provider and source registration replaced by the beta30 AniDB tests.

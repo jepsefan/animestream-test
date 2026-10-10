@@ -156,7 +156,7 @@ class _PluginPageState extends State<PluginPage> {
           Expanded(child: _loading
               ? const Center(child: CircularProgressIndicator())
               : TabBarView(children: [
-                  Column(children: [
+                  ListView(children: [
                     const Padding(padding: EdgeInsets.all(8), child: Text('Detected Android APK extensions (not loaded)')),
                     if (_apkExtensions.isEmpty)
                       const Padding(padding: EdgeInsets.all(8), child: Text('No installed Aniyomi APK extensions detected')),
@@ -175,7 +175,19 @@ class _PluginPageState extends State<PluginPage> {
                         ),
                       ),
                     const Divider(),
-                    Expanded(child: _items(_installed, installed: true)),
+                    if (_installed.isEmpty)
+                      const ListTile(title: Text('No saved providers found')),
+                    for (final item in _installed)
+                      ListTile(
+                        title: Text(item.name),
+                        subtitle: Text('v${item.version} • ${item.identifier}'),
+                        trailing: _busyId == item.identifier
+                            ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator())
+                            : TextButton(
+                                onPressed: _busyId != null ? null : () => _remove(item),
+                                child: const Text('Remove'),
+                              ),
+                      ),
                   ]),
                   _items(_available, installed: false),
                 ])),

@@ -91,4 +91,7 @@ flutter {
 
 dependencies {
     implementation("androidx.multidex:multidex:2.0.1")
+    // Download assrender-release.aar from jepsefan/assrender Actions.
+    // Place it in android/app/libs/ before building AnimeStream.
+    implementation(files("libs/assrender-release.aar"))
 }

@@ -60,7 +60,13 @@ class VidtubeExtractor implements AnimeExtractor {
         server: server ?? "vidtube",
         backup: false,
         subtitle: sub,
-        subtitleFormat: sub != null ? "vtt" : null, // hopes n dreams
+        subtitleFormat: sub == null ? null : (() {
+          final path = Uri.tryParse(sub)?.path.toLowerCase() ?? '';
+          if (path.endsWith('.ass') || path.endsWith('.ssa')) return 'ass';
+          if (path.endsWith('.srt')) return 'srt';
+          if (path.endsWith('.vtt')) return 'vtt';
+          return 'vtt'; // Preserve existing fallback for unknown URLs.
+        })(),
         customHeaders: {
           "Referer": "https://vidtube.site/",
           "Origin": "https://vidtube.site",

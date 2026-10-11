@@ -106,16 +106,17 @@ class ExternalAssRenderer : MethodChannel.MethodCallHandler {
                             main.post { result.success(false) }
                             return@execute
                         }
-                        val state = AssDirectBridge.nativeRenderState(handle, timeMs, target)
-                        // state 2: static unchanged. state 0: blank, clear texture.
-                        if (state == 1) {
+                        val hasContent = AssDirectBridge.nativeRender(handle, timeMs, target)
+                        // nativeRender is Boolean in the current assrender AAR.
+                        // Redraw active subtitles every poll; this also preserves ASS animations.
+                        if (hasContent) {
                             drawFrame(target)
                             lastBlank = false
-                        } else if (state == 0 && !lastBlank) {
+                        } else if (!lastBlank) {
                             drawFrame(null)
                             lastBlank = true
                         }
-                        main.post { result.success(state != 0) }
+                        main.post { result.success(hasContent) }
                     } catch (e: Exception) {
                         main.post { result.error("ASS_RENDER_FAILED", e.toString(), null) }
                     }

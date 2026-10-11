@@ -5,6 +5,7 @@ import 'dart:typed_data';
 import 'package:animestream/ui/models/playerControllers/videoController.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/scheduler.dart';
 
 /// Optional libass overlay for external ASS/SSA files.
 ///
@@ -28,9 +29,11 @@ class ExternalAssOverlay extends StatefulWidget {
   State<ExternalAssOverlay> createState() => _ExternalAssOverlayState();
 }
 
-class _ExternalAssOverlayState extends State<ExternalAssOverlay> {
+class _ExternalAssOverlayState extends State<ExternalAssOverlay>
+    with SingleTickerProviderStateMixin {
   static const _channel = MethodChannel('animestream.app/assrender');
-  Timer? _timer;
+  late final Ticker _frameTicker;
+  int _lastIdlePollUs = 0;
   int? _textureId;
   bool _ready = false;
   bool _rendering = false;
@@ -38,13 +41,12 @@ class _ExternalAssOverlayState extends State<ExternalAssOverlay> {
   int _lastPosition = -1;
   int _loadedGeneration = -1;
   final List<(int, int)> _cueTimes = [];
-  final List<(int, int)> _animatedCueTimes = [];
-  int _lastIntervalMs = 50;
   int _lastDiagnosticSecond = -1;
 
   @override
   void initState() {
     super.initState();
+    _frameTicker = createTicker(_onFrame);
     _load();
   }
 
@@ -60,12 +62,11 @@ class _ExternalAssOverlayState extends State<ExternalAssOverlay> {
 
   Future<void> _load() async {
     final generation = ++_generation;
-    _timer?.cancel();
+    _frameTicker.stop();
     _ready = false;
     _textureId = null;
     _lastPosition = -1;
     _cueTimes.clear();
-    _animatedCueTimes.clear();
     _lastDiagnosticSecond = -1;
     if (!Platform.isAndroid) return;
 
@@ -103,35 +104,28 @@ class _ExternalAssOverlayState extends State<ExternalAssOverlay> {
       _loadedGeneration = generation;
       _ready = true;
       debugPrint('[ASSRENDER] Script loaded successfully');
-      _scheduleRender(const Duration(milliseconds: 16));
+      _lastIdlePollUs = 0;
+      _frameTicker.start();
       _render();
     } catch (error) {
       debugPrint('[ASSRENDER] Native overlay unavailable: $error');
     }
   }
 
-  // Use fast updates only while timed ASS transformations are active.
-  // Every frame still uses the video's actual position, never a synthetic clock.
-  void _scheduleRender(Duration delay) {
-    _timer?.cancel();
+  // Follow Flutter's display vsync while ASS cues are active, rather than
+  // guessing which ASS tags animate. All libass timing uses player.position.
+  // libass itself evaluates the full ASS script, including \pos/\move/\t.
+  void _onFrame(Duration elapsed) {
     if (!_ready || !mounted) return;
-    _timer = Timer(delay, () async {
-      await _render();
-      if (!_ready || !mounted) return;
-      final position = widget.controller.position;
-      final animated = position != null && _animatedCueTimes.any(
-        (cue) => cue.$1 <= position && position < cue.$2,
-      );
-      final active = position != null && _cueTimes.any(
-        (cue) => cue.$1 <= position && position < cue.$2,
-      );
-      final intervalMs = animated ? 16 : (active ? 50 : 200);
-      if (intervalMs != _lastIntervalMs) {
-        _lastIntervalMs = intervalMs;
-        debugPrint('[ASSRENDER] Adaptive interval: ${intervalMs}ms, animated=$animated, active=$active');
-      }
-      _scheduleRender(Duration(milliseconds: intervalMs));
-    });
+    final position = widget.controller.position;
+    if (position == null) return;
+    final active = _cueTimes.any((cue) => cue.$1 <= position && position < cue.$2);
+    final nowUs = elapsed.inMicroseconds;
+    if (active || _lastPosition < 0 || position < _lastPosition ||
+        nowUs - _lastIdlePollUs >= 150000) {
+      if (!active) _lastIdlePollUs = nowUs;
+      _render();
+    }
   }
 
   Future<void> _render() async {
@@ -155,7 +149,7 @@ class _ExternalAssOverlayState extends State<ExternalAssOverlay> {
     } catch (error) {
       debugPrint('[ASSRENDER] Render failed: $error');
       _ready = false;
-      _timer?.cancel();
+      _frameTicker.stop();
     } finally {
       _rendering = false;
     }
@@ -179,7 +173,6 @@ class _ExternalAssOverlayState extends State<ExternalAssOverlay> {
     var inEvents = false;
     var startIndex = 1;
     var endIndex = 2;
-    var textIndex = 9;
     for (final raw in script.split('\n')) {
       final line = raw.trim();
       if (line.startsWith('[')) {
@@ -191,7 +184,6 @@ class _ExternalAssOverlayState extends State<ExternalAssOverlay> {
         final fields = line.substring(7).split(',').map((e) => e.trim().toLowerCase()).toList();
         startIndex = fields.indexOf('start');
         endIndex = fields.indexOf('end');
-        textIndex = fields.indexOf('text');
       } else if (line.toLowerCase().startsWith('dialogue:')) {
         final fields = line.substring(9).split(',');
         if (startIndex < 0 || endIndex < 0 || fields.length <= startIndex || fields.length <= endIndex) continue;
@@ -199,17 +191,10 @@ class _ExternalAssOverlayState extends State<ExternalAssOverlay> {
         final end = _parseAssTime(fields[endIndex]);
         if (start != null && end != null && end > start) {
           _cueTimes.add((start, end));
-          // ASS motion/transform/fade commands need video-frame-rate polling.
-          final text = textIndex >= 0 && fields.length > textIndex
-              ? fields.skip(textIndex).join(',')
-              : '';
-          if (RegExp(r'\\(?:move|t|fad|fade|frx|fry|frz|fr|fscx|fscy|fax|fay|clip|iclip)\b', caseSensitive: false).hasMatch(text)) {
-            _animatedCueTimes.add((start, end));
-          }
+
         }
       }
     }
-    debugPrint('[ASSRENDER] Adaptive motion cues: ${_animatedCueTimes.length} / ${_cueTimes.length}');
     if (_cueTimes.isNotEmpty) {
       final first = _cueTimes.map((e) => e.$1).reduce((a, b) => a < b ? a : b);
       final last = _cueTimes.map((e) => e.$2).reduce((a, b) => a > b ? a : b);
@@ -222,7 +207,8 @@ class _ExternalAssOverlayState extends State<ExternalAssOverlay> {
   @override
   void dispose() {
     ++_generation;
-    _timer?.cancel();
+    _frameTicker.stop();
+    _frameTicker.dispose();
     if (_ready) {
       _channel.invokeMethod<void>('disposeTexture').catchError((Object _) {});
     }

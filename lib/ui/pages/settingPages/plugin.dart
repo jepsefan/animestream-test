@@ -67,17 +67,34 @@ class _PluginPageState extends State<PluginPage> {
     try {
       final data = await AniyomiExtensionBridge.inspectExtensionClass(ext.packageName);
       if (!mounted) return;
-      setState(() => _classDiagnostics[ext.packageName] =
-          '${data['status']}: ${data['className'] ?? ''}'
-          '${data['dexClassCount'] != null ? "\nDEX classes: ${data['dexClassCount']}" : ""}'
-          '${(data['candidates'] ?? '').toString().isNotEmpty ? "\nCandidates: ${data['candidates']}" : ""}'
-          '${data['error'] != null ? "\nError: ${data['error']}" : ""}'
-          '${data['missingDependency'] != null ? "\nMissing dependency: ${data['missingDependency']}" : ""}'
-          '${data['hostApiPresent'] != null ? "\nAnimeSource host API available: ${data['hostApiPresent']}" : ""}'
-          '${data['apkFiles'] != null ? "\nAPK files: ${data['apkFiles']}" : ""}'
-          '${data['dexScanErrors'] != null && data['dexScanErrors'].toString().isNotEmpty ? "\nDEX scan errors: ${data['dexScanErrors']}" : ""}'
-          '${data['rootCause'] != null ? "\nRoot cause: ${data['rootCause']}" : ""}'
-          '${data['diagnosis'] != null ? "\nDiagnosis: ${data['diagnosis']}" : ""}'.trim());
+      final fields = <String, String>{
+        'status': '${data['status'] ?? ''}',
+        'className': '${data['className'] ?? ''}',
+        'declaredClass': '${data['declaredClass'] ?? ''}',
+        'declaredFactory': '${data['declaredFactory'] ?? ''}',
+        'declaredEntryPoints': '${data['declaredEntryPoints'] ?? ''}',
+        'entryPointsInDex': '${data['entryPointsInDex'] ?? ''}',
+        'declaredClassInDex': '${data['declaredClassInDex'] ?? ''}',
+        'targetClassInDex': '${data['targetClassInDex'] ?? ''}',
+        'dexClassCount': '${data['dexClassCount'] ?? ''}',
+        'candidates': '${data['candidates'] ?? ''}',
+        'extensionPackageClasses': '${data['extensionPackageClasses'] ?? ''}',
+        'hostApiPresent': '${data['hostApiPresent'] ?? ''}',
+        'apkFiles': '${data['apkFiles'] ?? ''}',
+        'dexInventory': '${data['dexInventory'] ?? ''}',
+        'dexScanErrors': '${data['dexScanErrors'] ?? ''}',
+        'error': '${data['error'] ?? ''}',
+        'missingDependency': '${data['missingDependency'] ?? ''}',
+        'dependencyClassInDex': '${data['dependencyClassInDex'] ?? ''}',
+        'entryPointResolutionFailed': '${data['entryPointResolutionFailed'] ?? ''}',
+        'exceptionTypes': '${data['exceptionTypes'] ?? ''}',
+        'rootCause': '${data['rootCause'] ?? ''}',
+        'diagnosis': '${data['diagnosis'] ?? ''}',
+      };
+      setState(() => _classDiagnostics[ext.packageName] = fields.entries
+          .where((entry) => entry.value.isNotEmpty)
+          .map((entry) => '${entry.key}: ${entry.value}')
+          .join('\n'));
     } catch (e) {
       if (mounted) setState(() => _classDiagnostics[ext.packageName] = 'Inspection error: $e');
     }

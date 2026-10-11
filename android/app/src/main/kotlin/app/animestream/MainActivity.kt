@@ -145,7 +145,19 @@ class MainActivity: FlutterActivity() {
         }
         val candidates = classes.filter { name -> declaredEntries.any { entry -> name == entry || name.substringAfterLast('.') == entry.substringAfterLast('.') } }.take(25)
         val target = declaredEntries.firstOrNull { it in classes } ?: candidates.firstOrNull()
+        val (dexClassInfo, dependencyScanErrors) = ExtensionDexInspector.inspect(apkPaths, expected)
+        val availableClasses = classes.toSet()
         val base = mutableMapOf<String, Any?>(
+            "dexSuperclass" to dexClassInfo?.superClass,
+            "dexInterfaces" to dexClassInfo?.interfaces?.joinToString(", "),
+            "dexClassLocation" to dexClassInfo?.source,
+            "dexMissingDirectDependencies" to listOfNotNull(dexClassInfo?.superClass)
+                .plus(dexClassInfo?.interfaces ?: emptyList())
+                .filter { it !in availableClasses && !it.startsWith("java.") &&
+                    !it.startsWith("javax.") && !it.startsWith("android.") &&
+                    !it.startsWith("kotlin.") }.joinToString(", "),
+            "dexDependencyScanErrors" to dependencyScanErrors.joinToString("\\n"),
+
             "className" to expected,
             "dexClassCount" to classes.size,
             "declaredClassInDex" to (expected in classes),

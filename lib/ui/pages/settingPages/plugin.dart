@@ -70,6 +70,8 @@ class _PluginPageState extends State<PluginPage> {
       final fields = <String, String>{
         'status': '${data['status'] ?? ''}',
         'dexInspectionStatus': '${data['dexInspectionStatus'] ?? '(not reported)'}',
+        'hostApiDependencyStatus': '${data['hostApiDependencyStatus'] ?? ''}',
+        'missingAniyomiHostApiTypes': '${data['missingAniyomiHostApiTypes'] ?? ''}',
         'dexSuperclass': '${data['dexSuperclass'] ?? ''}',
         'dexInterfaces': '${data['dexInterfaces'] ?? ''}',
         'dexClassLocation': '${data['dexClassLocation'] ?? ''}',

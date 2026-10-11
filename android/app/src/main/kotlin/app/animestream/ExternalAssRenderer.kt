@@ -44,7 +44,11 @@ class ExternalAssRenderer : MethodChannel.MethodCallHandler {
                         result.success(null)
                     } else {
                         val timeMs = (call.argument<Number>("timeMs") ?: 0).toLong()
-                        if (!AssDirectBridge.nativeRender(handle, timeMs, target)) {
+                        val state = AssDirectBridge.nativeRenderState(handle, timeMs, target)
+                        if (state == 2) {
+                            // Empty byte array means keep the existing Flutter image.
+                            result.success(byteArrayOf())
+                        } else if (state == 0) {
                             if (timeMs / 1000 != lastEmptySecond) {
                                 lastEmptySecond = timeMs / 1000
                                 Log.i("ASSRENDER", "Native render produced no image at ${timeMs}ms; check libass event timing and fonts")

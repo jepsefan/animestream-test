@@ -12,7 +12,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: v1.4.9-beta24-ass-clock-extension-dex
+          ref: v1.4.9-beta25-ass-stall-recovery
           persist-credentials: true
       - name: Download latest successful assrender AAR
         env:
@@ -26,12 +26,12 @@ jobs:
           gh run download "$run_id" -R jepsefan/assrender -n assrender-android-aar -D android/app/libs
           test -s android/app/libs/assrender-release.aar
           unzip -t android/app/libs/assrender-release.aar
-      - name: Commit library to beta24 branch
+      - name: Commit library to beta25 branch
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -f android/app/libs/assrender-release.aar
           if ! git diff --cached --quiet; then
-            git commit -m "Bundle verified assrender AAR for beta24 Android builds"
-            git push origin HEAD:v1.4.9-beta24-ass-clock-extension-dex
+            git commit -m "Bundle verified assrender AAR for beta25 Android builds"
+            git push origin HEAD:v1.4.9-beta25-ass-stall-recovery
           fi

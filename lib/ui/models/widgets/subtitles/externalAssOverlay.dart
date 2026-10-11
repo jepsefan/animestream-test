@@ -196,7 +196,14 @@ class _ExternalAssOverlayState extends State<ExternalAssOverlay> {
     return IgnorePointer(
       child: textureId == null
           ? const SizedBox.expand()
-          : SizedBox.expand(child: Texture(textureId: textureId)),
+          : Center(
+              child: AspectRatio(
+                // The native renderer uses a 1280x720 frame. Match its
+                // aspect ratio instead of stretching into pillarbox bars.
+                aspectRatio: 1280 / 720,
+                child: Texture(textureId: textureId),
+              ),
+            ),
     );
   }
 }

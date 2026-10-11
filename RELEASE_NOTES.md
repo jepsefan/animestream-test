@@ -6,7 +6,7 @@ Only the latest beta and two previous betas are shown here. Earlier history is i
 - Keep the native ASS Texture render polling interval at **50 ms** for comparison on Android TV.
 - Import workflow now targets the beta20 AnimeStream branch and downloads the latest successful assrender AAR built on `beta19-alpha-compositing`.
 - The corrected native alpha blending only reaches the APK **after** the AAR is rebuilt/imported and the APK is rebuilt.
-- Aniyomi extension execution is not yet working; existing diagnostics are retained.
+- Aniyomi extension diagnostics now check both declared source classes and factory classes against DEX, list matching candidates, and report whether the failing dependency appears in the scanned DEX. Execution remains unsupported.
 - Better Player remains unchanged.
 
 ## v1.4.9-beta19 — ASS alpha experiment and extension diagnostics

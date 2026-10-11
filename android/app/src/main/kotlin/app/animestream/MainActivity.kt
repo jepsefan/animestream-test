@@ -111,8 +111,12 @@ class MainActivity: FlutterActivity() {
             pm.getApplicationInfo(packageName, PackageManager.GET_META_DATA)
         }
         val rawClass = info.metaData?.getString("tachiyomi.animeextension.class")
-        if (rawClass.isNullOrBlank()) return mapOf("status" to "no_source_class")
-        val expected = if (rawClass.startsWith(".")) packageName + rawClass else rawClass
+        val rawFactory = info.metaData?.getString("tachiyomi.animeextension.factory")
+        if (rawClass.isNullOrBlank() && rawFactory.isNullOrBlank()) return mapOf("status" to "no_source_class")
+        val declaredEntries = listOfNotNull(rawClass, rawFactory)
+            .flatMap { it.split(';', ',').map { name -> name.trim() }.filter { name -> name.isNotEmpty() } }
+            .map { name -> if (name.startsWith(".")) packageName + name else name }.distinct()
+        val expected = declaredEntries.first()
         val apkPaths = listOfNotNull(info.sourceDir) + (info.splitSourceDirs?.toList() ?: emptyList())
         val classes = mutableListOf<String>()
         val scanErrors = mutableListOf<String>()
@@ -138,15 +142,18 @@ class MainActivity: FlutterActivity() {
                 scanErrors.add("${apk.substringAfterLast('/')}: ${e.javaClass.simpleName}: ${e.message}")
             }
         }
-        val simpleName = rawClass.substringAfterLast('.')
-        val candidates = classes.filter { it == expected || it.substringAfterLast('.') == simpleName }.take(15)
-        val target = if (expected in classes) expected else candidates.firstOrNull()
+        val candidates = classes.filter { name -> declaredEntries.any { entry -> name == entry || name.substringAfterLast('.') == entry.substringAfterLast('.') } }.take(25)
+        val target = declaredEntries.firstOrNull { it in classes } ?: candidates.firstOrNull()
         val base = mutableMapOf<String, Any?>(
             "className" to expected,
             "dexClassCount" to classes.size,
             "declaredClassInDex" to (expected in classes),
             "dexInventory" to dexInventory.joinToString("\\n"),
             "declaredClass" to rawClass,
+            "declaredFactory" to rawFactory,
+            "declaredEntryPoints" to declaredEntries.joinToString(", "),
+            "entryPointsInDex" to declaredEntries.filter { it in classes }.joinToString(", "),
+            "extensionPackageClasses" to classes.filter { it.startsWith(packageName) }.take(30).joinToString(", "),
             "apkCount" to apkPaths.size,
             "apkFiles" to apkPaths.map { it.substringAfterLast('/') }.joinToString(", "),
             "dexScanErrors" to scanErrors.joinToString("\\n"),
@@ -165,7 +172,7 @@ class MainActivity: FlutterActivity() {
         val loader = DexClassLoader(apkPaths.joinToString(java.io.File.pathSeparator),
             codeCacheDir.absolutePath, info.nativeLibraryDir, javaClass.classLoader)
         return try {
-            val clazz = loader.loadClass(target)
+            val clazz = Class.forName(target, false, loader)
             base["status"] = "class_found"
             base["className"] = clazz.name
             base
@@ -186,6 +193,8 @@ class MainActivity: FlutterActivity() {
             base["className"] = target
             base["error"] = chain
             base["missingDependency"] = missing?.takeUnless { it == target || it == target.replace('.', '/') }
+            base["targetClassInDex"] = target in classes
+            base["dependencyClassInDex"] = missing?.replace('/', '.')?.let { it in classes }
             base["entryPointResolutionFailed"] = missing == target || missing == target.replace('.', '/')
             base["exceptionTypes"] = causes.joinToString(" -> ") { it.javaClass.name }
             base["rootCause"] = causes.lastOrNull()?.let {

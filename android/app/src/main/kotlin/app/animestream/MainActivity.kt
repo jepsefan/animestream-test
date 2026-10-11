@@ -145,12 +145,17 @@ class MainActivity: FlutterActivity() {
             }
             // A class present in DEX can still fail to resolve because Aniyomi/Tachiyomi
             // runtime APIs are absent from AnimeStream. Report that separately.
-            val missingDependency = generateSequence(e) { it.cause }.filterIsInstance<ClassNotFoundException>().firstOrNull()?.message
+            val missingDependency = generateSequence(e) { it.cause }.filter { it is ClassNotFoundException || it is NoClassDefFoundError }.firstOrNull()?.message
+            val hostApiPresent = try {
+                Class.forName("eu.kanade.tachiyomi.animesource.AnimeSource", false, javaClass.classLoader)
+                true
+            } catch (_: Throwable) { false }
             val unresolvedApi = missingDependency?.contains("tachiyomi", ignoreCase = true) == true ||
                 missingDependency?.contains("aniyomi", ignoreCase = true) == true
             mapOf("status" to if (unresolvedApi) "missing_host_api" else "class_load_failed", "className" to target,
                 "dexClassCount" to classes.size, "candidates" to candidates.joinToString(", "),
                 "error" to chain, "missingDependency" to missingDependency,
+                "hostApiPresent" to hostApiPresent,
                 "diagnosis" to if (unresolvedApi) "Extension class is in APK but needs Aniyomi/Tachiyomi host API classes" else "Extension class resolution failed",
                 "classInDex" to (target in classes))
         }

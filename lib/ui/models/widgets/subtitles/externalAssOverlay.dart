@@ -31,7 +31,7 @@ class ExternalAssOverlay extends StatefulWidget {
 class _ExternalAssOverlayState extends State<ExternalAssOverlay> {
   static const _channel = MethodChannel('animestream.app/assrender');
   Timer? _timer;
-  Uint8List? _frame;
+  int? _textureId;
   bool _ready = false;
   bool _rendering = false;
   int _generation = 0;
@@ -60,7 +60,7 @@ class _ExternalAssOverlayState extends State<ExternalAssOverlay> {
     final generation = ++_generation;
     _timer?.cancel();
     _ready = false;
-    _frame = null;
+    _textureId = null;
     _lastPosition = -1;
     _cueTimes.clear();
     _lastDiagnosticSecond = -1;
@@ -90,16 +90,17 @@ class _ExternalAssOverlayState extends State<ExternalAssOverlay> {
       if (!mounted || generation != _generation) return;
       _inspectCueTimes(bytes);
       debugPrint('[ASSRENDER] Loading ${bytes.length} bytes from ${widget.subtitleSource}');
-      await _channel.invokeMethod<void>('load', {
+      final textureId = await _channel.invokeMethod<int>('loadTexture', {
         'script': bytes,
         'width': 1280,
         'height': 720,
       });
       if (!mounted || generation != _generation) return;
+      setState(() => _textureId = textureId);
       _loadedGeneration = generation;
       _ready = true;
       debugPrint('[ASSRENDER] Script loaded successfully');
-      _timer = Timer.periodic(const Duration(milliseconds: 100), (_) => _render());
+      _timer = Timer.periodic(const Duration(milliseconds: 16), (_) => _render());
       _render();
     } catch (error) {
       debugPrint('[ASSRENDER] Native overlay unavailable: $error');
@@ -113,21 +114,17 @@ class _ExternalAssOverlayState extends State<ExternalAssOverlay> {
     if (position == null || position == _lastPosition) return;
     _rendering = true;
     try {
-      final frame = await _channel.invokeMethod<Uint8List>(
-        'render', {'timeMs': position},
+      final visible = await _channel.invokeMethod<bool>(
+        'renderTexture', {'timeMs': position},
       );
       if (!mounted || !_ready || generation != _generation) return;
-      if (frame == null && position ~/ 1000 != _lastDiagnosticSecond &&
+      if (visible == false && position ~/ 1000 != _lastDiagnosticSecond &&
           (_lastDiagnosticSecond < 0 || (position ~/ 1000 - _lastDiagnosticSecond).abs() >= 5)) {
         _lastDiagnosticSecond = position ~/ 1000;
         final active = _cueTimes.where((cue) => cue.$1 <= position && position < cue.$2).length;
         debugPrint('[ASSRENDER] Empty frame: player=${position}ms, activeAssCues=$active, parsedCues=${_cueTimes.length}');
       }
       _lastPosition = position;
-      // Empty payload signals unchanged subtitle image; keep cached bytes.
-      if (frame != null && frame.isEmpty) return;
-      if (frame == null && _frame == null) return;
-      setState(() => _frame = frame);
     } catch (error) {
       debugPrint('[ASSRENDER] Render failed: $error');
       _ready = false;
@@ -188,25 +185,18 @@ class _ExternalAssOverlayState extends State<ExternalAssOverlay> {
     ++_generation;
     _timer?.cancel();
     if (_ready) {
-      _channel.invokeMethod<void>('dispose').catchError((Object _) {});
+      _channel.invokeMethod<void>('disposeTexture').catchError((Object _) {});
     }
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final frame = _frame;
+    final textureId = _textureId;
     return IgnorePointer(
-      child: frame == null
+      child: textureId == null
           ? const SizedBox.expand()
-          : SizedBox.expand(
-              child: Image.memory(
-                frame,
-                fit: BoxFit.contain,
-                gaplessPlayback: true,
-                filterQuality: FilterQuality.low,
-              ),
-            ),
+          : SizedBox.expand(child: Texture(textureId: textureId)),
     );
   }
 }

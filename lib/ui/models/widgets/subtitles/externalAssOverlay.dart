@@ -42,6 +42,17 @@ class _ExternalAssOverlayState extends State<ExternalAssOverlay>
   int _loadedGeneration = -1;
   final List<(int, int)> _cueTimes = [];
   int _lastDiagnosticSecond = -1;
+  final Stopwatch _assStatsClock = Stopwatch();
+  int _assTicks = 0;
+  int _assRequests = 0;
+  int _assUniquePositions = 0;
+  int _assRepeatedPositions = 0;
+  int _assBusyTicks = 0;
+  int _assRenderTotalUs = 0;
+  int _assRenderMaxUs = 0;
+  int _assLastSamplePosition = -1;
+  int _assLastTickElapsedUs = -1;
+  int _assTickMaxGapUs = 0;
 
   @override
   void initState() {
@@ -68,6 +79,11 @@ class _ExternalAssOverlayState extends State<ExternalAssOverlay>
     _lastPosition = -1;
     _cueTimes.clear();
     _lastDiagnosticSecond = -1;
+    _assStatsClock.reset();
+    _assTicks = _assRequests = _assUniquePositions = _assRepeatedPositions = _assBusyTicks = 0;
+    _assRenderTotalUs = _assRenderMaxUs = 0;
+    _assLastSamplePosition = _assLastTickElapsedUs = -1;
+    _assTickMaxGapUs = 0;
     if (!Platform.isAndroid) return;
 
     try {
@@ -105,6 +121,7 @@ class _ExternalAssOverlayState extends State<ExternalAssOverlay>
       _ready = true;
       debugPrint('[ASSRENDER] Script loaded successfully');
       _lastIdlePollUs = 0;
+      _assStatsClock.start();
       _frameTicker.start();
       _render();
     } catch (error) {
@@ -119,6 +136,37 @@ class _ExternalAssOverlayState extends State<ExternalAssOverlay>
     if (!_ready || !mounted) return;
     final position = widget.controller.position;
     if (position == null) return;
+    _assTicks++;
+    final elapsedUs = elapsed.inMicroseconds;
+    if (_assLastTickElapsedUs >= 0) {
+      final gap = elapsedUs - _assLastTickElapsedUs;
+      if (gap > _assTickMaxGapUs) _assTickMaxGapUs = gap;
+    }
+    _assLastTickElapsedUs = elapsedUs;
+    if (_assLastSamplePosition == position) {
+      _assRepeatedPositions++;
+    } else {
+      _assUniquePositions++;
+      _assLastSamplePosition = position;
+    }
+    if (_rendering) _assBusyTicks++;
+    if (_assStatsClock.elapsedMilliseconds >= 5000) {
+      final seconds = _assStatsClock.elapsedMilliseconds / 1000.0;
+      final avgRenderMs = _assRequests == 0 ? 0.0 : _assRenderTotalUs / _assRequests / 1000.0;
+      debugPrint('[ASSRENDER][PERF] ticks/s=${(_assTicks / seconds).toStringAsFixed(1)} '
+          'uniquePosition/s=${(_assUniquePositions / seconds).toStringAsFixed(1)} '
+          'repeatedPositions=$_assRepeatedPositions busyTicks=$_assBusyTicks '
+          'renderRequests/s=${(_assRequests / seconds).toStringAsFixed(1)} '
+          'avgRoundtripMs=${avgRenderMs.toStringAsFixed(1)} '
+          'maxRoundtripMs=${(_assRenderMaxUs / 1000).toStringAsFixed(1)} '
+          'maxTickGapMs=${(_assTickMaxGapUs / 1000).toStringAsFixed(1)} '
+          'playerPositionMs=$position');
+      _assStatsClock.reset();
+      _assStatsClock.start();
+      _assTicks = _assRequests = _assUniquePositions = _assRepeatedPositions = _assBusyTicks = 0;
+      _assRenderTotalUs = _assRenderMaxUs = 0;
+      _assTickMaxGapUs = 0;
+    }
     final active = _cueTimes.any((cue) => cue.$1 <= position && position < cue.$2);
     final nowUs = elapsed.inMicroseconds;
     if (active || _lastPosition < 0 || position < _lastPosition ||
@@ -134,6 +182,8 @@ class _ExternalAssOverlayState extends State<ExternalAssOverlay>
     final position = widget.controller.position;
     if (position == null || position == _lastPosition) return;
     _rendering = true;
+    final renderWatch = Stopwatch()..start();
+    _assRequests++;
     try {
       final visible = await _channel.invokeMethod<bool>(
         'renderTexture', {'timeMs': position},
@@ -151,6 +201,10 @@ class _ExternalAssOverlayState extends State<ExternalAssOverlay>
       _ready = false;
       _frameTicker.stop();
     } finally {
+      renderWatch.stop();
+      final elapsedUs = renderWatch.elapsedMicroseconds;
+      _assRenderTotalUs += elapsedUs;
+      if (elapsedUs > _assRenderMaxUs) _assRenderMaxUs = elapsedUs;
       _rendering = false;
     }
   }

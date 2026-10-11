@@ -69,6 +69,7 @@ class _PluginPageState extends State<PluginPage> {
       if (!mounted) return;
       final fields = <String, String>{
         'status': '${data['status'] ?? ''}',
+        'dexInspectionStatus': '${data['dexInspectionStatus'] ?? '(not reported)'}',
         'dexSuperclass': '${data['dexSuperclass'] ?? ''}',
         'dexInterfaces': '${data['dexInterfaces'] ?? ''}',
         'dexClassLocation': '${data['dexClassLocation'] ?? ''}',

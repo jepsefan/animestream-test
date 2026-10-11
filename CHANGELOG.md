@@ -1,3 +1,10 @@
+# Beta19 (in progress)
+- ASS texture polling changed to 50ms.
+- Native libass alpha fix prepared separately; not integrated until new AAR import.
+- Aniyomi extension diagnostics retained from beta18; executable support pending.
+
+---
+
 # v1.4.9 beta16–beta18 history
 
 ## beta18 (in progress)

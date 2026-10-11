@@ -4,7 +4,7 @@ Only the latest beta and two previous betas are shown here. Earlier history is i
 
 ## v1.4.9-beta21 — Extension class loading diagnostics
 - Display complete Android Aniyomi extension class diagnostics in Manage Providers, including manifest entry points, DEX inventory, declared/target class presence, dependency class presence, exception chain and root cause.
-- Continue using 50 ms ASS texture rendering interval from beta20.
+- Adaptive ASS texture polling: 16 ms during detected ASS animation cues, 50 ms for static active cues, and 200 ms when no cue is active. Rendering uses the player's current position; this is not yet synchronized to individual decoded video frames.
 - Import workflow targets beta21 and pulls assrender AAR from `beta19-alpha-compositing`.
 - Extensions remain diagnostic only, not executable as playable sources.
 

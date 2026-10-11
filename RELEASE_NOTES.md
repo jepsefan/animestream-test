@@ -7,6 +7,7 @@ Only the latest beta and two previous betas are shown here. Earlier history is i
 - Passes actual video playback position to libass each active display tick, allowing all ASS transforms and frame-by-frame scripted positions to be evaluated, not only detected motion tags.
 - Polls idle/empty cue intervals less frequently (about 150 ms); redraw requests remain serialized to avoid piling up native calls.
 - Preserves native premultiplied-alpha color fix from assrender `beta19-alpha-compositing`; existing AAR import workflow retargeted to beta22.
+- Extension diagnostics now compare DexClassLoader and PathClassLoader against the same installed APK paths, reporting each failure separately; classes are loaded without initialization and never executed.
 - This is display-vsync paced, **not** true decoder presentation timestamp synchronization; smoothness on Android TV is unverified.
 
 ## v1.4.9-beta21 — Extension diagnostics and ASS alpha

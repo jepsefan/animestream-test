@@ -32,6 +32,12 @@ class ExternalAssRenderer : MethodChannel.MethodCallHandler {
     private var height = 0
     @Volatile private var generation = 0
     private var lastBlank = false
+    private var perfFrames = 0
+    private var perfNativeTotalNs = 0L
+    private var perfCanvasTotalNs = 0L
+    private var perfNativeMaxNs = 0L
+    private var perfCanvasMaxNs = 0L
+    private var perfWindowStartNs = 0L
 
     fun attach(registry: TextureRegistry) {
         this.registry = registry
@@ -67,6 +73,8 @@ class ExternalAssRenderer : MethodChannel.MethodCallHandler {
                         height = h
                         bitmap = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
                         lastBlank = false
+                        perfFrames = 0
+                        perfWindowStartNs = System.nanoTime()
                         main.post {
                             if (generation != currentGeneration) {
                                 result.error("ASS_CANCELLED", "Subtitle load superseded", null)
@@ -106,7 +114,10 @@ class ExternalAssRenderer : MethodChannel.MethodCallHandler {
                             main.post { result.success(false) }
                             return@execute
                         }
+                        val nativeStart = System.nanoTime()
                         val hasContent = AssDirectBridge.nativeRender(handle, timeMs, target)
+                        val nativeNs = System.nanoTime() - nativeStart
+                        val canvasStart = System.nanoTime()
                         // nativeRender is Boolean in the current assrender AAR.
                         // Redraw active subtitles every poll; this also preserves ASS animations.
                         if (hasContent) {
@@ -115,6 +126,29 @@ class ExternalAssRenderer : MethodChannel.MethodCallHandler {
                         } else if (!lastBlank) {
                             drawFrame(null)
                             lastBlank = true
+                        }
+                        val canvasNs = System.nanoTime() - canvasStart
+                        perfFrames++
+                        perfNativeTotalNs += nativeNs
+                        perfCanvasTotalNs += canvasNs
+                        if (nativeNs > perfNativeMaxNs) perfNativeMaxNs = nativeNs
+                        if (canvasNs > perfCanvasMaxNs) perfCanvasMaxNs = canvasNs
+                        val nowNs = System.nanoTime()
+                        if (perfWindowStartNs == 0L) perfWindowStartNs = nowNs
+                        val windowNs = nowNs - perfWindowStartNs
+                        if (windowNs >= 5_000_000_000L && perfFrames > 0) {
+                            Log.i("ASSRENDER", "[PERF_NATIVE] fps=%.1f nativeAvgMs=%.2f nativeMaxMs=%.2f canvasAvgMs=%.2f canvasMaxMs=%.2f playerMs=%d".format(
+                                perfFrames * 1_000_000_000.0 / windowNs,
+                                perfNativeTotalNs / perfFrames / 1_000_000.0,
+                                perfNativeMaxNs / 1_000_000.0,
+                                perfCanvasTotalNs / perfFrames / 1_000_000.0,
+                                perfCanvasMaxNs / 1_000_000.0, timeMs))
+                            perfFrames = 0
+                            perfNativeTotalNs = 0L
+                            perfCanvasTotalNs = 0L
+                            perfNativeMaxNs = 0L
+                            perfCanvasMaxNs = 0L
+                            perfWindowStartNs = nowNs
                         }
                         main.post { result.success(hasContent) }
                     } catch (e: Exception) {

@@ -71,7 +71,9 @@ class _PluginPageState extends State<PluginPage> {
           '${data['status']}: ${data['className'] ?? ''}'
           '${data['dexClassCount'] != null ? "\nDEX classes: ${data['dexClassCount']}" : ""}'
           '${(data['candidates'] ?? '').toString().isNotEmpty ? "\nCandidates: ${data['candidates']}" : ""}'
-          '${data['error'] != null ? "\nError: ${data['error']}" : ""}'.trim());
+          '${data['error'] != null ? "\nError: ${data['error']}" : ""}'
+          '${data['missingDependency'] != null ? "\nMissing dependency: ${data['missingDependency']}" : ""}'
+          '${data['hostApiPresent'] != null ? "\nAnimeSource host API available: ${data['hostApiPresent']}" : ""}'.trim());
     } catch (e) {
       if (mounted) setState(() => _classDiagnostics[ext.packageName] = 'Inspection error: $e');
     }

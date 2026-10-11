@@ -178,6 +178,22 @@ class MainActivity: FlutterActivity() {
                 true
             } catch (_: Throwable) { false }
         )
+        // Diagnose host API requirements from DEX metadata without executing the extension.
+        // A class can be listed in DEX but remain unloadable when its host interfaces
+        // are absent from AnimeStream's classpath.
+        val directDependencies = listOfNotNull(dexClassInfo?.superClass)
+            .plus(dexClassInfo?.interfaces ?: emptyList())
+            .filter { it !in availableClasses && !it.startsWith("java.") &&
+                !it.startsWith("javax.") && !it.startsWith("android.") &&
+                !it.startsWith("kotlin.") }
+        val missingHostInterfaces = directDependencies.filter {
+            it.startsWith("eu.kanade.tachiyomi.animesource.") ||
+                it.startsWith("eu.kanade.tachiyomi.source.")
+        }
+        base["missingAniyomiHostApiTypes"] = missingHostInterfaces.joinToString(", ")
+            .ifEmpty { "(none detected in direct dependencies)" }
+        base["hostApiDependencyStatus"] = if (missingHostInterfaces.isNotEmpty())
+            "missing_host_api_dependency_detected" else "no_direct_host_api_dependency_detected"
         if (target == null) {
             base["status"] = "class_not_in_dex"
             base["diagnosis"] = "Declared entry point absent from scanned base/split APK DEX files"
@@ -240,7 +256,9 @@ class MainActivity: FlutterActivity() {
         base["rootCause"] = causes.lastOrNull()?.let {
             it.javaClass.name + ": " + (it.message ?: "")
         }
-        base["diagnosis"] = if (missingHostApi)
+        base["diagnosis"] = if (missingHostInterfaces.isNotEmpty())
+            "DEX metadata shows Aniyomi host API dependency: ${missingHostInterfaces.joinToString(", ")}. Host API is not bundled; class loading may also have other causes."
+            else if (missingHostApi)
             "A known Aniyomi/Tachiyomi host API class could not be resolved"
             else "Both loaders failed. Compare dexClassLoaderResult and pathClassLoaderResult; a DEX inventory hit alone does not guarantee a loadable class."
         return base

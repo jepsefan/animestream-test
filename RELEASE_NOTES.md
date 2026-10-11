@@ -2,22 +2,19 @@
 
 Only the latest beta and two previous betas are shown here. Earlier history is in [CHANGELOG.md](CHANGELOG.md).
 
-## v1.4.9-beta22 — ASS animation frame pacing
-- Replaced ASS animation tag heuristics and periodic 16/50/200 ms timer with Flutter display-vsync ticker for active ASS cues.
-- Passes actual video playback position to libass each active display tick, allowing all ASS transforms and frame-by-frame scripted positions to be evaluated, not only detected motion tags.
-- Polls idle/empty cue intervals less frequently (about 150 ms); redraw requests remain serialized to avoid piling up native calls.
-- Preserves native premultiplied-alpha color fix from assrender `beta19-alpha-compositing`; existing AAR import workflow retargeted to beta22.
-- Extension diagnostics now compare DexClassLoader and PathClassLoader against the same installed APK paths, reporting each failure separately; classes are loaded without initialization and never executed.
-- This is display-vsync paced, **not** true decoder presentation timestamp synchronization; smoothness on Android TV is unverified.
+## v1.4.9-beta23 — Aniyomi DEX dependency diagnostics
+- Parse installed Aniyomi extension APK DEX metadata directly (including classes2.dex and split APKs) to identify the entry class's direct superclass and interfaces without loading or executing extension code.
+- Report direct superclass/interfaces, class location, and non-platform direct dependencies absent from the scanned extension DEX inventory. These are candidates, not definitive missing runtime dependencies.
+- Retain beta22 PathClassLoader vs DexClassLoader diagnostics and ASS vsync rendering.
+- Import workflow targets beta23 and keeps the premultiplied-alpha assrender AAR source branch.
 
-## v1.4.9-beta21 — Extension diagnostics and ASS alpha
-- Expanded Aniyomi extension DEX/class loader diagnostics.
-- Adaptive ASS 16/50/200 ms timer (superseded by beta22 vsync pacing).
-- Native assrender premultiplied-alpha fix; requires rebuilt AAR.
+## v1.4.9-beta22 — ASS display-vsync rendering
+- ASS render requests paced by Flutter display vsync for active cues, using current video playback position; not decoder frame PTS synchronization.
+- Compare DexClassLoader and PathClassLoader diagnostic class resolution.
 
-## v1.4.9-beta20 — ASS integration
-- Fixed Kotlin nativeRender Boolean bridge and ASS texture integration.
-- Added Aniyomi extension DEX diagnostics.
+## v1.4.9-beta21 — ASS alpha and extension diagnostics
+- Expanded Aniyomi extension class diagnostics.
+- Native premultiplied-alpha color fix via assrender AAR; requires imported updated build.
 
 ## Test status
-Beta22 code changes committed; APK build and device testing not yet verified.
+Beta23 changes committed; APK build and Android device testing not yet verified.

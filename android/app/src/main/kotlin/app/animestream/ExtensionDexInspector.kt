@@ -91,6 +91,7 @@ internal object ExtensionDexInspector {
                 errors.add("${File(apk).name}: ${e.javaClass.simpleName}: ${e.message}")
             }
         }
+        if (errors.isEmpty()) errors.add("Target class definition not found in scanned classes*.dex files")
         return null to errors
     }
 }

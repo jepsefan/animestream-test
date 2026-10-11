@@ -148,15 +148,16 @@ class MainActivity: FlutterActivity() {
         val (dexClassInfo, dependencyScanErrors) = ExtensionDexInspector.inspect(apkPaths, expected)
         val availableClasses = classes.toSet()
         val base = mutableMapOf<String, Any?>(
-            "dexSuperclass" to dexClassInfo?.superClass,
-            "dexInterfaces" to dexClassInfo?.interfaces?.joinToString(", "),
-            "dexClassLocation" to dexClassInfo?.source,
+            "dexInspectionStatus" to if (dexClassInfo != null) "class_definition_found" else "class_definition_not_found",
+            "dexSuperclass" to (dexClassInfo?.superClass ?: "(not available)"),
+            "dexInterfaces" to (dexClassInfo?.interfaces?.joinToString(", ")?.ifEmpty { "(none)" } ?: "(not available)"),
+            "dexClassLocation" to (dexClassInfo?.source ?: "(not available)"),
             "dexMissingDirectDependencies" to listOfNotNull(dexClassInfo?.superClass)
                 .plus(dexClassInfo?.interfaces ?: emptyList())
                 .filter { it !in availableClasses && !it.startsWith("java.") &&
                     !it.startsWith("javax.") && !it.startsWith("android.") &&
                     !it.startsWith("kotlin.") }.joinToString(", "),
-            "dexDependencyScanErrors" to dependencyScanErrors.joinToString("\\n"),
+            "dexDependencyScanErrors" to dependencyScanErrors.joinToString("\n").ifEmpty { "(none)" },
 
             "className" to expected,
             "dexClassCount" to classes.size,

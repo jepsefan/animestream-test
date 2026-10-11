@@ -100,7 +100,7 @@ class _ExternalAssOverlayState extends State<ExternalAssOverlay> {
       _loadedGeneration = generation;
       _ready = true;
       debugPrint('[ASSRENDER] Script loaded successfully');
-      _timer = Timer.periodic(const Duration(milliseconds: 16), (_) => _render());
+      _timer = Timer.periodic(const Duration(milliseconds: 50), (_) => _render());
       _render();
     } catch (error) {
       debugPrint('[ASSRENDER] Native overlay unavailable: $error');

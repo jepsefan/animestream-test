@@ -69,6 +69,9 @@ class _PluginPageState extends State<PluginPage> {
       if (!mounted) return;
       final fields = <String, String>{
         'status': '${data['status'] ?? ''}',
+        'dexClassLoaderResult': '${data['dexClassLoaderResult'] ?? ''}',
+        'pathClassLoaderResult': '${data['pathClassLoaderResult'] ?? ''}',
+        'resolvedByLoader': '${data['resolvedByLoader'] ?? ''}',
         'className': '${data['className'] ?? ''}',
         'declaredClass': '${data['declaredClass'] ?? ''}',
         'declaredFactory': '${data['declaredFactory'] ?? ''}',

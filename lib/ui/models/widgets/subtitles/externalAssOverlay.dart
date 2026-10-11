@@ -124,6 +124,9 @@ class _ExternalAssOverlayState extends State<ExternalAssOverlay> {
         debugPrint('[ASSRENDER] Empty frame: player=${position}ms, activeAssCues=$active, parsedCues=${_cueTimes.length}');
       }
       _lastPosition = position;
+      // Empty payload signals unchanged subtitle image; keep cached bytes.
+      if (frame != null && frame.isEmpty) return;
+      if (frame == null && _frame == null) return;
       setState(() => _frame = frame);
     } catch (error) {
       debugPrint('[ASSRENDER] Render failed: $error');

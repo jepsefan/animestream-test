@@ -116,12 +116,21 @@ class MainActivity: FlutterActivity() {
         val apkPaths = listOfNotNull(info.sourceDir) + (info.splitSourceDirs?.toList() ?: emptyList())
         val classes = mutableListOf<String>()
         val scanErrors = mutableListOf<String>()
+        val dexInventory = mutableListOf<String>()
         for (apk in apkPaths) {
             try {
                 val dex = DexFile(apk)
                 try {
                     val names = dex.entries()
-                    while (names.hasMoreElements()) classes.add(names.nextElement())
+                    var count = 0
+                    var exactFound = false
+                    while (names.hasMoreElements()) {
+                        val name = names.nextElement()
+                        classes.add(name)
+                        count++
+                        if (name == expected) exactFound = true
+                    }
+                    dexInventory.add("${apk.substringAfterLast('/')}: $count classes, declaredClassPresent=$exactFound")
                 } finally {
                     dex.close()
                 }
@@ -135,6 +144,9 @@ class MainActivity: FlutterActivity() {
         val base = mutableMapOf<String, Any?>(
             "className" to expected,
             "dexClassCount" to classes.size,
+            "declaredClassInDex" to (expected in classes),
+            "dexInventory" to dexInventory.joinToString("\\n"),
+            "declaredClass" to rawClass,
             "apkCount" to apkPaths.size,
             "apkFiles" to apkPaths.map { it.substringAfterLast('/') }.joinToString(", "),
             "dexScanErrors" to scanErrors.joinToString("\\n"),
@@ -153,7 +165,7 @@ class MainActivity: FlutterActivity() {
         val loader = DexClassLoader(apkPaths.joinToString(java.io.File.pathSeparator),
             codeCacheDir.absolutePath, info.nativeLibraryDir, javaClass.classLoader)
         return try {
-            val clazz = Class.forName(target, false, loader)
+            val clazz = loader.loadClass(target)
             base["status"] = "class_found"
             base["className"] = clazz.name
             base
@@ -173,13 +185,17 @@ class MainActivity: FlutterActivity() {
             base["status"] = if (missingHostApi) "missing_host_api" else "class_load_failed"
             base["className"] = target
             base["error"] = chain
-            base["missingDependency"] = missing
+            base["missingDependency"] = missing?.takeUnless { it == target || it == target.replace('.', '/') }
+            base["entryPointResolutionFailed"] = missing == target || missing == target.replace('.', '/')
+            base["exceptionTypes"] = causes.joinToString(" -> ") { it.javaClass.name }
             base["rootCause"] = causes.lastOrNull()?.let {
                 it.javaClass.name + ": " + (it.message ?: "")
             }
             base["diagnosis"] = if (missingHostApi)
                 "A known Aniyomi/Tachiyomi host API class could not be resolved"
-                else "Class loading failed; inspect rootCause and APK scan errors before attributing to host API"
+                else if (missing == target || missing == target.replace('.', '/'))
+                    "Entry point resolution failed; check dexInventory and declaredClassInDex. This does not prove a missing dependency."
+                else "Class loading failed; inspect exceptionTypes, rootCause and APK scan errors before attributing to host API"
             base
         }
     }

@@ -34,6 +34,14 @@ class _ExternalAssOverlayState extends State<ExternalAssOverlay>
   static const _channel = MethodChannel('animestream.app/assrender');
   late final Ticker _frameTicker;
   int _lastIdlePollUs = 0;
+  final Stopwatch _playbackClock = Stopwatch();
+  int? _clockAnchorPosition;
+  int _clockAnchorElapsedMs = 0;
+  int? _lastReportedPosition;
+  bool _wasAdvancing = false;
+  int _clockResyncs = 0;
+  int _clockSeeks = 0;
+  int _clockInterpolatedFrames = 0;
   int? _textureId;
   bool _ready = false;
   bool _rendering = false;
@@ -58,12 +66,22 @@ class _ExternalAssOverlayState extends State<ExternalAssOverlay>
   void initState() {
     super.initState();
     _frameTicker = createTicker(_onFrame);
+    _playbackClock.start();
+    widget.controller.addListener(_onPlayerUpdate);
+    _onPlayerUpdate();
     _load();
   }
 
   @override
   void didUpdateWidget(covariant ExternalAssOverlay oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (oldWidget.controller != widget.controller) {
+      oldWidget.controller.removeListener(_onPlayerUpdate);
+      widget.controller.addListener(_onPlayerUpdate);
+      _clockAnchorPosition = null;
+      _lastReportedPosition = null;
+      _onPlayerUpdate();
+    }
     if (oldWidget.subtitleSource != widget.subtitleSource ||
         oldWidget.isOffline != widget.isOffline ||
         oldWidget.headers.toString() != widget.headers.toString()) {
@@ -77,6 +95,10 @@ class _ExternalAssOverlayState extends State<ExternalAssOverlay>
     _ready = false;
     _textureId = null;
     _lastPosition = -1;
+    _clockAnchorPosition = null;
+    _lastReportedPosition = null;
+    _wasAdvancing = false;
+    _clockResyncs = _clockSeeks = _clockInterpolatedFrames = 0;
     _cueTimes.clear();
     _lastDiagnosticSecond = -1;
     _assStatsClock.reset();
@@ -129,12 +151,57 @@ class _ExternalAssOverlayState extends State<ExternalAssOverlay>
     }
   }
 
-  // Follow Flutter's display vsync while ASS cues are active, rather than
-  // guessing which ASS tags animate. All libass timing uses player.position.
-  // libass itself evaluates the full ASS script, including \pos/\move/\t.
+  // The controller reports coarse positions (~3/s on some Android TV devices).
+  // Anchor a monotonic playback clock to those reports and interpolate between
+  // them. Re-anchor on seeks, pauses, buffering and substantial drift.
+  void _onPlayerUpdate() {
+    final reported = widget.controller.position;
+    if (reported == null) return;
+    final now = _playbackClock.elapsedMilliseconds;
+    final advancing = widget.controller.isPlaying == true &&
+        widget.controller.isBuffering != true;
+    final predicted = _clockAnchorPosition == null
+        ? reported
+        : _clockAnchorPosition! + (_wasAdvancing ? now - _clockAnchorElapsedMs : 0);
+    final difference = reported - predicted;
+    final previous = _lastReportedPosition;
+    final seek = previous != null &&
+        (reported < previous - 150 || difference.abs() > 750);
+    if (seek) _clockSeeks++;
+    if (_clockAnchorPosition == null || seek || advancing != _wasAdvancing ||
+        difference.abs() > 120) {
+      if (_clockAnchorPosition != null && !seek) _clockResyncs++;
+      _clockAnchorPosition = reported;
+      _clockAnchorElapsedMs = now;
+    }
+    _lastReportedPosition = reported;
+    _wasAdvancing = advancing;
+  }
+
+  int? _assPosition() {
+    final reported = widget.controller.position;
+    if (reported == null) return null;
+    // Listener notifications can be delayed by a platform backend.
+    if (_clockAnchorPosition == null) _onPlayerUpdate();
+    if (_clockAnchorPosition == null) return reported;
+    if (widget.controller.isPlaying != true || widget.controller.isBuffering == true) {
+      if (_wasAdvancing) _onPlayerUpdate();
+      return _clockAnchorPosition;
+    }
+    if (!_wasAdvancing) _onPlayerUpdate();
+    final now = _playbackClock.elapsedMilliseconds;
+    final elapsed = (now - _clockAnchorElapsedMs).clamp(0, 1000);
+    final interpolated = _clockAnchorPosition! + elapsed;
+    final duration = widget.controller.duration;
+    _clockInterpolatedFrames++;
+    return duration == null || duration <= 0
+        ? interpolated
+        : interpolated.clamp(0, duration);
+  }
+
   void _onFrame(Duration elapsed) {
     if (!_ready || !mounted) return;
-    final position = widget.controller.position;
+    final position = _assPosition();
     if (position == null) return;
     _assTicks++;
     final elapsedUs = elapsed.inMicroseconds;
@@ -160,12 +227,14 @@ class _ExternalAssOverlayState extends State<ExternalAssOverlay>
           'avgRoundtripMs=${avgRenderMs.toStringAsFixed(1)} '
           'maxRoundtripMs=${(_assRenderMaxUs / 1000).toStringAsFixed(1)} '
           'maxTickGapMs=${(_assTickMaxGapUs / 1000).toStringAsFixed(1)} '
-          'playerPositionMs=$position');
+          'playerPositionMs=$position clockResyncs=$_clockResyncs '
+          'clockSeeks=$_clockSeeks interpolatedFrames=$_clockInterpolatedFrames');
       _assStatsClock.reset();
       _assStatsClock.start();
       _assTicks = _assRequests = _assUniquePositions = _assRepeatedPositions = _assBusyTicks = 0;
       _assRenderTotalUs = _assRenderMaxUs = 0;
       _assTickMaxGapUs = 0;
+      _clockResyncs = _clockSeeks = _clockInterpolatedFrames = 0;
     }
     final active = _cueTimes.any((cue) => cue.$1 <= position && position < cue.$2);
     final nowUs = elapsed.inMicroseconds;
@@ -179,7 +248,7 @@ class _ExternalAssOverlayState extends State<ExternalAssOverlay>
   Future<void> _render() async {
     if (!_ready || _rendering || !mounted) return;
     final generation = _loadedGeneration;
-    final position = widget.controller.position;
+    final position = _assPosition();
     if (position == null || position == _lastPosition) return;
     _rendering = true;
     final renderWatch = Stopwatch()..start();
@@ -263,6 +332,8 @@ class _ExternalAssOverlayState extends State<ExternalAssOverlay>
     ++_generation;
     _frameTicker.stop();
     _frameTicker.dispose();
+    widget.controller.removeListener(_onPlayerUpdate);
+    _playbackClock.stop();
     if (_ready) {
       _channel.invokeMethod<void>('disposeTexture').catchError((Object _) {});
     }

@@ -73,7 +73,11 @@ class _PluginPageState extends State<PluginPage> {
           '${(data['candidates'] ?? '').toString().isNotEmpty ? "\nCandidates: ${data['candidates']}" : ""}'
           '${data['error'] != null ? "\nError: ${data['error']}" : ""}'
           '${data['missingDependency'] != null ? "\nMissing dependency: ${data['missingDependency']}" : ""}'
-          '${data['hostApiPresent'] != null ? "\nAnimeSource host API available: ${data['hostApiPresent']}" : ""}'.trim());
+          '${data['hostApiPresent'] != null ? "\nAnimeSource host API available: ${data['hostApiPresent']}" : ""}'
+          '${data['apkFiles'] != null ? "\nAPK files: ${data['apkFiles']}" : ""}'
+          '${data['dexScanErrors'] != null && data['dexScanErrors'].toString().isNotEmpty ? "\nDEX scan errors: ${data['dexScanErrors']}" : ""}'
+          '${data['rootCause'] != null ? "\nRoot cause: ${data['rootCause']}" : ""}'
+          '${data['diagnosis'] != null ? "\nDiagnosis: ${data['diagnosis']}" : ""}'.trim());
     } catch (e) {
       if (mounted) setState(() => _classDiagnostics[ext.packageName] = 'Inspection error: $e');
     }

@@ -2,18 +2,15 @@
 
 Only the latest beta and two previous betas are shown here. Earlier history is in [CHANGELOG.md](CHANGELOG.md).
 
+## v1.4.9-beta25 — ASS clock stall recovery and Aniyomi host API diagnostics
+- ASS monotonic playback clock no longer caps interpolation at 1000 ms when the player backend reports an unchanged position. This targets ASS animations freezing while video continues.
+- Re-anchor the subtitle clock on play/pause, buffering transitions, seek and significant drift **only when a fresh position report arrives**. Track stalled and recovered player position reports in [ASSRENDER][CLOCK] and 5-second performance logs.
+- Extension diagnostics explicitly flag direct Aniyomi/Tachiyomi host API interfaces absent from the extension DEX inventory (e.g. ConfigurableAnimeSource), and show them in Manage Providers. This does not make extensions executable or bundle the host API.
+- Retains the premultiplied-alpha assrender AAR and beta24 DEX parsing fix. AAR import workflow targets beta25.
+- APK build and Android TV behavior have not yet been verified.
+
 ## v1.4.9-beta24 — ASS playback clock and Aniyomi DEX fix
-- ASS rendering now interpolates playback time with a monotonic clock between coarse player position notifications; uses Flutter display vsync and re-anchors on detected seeks, pause/play, buffering and significant drift.
-- Preserves beta23 performance diagnostics and adds clockResyncs, clockSeeks and interpolatedFrames counters.
-- Fixed DEX magic header validation in ExtensionDexInspector: previously compared against a literal backslash-n instead of the required newline, preventing dependency inspection.
-- Explicitly reports dexInspectionStatus, superclass, interfaces, class location and scan errors, including failures.
-- Retains beta22 ASS texture rendering and premultiplied-alpha native AAR; import workflow now targets beta24.
-- Clock interpolation is an approximation, not direct decoder PTS synchronization. Android TV smoothness and APK build are not yet verified.
+- Interpolated subtitle clock between coarse player notifications; DEX header validation corrected; explicit dependency inspection status.
 
 ## v1.4.9-beta23 — Extension and ASS performance diagnostics
-- Read DEX class definitions to inspect direct superclass/interfaces without running extension code.
-- Added Flutter and native ASS performance logs for player position changes and rendering time.
-
-## v1.4.9-beta22 — ASS vsync rendering
-- Pace active ASS rendering via Flutter display vsync using video position.
-- Compare DexClassLoader and PathClassLoader resolution failures.
+- DEX superclass/interfaces inspection and Flutter/native ASS performance logs.

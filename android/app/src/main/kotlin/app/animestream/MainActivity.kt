@@ -112,52 +112,74 @@ class MainActivity: FlutterActivity() {
         val rawClass = info.metaData?.getString("tachiyomi.animeextension.class")
         if (rawClass.isNullOrBlank()) return mapOf("status" to "no_source_class")
         val expected = if (rawClass.startsWith(".")) packageName + rawClass else rawClass
+        val apkPaths = listOfNotNull(info.sourceDir) + (info.splitSourceDirs?.toList() ?: emptyList())
         val classes = mutableListOf<String>()
-        try {
-            val dex = DexFile(info.sourceDir)
+        val scanErrors = mutableListOf<String>()
+        for (apk in apkPaths) {
             try {
-                val names = dex.entries()
-                while (names.hasMoreElements()) {
-                    classes.add(names.nextElement())
+                val dex = DexFile(apk)
+                try {
+                    val names = dex.entries()
+                    while (names.hasMoreElements()) classes.add(names.nextElement())
+                } finally {
+                    dex.close()
                 }
-            } finally {
-                dex.close()
+            } catch (e: Throwable) {
+                scanErrors.add("${apk.substringAfterLast('/')}: ${e.javaClass.simpleName}: ${e.message}")
             }
-        } catch (e: Throwable) {
-            return mapOf("status" to "dex_scan_failed", "className" to expected,
-                "error" to (e.javaClass.simpleName + ": " + (e.message ?: "")))
         }
         val simpleName = rawClass.substringAfterLast('.')
         val candidates = classes.filter { it == expected || it.substringAfterLast('.') == simpleName }.take(15)
         val target = if (expected in classes) expected else candidates.firstOrNull()
-        if (target == null) return mapOf("status" to "class_not_in_dex",
-            "className" to expected, "dexClassCount" to classes.size,
-            "candidates" to candidates.joinToString(", "))
-        return try {
-            val loader = DexClassLoader(info.sourceDir, codeCacheDir.absolutePath,
-                info.nativeLibraryDir, javaClass.classLoader)
-            val clazz = Class.forName(target, false, loader)
-            mapOf("status" to "class_found", "className" to clazz.name,
-                "dexClassCount" to classes.size, "candidates" to candidates.joinToString(", "))
-        } catch (e: Throwable) {
-            val chain = generateSequence(e) { it.cause }.take(6).joinToString(" -> ") {
-                it.javaClass.simpleName + ": " + (it.message ?: "")
-            }
-            // A class present in DEX can still fail to resolve because Aniyomi/Tachiyomi
-            // runtime APIs are absent from AnimeStream. Report that separately.
-            val missingDependency = generateSequence(e) { it.cause }.filter { it is ClassNotFoundException || it is NoClassDefFoundError }.firstOrNull()?.message
-            val hostApiPresent = try {
+        val base = mutableMapOf<String, Any?>(
+            "className" to expected,
+            "dexClassCount" to classes.size,
+            "apkCount" to apkPaths.size,
+            "apkFiles" to apkPaths.map { it.substringAfterLast('/') }.joinToString(", "),
+            "dexScanErrors" to scanErrors.joinToString("\\n"),
+            "candidates" to candidates.joinToString(", "),
+            "classInDex" to (expected in classes),
+            "hostApiPresent" to try {
                 Class.forName("eu.kanade.tachiyomi.animesource.AnimeSource", false, javaClass.classLoader)
                 true
             } catch (_: Throwable) { false }
-            val unresolvedApi = missingDependency?.contains("tachiyomi", ignoreCase = true) == true ||
-                missingDependency?.contains("aniyomi", ignoreCase = true) == true
-            mapOf("status" to if (unresolvedApi) "missing_host_api" else "class_load_failed", "className" to target,
-                "dexClassCount" to classes.size, "candidates" to candidates.joinToString(", "),
-                "error" to chain, "missingDependency" to missingDependency,
-                "hostApiPresent" to hostApiPresent,
-                "diagnosis" to if (unresolvedApi) "Extension class is in APK but needs Aniyomi/Tachiyomi host API classes" else "Extension class resolution failed",
-                "classInDex" to (target in classes))
+        )
+        if (target == null) {
+            base["status"] = "class_not_in_dex"
+            base["diagnosis"] = "Declared entry point absent from scanned base/split APK DEX files"
+            return base
+        }
+        val loader = DexClassLoader(apkPaths.joinToString(java.io.File.pathSeparator),
+            codeCacheDir.absolutePath, info.nativeLibraryDir, javaClass.classLoader)
+        return try {
+            val clazz = Class.forName(target, false, loader)
+            base["status"] = "class_found"
+            base["className"] = clazz.name
+            base
+        } catch (e: Throwable) {
+            val causes = generateSequence(e) { it.cause }.take(8).toList()
+            val chain = causes.joinToString(" -> ") {
+                it.javaClass.simpleName + ": " + (it.message ?: "")
+            }
+            val missing = causes.firstOrNull {
+                it is ClassNotFoundException || it is NoClassDefFoundError
+            }?.message
+            // Do not label the extension's own entry point as a missing host API.
+            val missingHostApi = missing?.contains("eu.kanade.tachiyomi.animesource.") == true ||
+                missing?.contains("eu/kanade/tachiyomi/animesource/") == true ||
+                missing?.contains("eu.kanade.tachiyomi.source.") == true ||
+                missing?.contains("eu/kanade/tachiyomi/source/") == true
+            base["status"] = if (missingHostApi) "missing_host_api" else "class_load_failed"
+            base["className"] = target
+            base["error"] = chain
+            base["missingDependency"] = missing
+            base["rootCause"] = causes.lastOrNull()?.let {
+                it.javaClass.name + ": " + (it.message ?: "")
+            }
+            base["diagnosis"] = if (missingHostApi)
+                "A known Aniyomi/Tachiyomi host API class could not be resolved"
+                else "Class loading failed; inspect rootCause and APK scan errors before attributing to host API"
+            base
         }
     }
 

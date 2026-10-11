@@ -30,7 +30,8 @@ class ExternalAssRenderer : MethodChannel.MethodCallHandler {
     private var bitmap: Bitmap? = null
     private var width = 0
     private var height = 0
-    private var generation = 0
+    @Volatile private var generation = 0
+    private var lastBlank = false
 
     fun attach(registry: TextureRegistry) {
         this.registry = registry
@@ -65,6 +66,7 @@ class ExternalAssRenderer : MethodChannel.MethodCallHandler {
                         width = w
                         height = h
                         bitmap = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
+                        lastBlank = false
                         main.post {
                             if (generation != currentGeneration) {
                                 result.error("ASS_CANCELLED", "Subtitle load superseded", null)
@@ -78,6 +80,7 @@ class ExternalAssRenderer : MethodChannel.MethodCallHandler {
                                 surface = Surface(texture.surfaceTexture())
                                 // Ensure an initially transparent texture.
                                 drawFrame(null)
+                                lastBlank = true
                                 Log.i("ASSRENDER", "Native texture ready: ${w}x${h}, id=${texture.id()}")
                                 result.success(texture.id())
                             } catch (e: Exception) {
@@ -105,7 +108,13 @@ class ExternalAssRenderer : MethodChannel.MethodCallHandler {
                         }
                         val state = AssDirectBridge.nativeRenderState(handle, timeMs, target)
                         // state 2: static unchanged. state 0: blank, clear texture.
-                        if (state != 2) drawFrame(if (state == 1) target else null)
+                        if (state == 1) {
+                            drawFrame(target)
+                            lastBlank = false
+                        } else if (state == 0 && !lastBlank) {
+                            drawFrame(null)
+                            lastBlank = true
+                        }
                         main.post { result.success(state != 0) }
                     } catch (e: Exception) {
                         main.post { result.error("ASS_RENDER_FAILED", e.toString(), null) }

@@ -1,22 +1,22 @@
 # AnimeStream v1.4.9 — latest beta release notes
 
-Only the current beta and two previous betas are shown here. Earlier versions are archived in [CHANGELOG.md](CHANGELOG.md).
+Only the latest beta and two previous betas are shown here. Earlier history is in [CHANGELOG.md](CHANGELOG.md).
 
-## v1.4.9-beta19 — ASS alpha and extension diagnostics (test build)
-- Target a 50 ms native ASS texture render poll interval (up to 20 updates per second).
-- Native libass alpha source-over fix is committed in assrender branch `beta19-alpha-compositing`; **not included in the APK until a new AAR is built and imported**.
-- Preserve beta18 ASS positions and Texture-based overlay.
-- Carry forward experimental Aniyomi APK class diagnostics; extension execution is not yet supported. Further class/DEX diagnosis is pending.
-- Better Player unchanged.
+## v1.4.9-beta20 — ASS 50 ms and corrected AAR import (test)
+- Keep the native ASS Texture render polling interval at **50 ms** for comparison on Android TV.
+- Import workflow now targets the beta20 AnimeStream branch and downloads the latest successful assrender AAR built on `beta19-alpha-compositing`.
+- The corrected native alpha blending only reaches the APK **after** the AAR is rebuilt/imported and the APK is rebuilt.
+- Aniyomi extension execution is not yet working; existing diagnostics are retained.
+- Better Player remains unchanged.
 
-## v1.4.9-beta18 — ASS texture and extension diagnostics
-- Native Android SurfaceTexture and Flutter Texture rendering instead of per-frame PNG transfer.
-- Centered 16:9 ASS texture overlay.
-- Additional extension class-loading exception and APK path diagnostics.
+## v1.4.9-beta19 — ASS alpha experiment and extension diagnostics
+- Changed ASS render polling to 50 ms.
+- Prepared native alpha compositing fix in the separate assrender repository.
+- Extension class loading remains experimental.
 
-## v1.4.9-beta17 — Aniyomi class-loading diagnostics
-- DEX candidate scanning and root-cause exception reporting.
-- ASS transparency differences relative to beta16 reported during device testing.
+## v1.4.9-beta18 — Texture overlay and extension diagnostics
+- Android SurfaceTexture / Flutter Texture ASS overlay.
+- Centered 16:9 subtitle viewport and class loading diagnostics.
 
-## Status
-Beta19 is **not built or verified**. Its native alpha fix needs a rebuilt AAR and the extension class-loader changes still need implementation.
+## Test status
+Beta20 is not confirmed built or device-tested. The import workflow must be run before the APK build.

@@ -1,5 +1,6 @@
 package app.animestream
 
+import dalvik.system.PathClassLoader
 import dalvik.system.DexClassLoader
 import dalvik.system.DexFile
 import android.widget.Toast
@@ -169,44 +170,67 @@ class MainActivity: FlutterActivity() {
             base["diagnosis"] = "Declared entry point absent from scanned base/split APK DEX files"
             return base
         }
-        val loader = DexClassLoader(apkPaths.joinToString(java.io.File.pathSeparator),
-            codeCacheDir.absolutePath, info.nativeLibraryDir, javaClass.classLoader)
-        return try {
-            val clazz = Class.forName(target, false, loader)
-            base["status"] = "class_found"
-            base["className"] = clazz.name
-            base
-        } catch (e: Throwable) {
-            val causes = generateSequence(e) { it.cause }.take(8).toList()
-            val chain = causes.joinToString(" -> ") {
-                it.javaClass.simpleName + ": " + (it.message ?: "")
+        // Diagnostic only: do not initialize or instantiate untrusted extension classes.
+        // Compare two loaders against the same installed base/split APK paths.
+        val dexPath = apkPaths.joinToString(java.io.File.pathSeparator)
+        val loaders = listOf(
+            "DexClassLoader" to DexClassLoader(dexPath, codeCacheDir.absolutePath,
+                info.nativeLibraryDir, javaClass.classLoader),
+            "PathClassLoader" to PathClassLoader(dexPath, info.nativeLibraryDir,
+                javaClass.classLoader)
+        )
+        val outcomes = mutableMapOf<String, String>()
+        var resolvedBy: String? = null
+        var firstError: Throwable? = null
+        for ((name, loader) in loaders) {
+            try {
+                val clazz = Class.forName(target, false, loader)
+                outcomes[name] = "class_found: ${clazz.name}"
+                if (resolvedBy == null) resolvedBy = name
+            } catch (e: Throwable) {
+                if (firstError == null) firstError = e
+                val causes = generateSequence(e) { it.cause }.take(8).toList()
+                outcomes[name] = causes.joinToString(" -> ") {
+                    it.javaClass.simpleName + ": " + (it.message ?: "")
+                }
             }
-            val missing = causes.firstOrNull {
-                it is ClassNotFoundException || it is NoClassDefFoundError
-            }?.message
-            // Do not label the extension's own entry point as a missing host API.
-            val missingHostApi = missing?.contains("eu.kanade.tachiyomi.animesource.") == true ||
-                missing?.contains("eu/kanade/tachiyomi/animesource/") == true ||
-                missing?.contains("eu.kanade.tachiyomi.source.") == true ||
-                missing?.contains("eu/kanade/tachiyomi/source/") == true
-            base["status"] = if (missingHostApi) "missing_host_api" else "class_load_failed"
-            base["className"] = target
-            base["error"] = chain
-            base["missingDependency"] = missing?.takeUnless { it == target || it == target.replace('.', '/') }
-            base["targetClassInDex"] = target in classes
-            base["dependencyClassInDex"] = missing?.replace('/', '.')?.let { it in classes }
-            base["entryPointResolutionFailed"] = missing == target || missing == target.replace('.', '/')
-            base["exceptionTypes"] = causes.joinToString(" -> ") { it.javaClass.name }
-            base["rootCause"] = causes.lastOrNull()?.let {
-                it.javaClass.name + ": " + (it.message ?: "")
-            }
-            base["diagnosis"] = if (missingHostApi)
-                "A known Aniyomi/Tachiyomi host API class could not be resolved"
-                else if (missing == target || missing == target.replace('.', '/'))
-                    "Entry point resolution failed; check dexInventory and declaredClassInDex. This does not prove a missing dependency."
-                else "Class loading failed; inspect exceptionTypes, rootCause and APK scan errors before attributing to host API"
-            base
         }
+        base["dexClassLoaderResult"] = outcomes["DexClassLoader"]
+        base["pathClassLoaderResult"] = outcomes["PathClassLoader"]
+        base["resolvedByLoader"] = resolvedBy
+        if (resolvedBy != null) {
+            base["status"] = "class_found"
+            base["className"] = target
+            base["diagnosis"] = "Class resolved without initialization by $resolvedBy. This does not establish executable extension support."
+            return base
+        }
+        val e = firstError ?: IllegalStateException("Both class loaders failed without a reported cause")
+        val causes = generateSequence(e) { it.cause }.take(8).toList()
+        val chain = causes.joinToString(" -> ") {
+            it.javaClass.simpleName + ": " + (it.message ?: "")
+        }
+        val missing = causes.firstOrNull {
+            it is ClassNotFoundException || it is NoClassDefFoundError
+        }?.message
+        val missingHostApi = missing?.contains("eu.kanade.tachiyomi.animesource.") == true ||
+            missing?.contains("eu/kanade/tachiyomi/animesource/") == true ||
+            missing?.contains("eu.kanade.tachiyomi.source.") == true ||
+            missing?.contains("eu/kanade/tachiyomi/source/") == true
+        base["status"] = if (missingHostApi) "missing_host_api" else "class_load_failed"
+        base["className"] = target
+        base["error"] = chain
+        base["missingDependency"] = missing?.takeUnless { it == target || it == target.replace('.', '/') }
+        base["targetClassInDex"] = target in classes
+        base["dependencyClassInDex"] = missing?.replace('/', '.')?.let { it in classes }
+        base["entryPointResolutionFailed"] = missing == target || missing == target.replace('.', '/')
+        base["exceptionTypes"] = causes.joinToString(" -> ") { it.javaClass.name }
+        base["rootCause"] = causes.lastOrNull()?.let {
+            it.javaClass.name + ": " + (it.message ?: "")
+        }
+        base["diagnosis"] = if (missingHostApi)
+            "A known Aniyomi/Tachiyomi host API class could not be resolved"
+            else "Both loaders failed. Compare dexClassLoaderResult and pathClassLoaderResult; a DEX inventory hit alone does not guarantee a loadable class."
+        return base
     }
 
     override fun onUserLeaveHint() {

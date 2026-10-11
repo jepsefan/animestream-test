@@ -1,83 +1,159 @@
 package app.animestream
 
 import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.graphics.Color
+import android.graphics.PorterDuff
+import android.graphics.SurfaceTexture
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
+import android.view.Surface
+import io.flutter.view.TextureRegistry
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
 import io.github.assrender.AssDirectBridge
-import java.io.ByteArrayOutputStream
+import java.util.concurrent.Executors
 
 /**
- * External ASS/SSA subtitle renderer for AnimeStream's Flutter SubViewer.
- * Requires the assrender Android AAR to be added to the app's Gradle dependencies.
- * Never changes Better Player or its ExoPlayer instance.
+ * ASS frames are composited directly onto an Android SurfaceTexture consumed by
+ * Flutter Texture. No per-frame PNG compression, MethodChannel pixel transfer,
+ * or Flutter image decoding. Native work runs on a serial worker thread.
  */
 class ExternalAssRenderer : MethodChannel.MethodCallHandler {
+    private val worker = Executors.newSingleThreadExecutor()
+    private val main = Handler(Looper.getMainLooper())
+    private var registry: TextureRegistry? = null
+    private var entry: TextureRegistry.SurfaceTextureEntry? = null
+    private var surface: Surface? = null
     private var handle: Long = 0
+    private var bitmap: Bitmap? = null
     private var width = 0
     private var height = 0
-    private var bitmap: Bitmap? = null
-    private var lastEmptySecond: Long = -1
+    private var generation = 0
+
+    fun attach(registry: TextureRegistry) {
+        this.registry = registry
+    }
 
     override fun onMethodCall(call: MethodCall, result: MethodChannel.Result) {
-        try {
-            when (call.method) {
-                "load" -> {
-                    release()
-                    val script = call.argument<ByteArray>("script")
-                        ?: throw IllegalArgumentException("Missing ASS script")
-                    width = (call.argument<Int>("width") ?: 1280).coerceIn(1, 3840)
-                    height = (call.argument<Int>("height") ?: 720).coerceIn(1, 2160)
-                    handle = AssDirectBridge.nativeInit(width, height, 1.0f)
-                    if (handle == 0L) throw IllegalStateException("libass initialization failed")
-                    if (AssDirectBridge.nativeLoadScript(handle, script) != 0) {
-                        release()
-                        throw IllegalArgumentException("Invalid ASS/SSA script")
-                    }
-                    bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
-                    Log.i("ASSRENDER", "Script loaded: bytes=${script.size}, size=${width}x${height}")
-                    result.success(null)
+        when (call.method) {
+            "loadTexture" -> {
+                val script = call.argument<ByteArray>("script")
+                if (script == null) {
+                    result.error("ASS_RENDER_FAILED", "Missing ASS script", null)
+                    return
                 }
-                "render" -> {
-                    val target = bitmap
-                    if (handle == 0L || target == null) {
-                        result.success(null)
-                    } else {
-                        val timeMs = (call.argument<Number>("timeMs") ?: 0).toLong()
-                        val state = AssDirectBridge.nativeRenderState(handle, timeMs, target)
-                        if (state == 2) {
-                            // Empty byte array means keep the existing Flutter image.
-                            result.success(byteArrayOf())
-                        } else if (state == 0) {
-                            if (timeMs / 1000 != lastEmptySecond) {
-                                lastEmptySecond = timeMs / 1000
-                                Log.i("ASSRENDER", "Native render produced no image at ${timeMs}ms; check libass event timing and fonts")
-                            }
-                            result.success(null)
-                        } else {
-                            val output = ByteArrayOutputStream()
-                            target.compress(Bitmap.CompressFormat.PNG, 100, output)
-                            result.success(output.toByteArray())
+                val w = (call.argument<Int>("width") ?: 1280).coerceIn(1, 3840)
+                val h = (call.argument<Int>("height") ?: 720).coerceIn(1, 2160)
+                // TextureRegistry operations are performed on the platform thread.
+                val textures = registry
+                if (textures == null) {
+                    result.error("ASS_RENDER_FAILED", "Flutter texture registry unavailable", null)
+                    return
+                }
+                val currentGeneration = ++generation
+                worker.execute {
+                    try {
+                        releaseNative()
+                        val nativeHandle = AssDirectBridge.nativeInit(w, h, 1.0f)
+                        if (nativeHandle == 0L) throw IllegalStateException("libass initialization failed")
+                        handle = nativeHandle
+                        if (AssDirectBridge.nativeLoadScript(nativeHandle, script) != 0) {
+                            throw IllegalArgumentException("Invalid ASS script")
                         }
+                        width = w
+                        height = h
+                        bitmap = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
+                        main.post {
+                            if (generation != currentGeneration) {
+                                result.error("ASS_CANCELLED", "Subtitle load superseded", null)
+                                return@post
+                            }
+                            try {
+                                releaseTexture()
+                                val texture = textures.createSurfaceTexture()
+                                texture.surfaceTexture().setDefaultBufferSize(w, h)
+                                entry = texture
+                                surface = Surface(texture.surfaceTexture())
+                                // Ensure an initially transparent texture.
+                                drawFrame(null)
+                                Log.i("ASSRENDER", "Native texture ready: ${w}x${h}, id=${texture.id()}")
+                                result.success(texture.id())
+                            } catch (e: Exception) {
+                                result.error("ASS_RENDER_FAILED", e.toString(), null)
+                            }
+                        }
+                    } catch (e: Exception) {
+                        main.post { result.error("ASS_RENDER_FAILED", e.toString(), null) }
                     }
                 }
-                "dispose" -> {
-                    release()
-                    result.success(null)
-                }
-                else -> result.notImplemented()
             }
-        } catch (e: Exception) {
-            result.error("ASS_RENDER_FAILED", e.message, null)
+            "renderTexture" -> {
+                val timeMs = (call.argument<Number>("timeMs") ?: 0).toLong()
+                val currentGeneration = generation
+                worker.execute {
+                    try {
+                        if (currentGeneration != generation || handle == 0L) {
+                            main.post { result.success(false) }
+                            return@execute
+                        }
+                        val target = bitmap
+                        if (target == null) {
+                            main.post { result.success(false) }
+                            return@execute
+                        }
+                        val state = AssDirectBridge.nativeRenderState(handle, timeMs, target)
+                        // state 2: static unchanged. state 0: blank, clear texture.
+                        if (state != 2) drawFrame(if (state == 1) target else null)
+                        main.post { result.success(state != 0) }
+                    } catch (e: Exception) {
+                        main.post { result.error("ASS_RENDER_FAILED", e.toString(), null) }
+                    }
+                }
+            }
+            "disposeTexture" -> {
+                ++generation
+                worker.execute {
+                    releaseNative()
+                    main.post {
+                        releaseTexture()
+                        result.success(null)
+                    }
+                }
+            }
+            else -> result.notImplemented()
         }
     }
 
-    private fun release() {
+    private fun drawFrame(frame: Bitmap?) {
+        val target = surface ?: return
+        var canvas: Canvas? = null
+        try {
+            canvas = target.lockCanvas(null)
+            canvas.drawColor(Color.TRANSPARENT, PorterDuff.Mode.CLEAR)
+            if (frame != null) {
+                canvas.drawBitmap(frame, null,
+                    android.graphics.Rect(0, 0, width, height), null)
+            }
+        } finally {
+            if (canvas != null) target.unlockCanvasAndPost(canvas)
+        }
+    }
+
+    private fun releaseNative() {
         if (handle != 0L) {
             AssDirectBridge.nativeDestroy(handle)
             handle = 0
         }
         bitmap?.recycle()
         bitmap = null
+    }
+
+    private fun releaseTexture() {
+        surface?.release()
+        surface = null
+        entry?.release()
+        entry = null
     }
 }

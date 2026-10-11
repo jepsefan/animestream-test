@@ -49,7 +49,7 @@ internal object ExtensionDexInspector {
                         if (!Regex("classes(\\d*)\\.dex").matches(entry.name)) continue
                         try {
                             val b = zip.getInputStream(entry).use { it.readBytes() }
-                            require(b.size >= 112 && String(b, 0, 4, Charsets.US_ASCII) == "dex\\n") {
+                            require(b.size >= 112 && String(b, 0, 4, Charsets.US_ASCII) == "dex\n") {
                                 "Invalid DEX header"
                             }
                             val stringsSize = u32(b, 56)

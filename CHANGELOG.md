@@ -1,3 +1,20 @@
+# v1.4.9 beta16–beta18 history
+
+## beta18 (in progress)
+- Native SurfaceTexture ASS rendering, no per-frame PNG transfers.
+- Experimental Aniyomi extension diagnostics carried forward.
+- 16:9 viewport alignment candidate fix committed; alpha/transparency requires further work and device testing.
+
+## beta17
+- More detailed Aniyomi APK class loading and DEX diagnostics.
+- Device test: AnimeOnsen class load failed; AnimeSource host API unavailable.
+- User screenshots showed ASS positioning and transparency regression relative to beta16.
+
+## beta16
+- User-provided visual baseline for ASS positioning and transparency.
+
+---
+
 # v1.4.9 beta2–beta15 changelog
 
 # AnimeStream v1.4.9 beta2–beta15 — development notes

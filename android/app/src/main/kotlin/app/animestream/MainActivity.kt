@@ -387,6 +387,19 @@ class MainActivity: FlutterActivity() {
             }
             base["runtimeSuperclassResolution"] = superDiagnostics.joinToString("\\n")
             base["runtimeSuperclassName"] = superName
+            try {
+                val contextLoader = createPackageContext(
+                    packageName, android.content.Context.CONTEXT_INCLUDE_CODE or
+                        android.content.Context.CONTEXT_IGNORE_SECURITY
+                ).classLoader
+                val resolved = Class.forName(superName, false, contextLoader)
+                base["packageContextSuperclassResolution"] =
+                    "name=${resolved.name}, final=${java.lang.reflect.Modifier.isFinal(resolved.modifiers)}, " +
+                    "loader=${resolved.classLoader?.javaClass?.name ?: "bootstrap"}"
+            } catch (error: Throwable) {
+                base["packageContextSuperclassResolution"] =
+                    "${error.javaClass.simpleName}: ${error.message}"
+            }
         }
         base["dexDependencyInterpretation"] =
             "DEX-only missing means not packaged inside extension APK; it does not imply missing from host runtime."

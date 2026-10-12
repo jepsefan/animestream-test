@@ -225,6 +225,25 @@ class MainActivity: FlutterActivity() {
             it.startsWith("eu.kanade.tachiyomi.animesource.") ||
                 it.startsWith("eu.kanade.tachiyomi.source.")
         }
+        // Resolve every discovered host API type against the actual parent loader.
+        // This is a safe compatibility probe: it does not initialize extension classes.
+        val hostApiProbe = (directDependencies + transitiveMissing)
+            .filter { it.startsWith("eu.kanade.tachiyomi.") }
+            .distinct()
+            .associateWith { type ->
+                try {
+                    Class.forName(type, false, javaClass.classLoader)
+                    "available"
+                } catch (e: ClassNotFoundException) {
+                    "missing"
+                } catch (e: LinkageError) {
+                    "linkage_error: ${e.javaClass.simpleName}: ${e.message}"
+                }
+            }
+        base["hostApiClassProbe"] = hostApiProbe.entries.joinToString("; ") {
+            "${it.key}=${it.value}"
+        }.ifEmpty { "(no host API classes discovered)" }
+        base["missingHostApiClassCount"] = hostApiProbe.values.count { it != "available" }
         base["missingAniyomiHostApiTypes"] = missingHostInterfaces.joinToString(", ")
             .ifEmpty { "(none detected in direct dependencies)" }
         base["hostApiDependencyStatus"] = if (missingHostInterfaces.isNotEmpty())

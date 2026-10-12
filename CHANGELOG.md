@@ -1,3 +1,7 @@
+## v1.4.9-beta26 — ASS playback clock continuity
+- Keep ASS animations advancing when player position notifications stop updating; distinguish fresh/stale reports and add counters for diagnosis.
+- No changes to native assrender or Aniyomi extension execution support.
+
 # Beta19 (in progress)
 - ASS texture polling changed to 50ms.
 - Native libass alpha fix prepared separately; not integrated until new AAR import.

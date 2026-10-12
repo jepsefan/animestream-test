@@ -1,5 +1,6 @@
 import 'package:animestream/core/app/runtimeDatas.dart';
 import 'package:animestream/core/data/assUpdateFrequency.dart';
+import 'package:animestream/core/data/assMotionSmoothing.dart';
 import 'package:animestream/ui/models/bottomSheets/customControlsSheet.dart';
 import 'package:animestream/ui/models/providers/playerDataProvider.dart';
 import 'package:animestream/ui/models/providers/playerProvider.dart';
@@ -360,6 +361,28 @@ class _BottomControlsState extends State<BottomControls> {
                               ),
                             );
                           }),
+                        ],
+                      ),
+                    ),
+                    ValueListenableBuilder<AssSmoothingMode>(
+                      valueListenable: AssMotionSmoothing.current,
+                      builder: (context, mode, _) => PopupMenuButton<AssSmoothingMode>(
+                        tooltip: 'ASS Motion Smoothing',
+                        icon: const Icon(Icons.motion_photos_on_outlined, color: Colors.white),
+                        initialValue: mode,
+                        onOpened: () { AssMotionSmoothing.ensureLoaded(); },
+                        onSelected: AssMotionSmoothing.save,
+                        itemBuilder: (context) => [
+                          CheckedPopupMenuItem<AssSmoothingMode>(
+                            value: AssSmoothingMode.off,
+                            checked: mode == AssSmoothingMode.off,
+                            child: const Text('Motion Smoothing: Av'),
+                          ),
+                          CheckedPopupMenuItem<AssSmoothingMode>(
+                            value: AssSmoothingMode.automaticPositionInterpolation,
+                            checked: mode == AssSmoothingMode.automaticPositionInterpolation,
+                            child: const Text('Automatisk positionsinterpolering'),
+                          ),
                         ],
                       ),
                     ),

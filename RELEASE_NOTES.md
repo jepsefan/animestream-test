@@ -2,6 +2,12 @@
 
 Only the latest beta and two previous betas are shown here. Earlier history is in [CHANGELOG.md](CHANGELOG.md).
 
+## v1.4.9-beta31 — Aniyomi classloader investigation (partial)
+- Added a third non-initializing class-resolution test using Android's installed-package context classloader, in addition to DexClassLoader and PathClassLoader.
+- Added packageContextClassLoaderResult to extension diagnostics. This may reveal whether package/split class paths explain class-load failures; it does not supply missing Aniyomi Host API classes.
+- Reviewed upstream Aniyomi AnimeSource, AnimeCatalogueSource, ConfigurableAnimeSource and AnimeHttpSource APIs. They require additional model, RxJava, coroutine, OkHttp and dependency-injection types. Binary-compatible host API implementation and extension instantiation are NOT yet complete.
+- No APK build or device testing performed.
+
 ## v1.4.9-beta30 — ASS motion smoothing controls and Aniyomi compatibility (in progress)
 - Add persisted player-bar dropdown: Motion Smoothing Av / Automatisk positionsinterpolering.
 - IMPORTANT: motion interpolation rendering is not yet implemented; the control currently stores the requested mode only, and does not change the ASS texture motion.

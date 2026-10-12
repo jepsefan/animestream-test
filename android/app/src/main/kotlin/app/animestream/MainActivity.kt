@@ -357,6 +357,30 @@ class MainActivity: FlutterActivity() {
                 it.javaClass.simpleName + ": " + (it.message ?: "")
             }
         }
+        // Beta 32: distinguish a real missing host type from a DEX-only dependency.
+        // Inspect the actual class selected by each loader, including its origin
+        // and final modifier. Never initialize extension code in this diagnostic.
+        val superName = dexClassInfo?.superClass
+        if (!superName.isNullOrBlank()) {
+            val superDiagnostics = mutableListOf<String>()
+            for ((loaderName, loader) in loaders) {
+                try {
+                    val superClass = Class.forName(superName, false, loader)
+                    val origin = superClass.protectionDomain?.codeSource?.location?.toString()
+                        ?: "(code source unavailable on Android)"
+                    superDiagnostics.add(
+                        "$loaderName: name=${superClass.name}, final=${java.lang.reflect.Modifier.isFinal(superClass.modifiers)}, " +
+                        "loader=${superClass.classLoader?.javaClass?.name ?: "bootstrap"}, origin=$origin"
+                    )
+                } catch (error: Throwable) {
+                    superDiagnostics.add("$loaderName: ${error.javaClass.simpleName}: ${error.message}")
+                }
+            }
+            base["runtimeSuperclassResolution"] = superDiagnostics.joinToString("\\n")
+            base["runtimeSuperclassName"] = superName
+        }
+        base["dexDependencyInterpretation"] =
+            "DEX-only missing means not packaged inside extension APK; it does not imply missing from host runtime."
         base["packageContextClassLoaderResult"] = outcomes["PackageContextClassLoader"]
         base["dexClassLoaderResult"] = outcomes["DexClassLoader"]
         base["pathClassLoaderResult"] = outcomes["PathClassLoader"]

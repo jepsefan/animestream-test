@@ -42,6 +42,8 @@ class _ExternalAssOverlayState extends State<ExternalAssOverlay>
   int _clockResyncs = 0;
   int _clockSeeks = 0;
   int _clockInterpolatedFrames = 0;
+  int _clockStaleReports = 0;
+  int _clockFreshReports = 0;
   int? _textureId;
   bool _ready = false;
   bool _rendering = false;
@@ -99,6 +101,7 @@ class _ExternalAssOverlayState extends State<ExternalAssOverlay>
     _lastReportedPosition = null;
     _wasAdvancing = false;
     _clockResyncs = _clockSeeks = _clockInterpolatedFrames = 0;
+    _clockStaleReports = _clockFreshReports = 0;
     _cueTimes.clear();
     _lastDiagnosticSecond = -1;
     _assStatsClock.reset();
@@ -151,25 +154,34 @@ class _ExternalAssOverlayState extends State<ExternalAssOverlay>
     }
   }
 
-  // The controller reports coarse positions (~3/s on some Android TV devices).
-  // Anchor a monotonic playback clock to those reports and interpolate between
-  // them. Re-anchor on seeks, pauses, buffering and substantial drift.
+  // Keep a monotonic clock between player reports. A repeated position is
+  // not a new sample: re-anchoring to it would freeze animated ASS drawings.
   void _onPlayerUpdate() {
     final reported = widget.controller.position;
     if (reported == null) return;
     final now = _playbackClock.elapsedMilliseconds;
     final advancing = widget.controller.isPlaying == true &&
         widget.controller.isBuffering != true;
+    final previous = _lastReportedPosition;
+    final fresh = previous == null || reported != previous;
+    if (!fresh && advancing == _wasAdvancing) {
+      _clockStaleReports++;
+      return;
+    }
+    if (fresh) _clockFreshReports++;
+
     final predicted = _clockAnchorPosition == null
         ? reported
         : _clockAnchorPosition! + (_wasAdvancing ? now - _clockAnchorElapsedMs : 0);
     final difference = reported - predicted;
-    final previous = _lastReportedPosition;
-    final seek = previous != null &&
+    final seek = fresh && previous != null &&
         (reported < previous - 150 || difference.abs() > 750);
     if (seek) _clockSeeks++;
+
+    // On pause/buffering, use the latest actual player position; on resume,
+    // start a new monotonic segment. Do not snap to repeated stale reports.
     if (_clockAnchorPosition == null || seek || advancing != _wasAdvancing ||
-        difference.abs() > 120) {
+        (fresh && difference.abs() > 120)) {
       if (_clockAnchorPosition != null && !seek) _clockResyncs++;
       _clockAnchorPosition = reported;
       _clockAnchorElapsedMs = now;
@@ -181,16 +193,17 @@ class _ExternalAssOverlayState extends State<ExternalAssOverlay>
   int? _assPosition() {
     final reported = widget.controller.position;
     if (reported == null) return null;
-    // Listener notifications can be delayed by a platform backend.
     if (_clockAnchorPosition == null) _onPlayerUpdate();
     if (_clockAnchorPosition == null) return reported;
-    if (widget.controller.isPlaying != true || widget.controller.isBuffering == true) {
-      if (_wasAdvancing) _onPlayerUpdate();
-      return _clockAnchorPosition;
-    }
-    if (!_wasAdvancing) _onPlayerUpdate();
+    final advancing = widget.controller.isPlaying == true &&
+        widget.controller.isBuffering != true;
+    if (advancing != _wasAdvancing) _onPlayerUpdate();
+    if (!advancing) return _clockAnchorPosition;
+
+    // No one-second cap: video can keep playing even if the platform stops
+    // emitting position events. Seek and pause are handled by the listener.
     final now = _playbackClock.elapsedMilliseconds;
-    final elapsed = (now - _clockAnchorElapsedMs).clamp(0, 1000);
+    final elapsed = (now - _clockAnchorElapsedMs).clamp(0, 1 << 53);
     final interpolated = _clockAnchorPosition! + elapsed;
     final duration = widget.controller.duration;
     _clockInterpolatedFrames++;
@@ -228,13 +241,15 @@ class _ExternalAssOverlayState extends State<ExternalAssOverlay>
           'maxRoundtripMs=${(_assRenderMaxUs / 1000).toStringAsFixed(1)} '
           'maxTickGapMs=${(_assTickMaxGapUs / 1000).toStringAsFixed(1)} '
           'playerPositionMs=$position clockResyncs=$_clockResyncs '
-          'clockSeeks=$_clockSeeks interpolatedFrames=$_clockInterpolatedFrames');
+          'clockSeeks=$_clockSeeks interpolatedFrames=$_clockInterpolatedFrames '
+          'freshReports=$_clockFreshReports staleReports=$_clockStaleReports');
       _assStatsClock.reset();
       _assStatsClock.start();
       _assTicks = _assRequests = _assUniquePositions = _assRepeatedPositions = _assBusyTicks = 0;
       _assRenderTotalUs = _assRenderMaxUs = 0;
       _assTickMaxGapUs = 0;
       _clockResyncs = _clockSeeks = _clockInterpolatedFrames = 0;
+      _clockStaleReports = _clockFreshReports = 0;
     }
     final active = _cueTimes.any((cue) => cue.$1 <= position && position < cue.$2);
     final nowUs = elapsed.inMicroseconds;

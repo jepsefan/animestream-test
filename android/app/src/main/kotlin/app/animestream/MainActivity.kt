@@ -274,6 +274,14 @@ class MainActivity: FlutterActivity() {
         }
         base["requiredHostApiMissingCount"] = requiredProbe.values.count { it != "available" }
         base["hostApiRuntimeReady"] = requiredProbe.values.all { it == "available" }
+        // Report linkage against the actual parent loader. A source class being
+        // discoverable in DEX is insufficient if its API signatures are absent.
+        base["hostApiReadinessStatus"] = if (requiredProbe.values.all { it == "available" })
+            "required_class_probe_passed_not_abi_verified"
+        else "missing_runtime_or_host_api_classes"
+        base["hostApiMissingClassNames"] = requiredProbe.filterValues { it != "available" }
+            .keys.joinToString(", ")
+
         base["hostApiClassProbe"] = hostApiProbe.entries.joinToString("; ") {
             "${it.key}=${it.value}"
         }.ifEmpty { "(no host API classes discovered)" }

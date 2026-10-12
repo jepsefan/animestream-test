@@ -196,7 +196,8 @@ class _SubtitleSettingPageState extends State<SubtitleSettingPage> {
                                   subtitle: Text("Auto follows display vsync; higher rates increase load.",
                                       style: TextStyle(color: appTheme.textMainColor)),
                                   trailing: DropdownButton<int>(
-                                    value: assFps,
+                                    value: AssUpdateFrequency.choices.contains(assFps) ? assFps : null,
+                                    hint: Text(assFps == 0 ? 'Auto' : '$assFps FPS'),
                                     dropdownColor: appTheme.backgroundSubColor,
                                     items: const [
                                       DropdownMenuItem(value: 0, child: Text("Auto")),

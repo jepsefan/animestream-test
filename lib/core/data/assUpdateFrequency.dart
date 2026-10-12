@@ -4,7 +4,7 @@ import 'package:hive/hive.dart';
 class AssUpdateFrequency {
   static const String _boxName = 'ass_update_frequency';
   static const String _key = 'fps';
-  static const List<int> choices = [0, 30, 60, 120];
+  static const List<int> choices = [0, 24, 30, 60, 120];
 
   static Future<int> load() async {
     final box = await Hive.openBox(_boxName);

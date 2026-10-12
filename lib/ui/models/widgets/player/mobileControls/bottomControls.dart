@@ -325,26 +325,43 @@ class _BottomControlsState extends State<BottomControls> {
                         color: Colors.white,
                       ),
                     ),
-                    PopupMenuButton<int>(
-                      tooltip: "ASS update frequency",
-                      icon: const Icon(Icons.tune, color: Colors.white),
-                      onOpened: () { AssUpdateFrequency.ensureLoaded(); },
-                      onSelected: (fps) async {
-                        await AssUpdateFrequency.save(fps);
-                      },
-                      itemBuilder: (context) => [
-                        const PopupMenuItem<int>(
-                          value: 0,
-                          child: Text("ASS Auto (display vsync)"),
-                        ),
-                        ...List.generate(30, (index) {
-                          final fps = index + 1;
-                          return PopupMenuItem<int>(
-                            value: fps,
-                            child: Text("ASS $fps FPS"),
-                          );
-                        }),
-                      ],
+                    ValueListenableBuilder<int>(
+                      valueListenable: AssUpdateFrequency.current,
+                      builder: (context, selectedFps, _) => PopupMenuButton<int>(
+                        tooltip: "ASS update frequency",
+                        icon: const Icon(Icons.tune, color: Colors.white),
+                        initialValue: selectedFps,
+                        onOpened: () { AssUpdateFrequency.ensureLoaded(); },
+                        onSelected: (fps) async {
+                          await AssUpdateFrequency.save(fps);
+                        },
+                        itemBuilder: (context) => [
+                          CheckedPopupMenuItem<int>(
+                            value: 0,
+                            checked: selectedFps == 0,
+                            child: Container(
+                              color: selectedFps == 0 ? Colors.green.withOpacity(0.18) : null,
+                              padding: const EdgeInsets.symmetric(vertical: 4),
+                              child: Text("ASS Auto (display vsync)",
+                                style: TextStyle(fontWeight: selectedFps == 0 ? FontWeight.bold : FontWeight.normal)),
+                            ),
+                          ),
+                          ...List.generate(30, (index) {
+                            final fps = index + 1;
+                            final selected = selectedFps == fps;
+                            return CheckedPopupMenuItem<int>(
+                              value: fps,
+                              checked: selected,
+                              child: Container(
+                                color: selected ? Colors.green.withOpacity(0.18) : null,
+                                padding: const EdgeInsets.symmetric(vertical: 4),
+                                child: Text("ASS $fps FPS",
+                                  style: TextStyle(fontWeight: selected ? FontWeight.bold : FontWeight.normal)),
+                              ),
+                            );
+                          }),
+                        ],
+                      ),
                     ),
                     IconButton(
                       focusNode: _audioFocusNode,

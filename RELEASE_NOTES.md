@@ -3,9 +3,9 @@
 Only the latest beta and two previous betas are shown here. Earlier history is in [CHANGELOG.md](CHANGELOG.md).
 
 ## v1.4.9-beta27 — ASS frequency and Aniyomi extension runtime (in progress)
-- Planned: Player Settings → Subtitles → ASS update frequency (Auto, 30, 60, 120 FPS), persisted across sessions; keep rendering serialized and preserve static-cue optimizations.
-- Planned: Aniyomi host API compatibility and class-loading diagnostics for AnimeOnsen, starting with ConfigurableAnimeSource and the obfuscated superclass hierarchy.
-- Status: development branch only. Neither feature is implemented or device-tested yet.
+- Implemented: Player Settings → Subtitle settings → ASS Renderer frequency (Auto, 30, 60, 120 FPS), persisted in Hive; vsync remains the upper bound and the existing serialized render path is preserved.
+- Implemented: non-executing Aniyomi host API class availability probe, including transitive hierarchy dependencies and missing-host-class counts. Actual Aniyomi host API compatibility/runtime execution is not implemented yet.
+- Status: development branch; no Android build or device test has been performed. Extension execution remains unsupported.
 
 ## v1.4.9-beta26 — ASS playback clock continuity
 - Remove the remaining 1000 ms ASS interpolation cap so animations can advance while the Android TV player reports a stale position.

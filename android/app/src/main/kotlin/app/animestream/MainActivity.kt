@@ -403,6 +403,23 @@ class MainActivity: FlutterActivity() {
         }
         base["dexDependencyInterpretation"] =
             "DEX-only missing means not packaged inside extension APK; it does not imply missing from host runtime."
+        // Existing Flutter diagnostics already displays "diagnosis". Surface the
+        // new DEX findings there as well, without requiring a UI migration.
+        val dexSuperDefinition = superName?.let {
+            ExtensionDexInspector.inspect(apkPaths, it).first
+        }
+        val superclassSummary = if (dexSuperDefinition == null) {
+            "Superclass DEX definition unavailable"
+        } else {
+            "Superclass $superName DEX final=${(dexSuperDefinition.accessFlags and 0x10) != 0} " +
+                "(flags=0x${dexSuperDefinition.accessFlags.toString(16)})"
+        }
+        base["superclassDiagnosticSummary"] = superclassSummary
+        base["diagnosticDetails"] = listOf(
+            superclassSummary,
+            "PackageContext: ${base["packageContextSuperclassResolution"] ?: "(unavailable)"}",
+            "DEX hierarchy flags: ${base["dexHierarchyAccessFlags"] ?: "(unavailable)"}"
+        ).joinToString("\n")
         base["packageContextClassLoaderResult"] = outcomes["PackageContextClassLoader"]
         base["dexClassLoaderResult"] = outcomes["DexClassLoader"]
         base["pathClassLoaderResult"] = outcomes["PathClassLoader"]
@@ -410,7 +427,7 @@ class MainActivity: FlutterActivity() {
         if (resolvedBy != null) {
             base["status"] = "class_found"
             base["className"] = target
-            base["diagnosis"] = "Class resolved without initialization by $resolvedBy. This does not establish executable extension support."
+            base["diagnosis"] = "Class resolved without initialization by $resolvedBy. This does not establish executable extension support.\\n" + base["diagnosticDetails"]
             return base
         }
         val e = firstError ?: IllegalStateException("Both class loaders failed without a reported cause")
@@ -436,11 +453,11 @@ class MainActivity: FlutterActivity() {
         base["rootCause"] = causes.lastOrNull()?.let {
             it.javaClass.name + ": " + (it.message ?: "")
         }
-        base["diagnosis"] = if (missingHostInterfaces.isNotEmpty())
+        base["diagnosis"] = (if (missingHostInterfaces.isNotEmpty())
             "DEX metadata shows Aniyomi host API dependency: ${missingHostInterfaces.joinToString(", ")}. Host API is not bundled; class loading may also have other causes."
             else if (missingHostApi)
             "A known Aniyomi/Tachiyomi host API class could not be resolved"
-            else "Both loaders failed. Compare dexClassLoaderResult and pathClassLoaderResult; a DEX inventory hit alone does not guarantee a loadable class."
+            else "Both loaders failed. Compare dexClassLoaderResult and pathClassLoaderResult; a DEX inventory hit alone does not guarantee a loadable class.") + "\\n" + base["diagnosticDetails"]
         return base
     }
 

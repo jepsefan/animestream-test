@@ -1,4 +1,5 @@
 import 'package:animestream/core/app/runtimeDatas.dart';
+import 'package:animestream/core/data/assUpdateFrequency.dart';
 import 'package:animestream/ui/models/bottomSheets/customControlsSheet.dart';
 import 'package:animestream/ui/models/providers/playerDataProvider.dart';
 import 'package:animestream/ui/models/providers/playerProvider.dart';
@@ -31,6 +32,7 @@ class _BottomControlsState extends State<BottomControls> {
       FocusNode(debugLabel: 'player_speed');
   final FocusNode _subtitleFocusNode =
       FocusNode(debugLabel: 'player_subtitles');
+  final FocusNode _assFpsFocusNode = FocusNode(debugLabel: 'player_ass_fps');
   final FocusNode _audioFocusNode =
       FocusNode(debugLabel: 'player_audio');
   final FocusNode _pipFocusNode =
@@ -47,6 +49,7 @@ class _BottomControlsState extends State<BottomControls> {
         _episodeFocusNode,
         _speedFocusNode,
         _subtitleFocusNode,
+        _assFpsFocusNode,
         _audioFocusNode,
         _pipFocusNode,
         _viewModeFocusNode,
@@ -79,6 +82,7 @@ class _BottomControlsState extends State<BottomControls> {
     _episodeFocusNode.dispose();
     _speedFocusNode.dispose();
     _subtitleFocusNode.dispose();
+    _assFpsFocusNode.dispose();
     _audioFocusNode.dispose();
     _pipFocusNode.dispose();
     _viewModeFocusNode.dispose();
@@ -320,6 +324,27 @@ class _BottomControlsState extends State<BottomControls> {
                         !playerProvider.state.showSubs ? Icons.subtitles_outlined : Icons.subtitles_rounded,
                         color: Colors.white,
                       ),
+                    ),
+                    PopupMenuButton<int>(
+                      tooltip: "ASS update frequency",
+                      icon: const Icon(Icons.tune, color: Colors.white),
+                      onOpened: () { AssUpdateFrequency.ensureLoaded(); },
+                      onSelected: (fps) async {
+                        await AssUpdateFrequency.save(fps);
+                      },
+                      itemBuilder: (context) => [
+                        const PopupMenuItem<int>(
+                          value: 0,
+                          child: Text("ASS Auto (display vsync)"),
+                        ),
+                        ...List.generate(30, (index) {
+                          final fps = index + 1;
+                          return PopupMenuItem<int>(
+                            value: fps,
+                            child: Text("ASS $fps FPS"),
+                          );
+                        }),
+                      ],
                     ),
                     IconButton(
                       focusNode: _audioFocusNode,

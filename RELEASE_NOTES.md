@@ -4,6 +4,7 @@ Only the latest beta and two previous betas are shown here. Earlier history is i
 
 ## v1.4.9-beta29 — Aniyomi host API compatibility (in progress)
 - Start implementing binary-compatible Aniyomi host API support for third-party extensions, beginning with ConfigurableAnimeSource and AnimeHttpSource identified in beta28.
+- Add an ASS FPS popup in the in-player control bar: Auto plus 1–30 FPS, with live updates to the active overlay and persisted selection. The existing 24/30/60/120 FPS Player Settings selector remains available.
 - Preserve beta28 ASS settings and diagnostics.
 - Host API runtime integration, class instantiation, and playback are not implemented or verified yet. Do not treat this branch as a working extension release.
 

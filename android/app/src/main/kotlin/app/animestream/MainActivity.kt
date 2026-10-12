@@ -315,7 +315,7 @@ class MainActivity: FlutterActivity() {
             "${it.key}=${it.value}"
         }.ifEmpty { "(no host API classes discovered)" }
         base["missingHostApiClassCount"] = hostApiProbe.values.count { it != "available" }
-        base["missingAniyomiHostApiTypes"] = missingHostInterfaces.joinToString(", ")
+        base["missingAniyomiHostApiTypes"] = missingHostInterfaces.filter { hostApiProbe[it] != "available" }.joinToString(", ")
             .ifEmpty { "(none detected in direct dependencies)" }
         base["hostApiDependencyStatus"] = if (hostApiProbe.values.any { it != "available" })
             "host_api_runtime_resolution_failed" else "host_api_dependencies_resolved_or_not_required"
@@ -333,6 +333,9 @@ class MainActivity: FlutterActivity() {
             "PathClassLoader" to PathClassLoader(dexPath, info.nativeLibraryDir,
                 javaClass.classLoader)
         )
+        base["loaderTopology"] = loaders.joinToString("; ") { (name, loader) ->
+            "$name parent=${loader.parent?.javaClass?.name ?: "bootstrap"}"
+        }
         val outcomes = mutableMapOf<String, String>()
         var resolvedBy: String? = null
         var firstError: Throwable? = null
@@ -401,6 +404,19 @@ class MainActivity: FlutterActivity() {
                     "${error.javaClass.simpleName}: ${error.message}"
             }
         }
+        base["loaderSuperclassComparison"] = loaders.joinToString("\n") { (name, loader) ->
+            if (superName == null) "$name: no superclass"
+            else try {
+                val loaded = Class.forName(superName, false, loader)
+                val dexDefinition = ExtensionDexInspector.inspect(apkPaths, superName).first
+                "$name: dexFinal=${dexDefinition?.let { (it.accessFlags and 0x10) != 0 }}, " +
+                    "runtimeFinal=${java.lang.reflect.Modifier.isFinal(loaded.modifiers)}, " +
+                    "sameLoader=${loaded.classLoader === loader}, " +
+                    "actualLoader=${loaded.classLoader?.javaClass?.name ?: "bootstrap"}"
+            } catch (error: Throwable) {
+                "$name: ${error.javaClass.simpleName}: ${error.message}"
+            }
+        }
         base["dexDependencyInterpretation"] =
             "DEX-only missing means not packaged inside extension APK; it does not imply missing from host runtime."
         // Existing Flutter diagnostics already displays "diagnosis". Surface the
@@ -418,7 +434,9 @@ class MainActivity: FlutterActivity() {
         base["diagnosticDetails"] = listOf(
             superclassSummary,
             "PackageContext: ${base["packageContextSuperclassResolution"] ?: "(unavailable)"}",
-            "DEX hierarchy flags: ${base["dexHierarchyAccessFlags"] ?: "(unavailable)"}"
+            "DEX hierarchy flags: ${base["dexHierarchyAccessFlags"] ?: "(unavailable)"}",
+            "Loader topology: ${base["loaderTopology"] ?: "(unavailable)"}",
+            "Superclass comparison: ${base["loaderSuperclassComparison"] ?: "(unavailable)"}"
         ).joinToString("\n")
         base["packageContextClassLoaderResult"] = outcomes["PackageContextClassLoader"]
         base["dexClassLoaderResult"] = outcomes["DexClassLoader"]
@@ -453,8 +471,10 @@ class MainActivity: FlutterActivity() {
         base["rootCause"] = causes.lastOrNull()?.let {
             it.javaClass.name + ": " + (it.message ?: "")
         }
-        base["diagnosis"] = (if (missingHostInterfaces.isNotEmpty())
-            "DEX metadata shows Aniyomi host API dependency: ${missingHostInterfaces.joinToString(", ")}. Host API is not bundled; class loading may also have other causes."
+        base["diagnosis"] = (if (causes.any { it is VerifyError })
+            "ART VerifyError: compare DEX and runtime superclass flags and class loader identity."
+            else if (missingHostInterfaces.any { hostApiProbe[it] != "available" })
+            "Required Aniyomi host API type unavailable from app parent loader."
             else if (missingHostApi)
             "A known Aniyomi/Tachiyomi host API class could not be resolved"
             else "Both loaders failed. Compare dexClassLoaderResult and pathClassLoaderResult; a DEX inventory hit alone does not guarantee a loadable class.") + "\\n" + base["diagnosticDetails"]

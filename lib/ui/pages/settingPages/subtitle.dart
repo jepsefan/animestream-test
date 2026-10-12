@@ -200,6 +200,7 @@ class _SubtitleSettingPageState extends State<SubtitleSettingPage> {
                                     dropdownColor: appTheme.backgroundSubColor,
                                     items: const [
                                       DropdownMenuItem(value: 0, child: Text("Auto")),
+                                      DropdownMenuItem(value: 24, child: Text("24 FPS")),
                                       DropdownMenuItem(value: 30, child: Text("30 FPS")),
                                       DropdownMenuItem(value: 60, child: Text("60 FPS")),
                                       DropdownMenuItem(value: 120, child: Text("120 FPS")),

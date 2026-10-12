@@ -276,6 +276,26 @@ class MainActivity: FlutterActivity() {
         base["hostApiRuntimeReady"] = requiredProbe.values.all { it == "available" }
         // Report linkage against the actual parent loader. A source class being
         // discoverable in DEX is insufficient if its API signatures are absent.
+        // Inspect the JVM method descriptors actually exposed by the host.
+        // This does not execute any third-party extension code.
+        val abiChecks = listOf(
+            Triple("eu.kanade.tachiyomi.animesource.model.SAnime", "create", "companion_factory"),
+            Triple("eu.kanade.tachiyomi.animesource.model.SEpisode", "create", "companion_factory"),
+            Triple("eu.kanade.tachiyomi.animesource.online.AnimeHttpSource", "fetchPopularAnime", "http_rx"),
+            Triple("eu.kanade.tachiyomi.animesource.online.AnimeHttpSource", "fetchEpisodeList", "http_rx")
+        )
+        base["hostApiMethodProbe"] = abiChecks.joinToString("; ") { (className, methodName, label) ->
+            try {
+                val cls = Class.forName(className, false, javaClass.classLoader)
+                val signatures = cls.declaredMethods.filter { it.name == methodName }
+                    .joinToString(" | ") { method ->
+                        "(${method.parameterTypes.joinToString(",") { it.name }}):${method.returnType.name}"
+                    }
+                "$label.$methodName=${signatures.ifEmpty { "not_declared" }}"
+            } catch (e: Throwable) {
+                "$label.$methodName=unavailable:${e.javaClass.simpleName}"
+            }
+        }
         base["hostApiReadinessStatus"] = if (requiredProbe.values.all { it == "available" })
             "required_class_probe_passed_not_abi_verified"
         else "missing_runtime_or_host_api_classes"

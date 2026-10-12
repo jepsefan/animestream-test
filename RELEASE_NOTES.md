@@ -3,6 +3,8 @@
 Only the latest beta and two previous betas are shown here. Earlier history is in [CHANGELOG.md](CHANGELOG.md).
 
 ## v1.4.9-beta31 — Aniyomi Host API scaffolding (partial)
+- Enabled explicit ProGuard/R8 keep rules for dynamically referenced Host API and networking classes in release APKs.
+- Added hostApiMethodProbe for selected JVM method signatures without executing extension code. This is a diagnostic probe, not ABI certification.
 - Added first-pass Kotlin source contracts for AnimeSource, AnimeCatalogueSource and ConfigurableAnimeSource, plus minimal placeholder model types. These are NOT verified binary compatible and cannot yet execute extensions.
 - Expanded SAnime and SEpisode model interfaces with upstream fields, companion create() factories, concrete implementations, and update/fetch enums. Added kotlinx-serialization JSON dependency. Still not binary ABI tested.
 - Added an initial AnimeHttpSource HTTP/RxJava bridge for legacy popular/search/latest/detail/episode request-and-parse hooks. This is partial and not binary-compatibility verified.

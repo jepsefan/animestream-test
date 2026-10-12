@@ -240,6 +240,40 @@ class MainActivity: FlutterActivity() {
                     "linkage_error: ${e.javaClass.simpleName}: ${e.message}"
                 }
             }
+        // Probe the complete first-level Aniyomi source ABI surface rather than
+        // only the two types discovered in the DEX inheritance chain.
+        // These are runtime class checks, not substitutes for the real API.
+        val requiredHostTypes = listOf(
+            "eu.kanade.tachiyomi.animesource.AnimeSource",
+            "eu.kanade.tachiyomi.animesource.AnimeCatalogueSource",
+            "eu.kanade.tachiyomi.animesource.ConfigurableAnimeSource",
+            "eu.kanade.tachiyomi.animesource.online.AnimeHttpSource",
+            "eu.kanade.tachiyomi.animesource.model.AnimeFilterList",
+            "eu.kanade.tachiyomi.animesource.model.AnimesPage",
+            "eu.kanade.tachiyomi.animesource.model.SAnime",
+            "eu.kanade.tachiyomi.animesource.model.SEpisode",
+            "eu.kanade.tachiyomi.animesource.model.Hoster",
+            "eu.kanade.tachiyomi.animesource.model.Video",
+            "eu.kanade.tachiyomi.network.NetworkHelper",
+            "rx.Observable",
+            "okhttp3.OkHttpClient",
+            "uy.kohesive.injekt.Injekt"
+        )
+        val requiredProbe = requiredHostTypes.associateWith { type ->
+            try {
+                Class.forName(type, false, javaClass.classLoader)
+                "available"
+            } catch (e: ClassNotFoundException) {
+                "missing"
+            } catch (e: LinkageError) {
+                "linkage_error: ${e.javaClass.simpleName}"
+            }
+        }
+        base["requiredHostApiProbe"] = requiredProbe.entries.joinToString("; ") {
+            "${it.key}=${it.value}"
+        }
+        base["requiredHostApiMissingCount"] = requiredProbe.values.count { it != "available" }
+        base["hostApiRuntimeReady"] = requiredProbe.values.all { it == "available" }
         base["hostApiClassProbe"] = hostApiProbe.entries.joinToString("; ") {
             "${it.key}=${it.value}"
         }.ifEmpty { "(no host API classes discovered)" }

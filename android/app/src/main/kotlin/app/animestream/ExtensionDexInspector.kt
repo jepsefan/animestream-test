@@ -9,7 +9,7 @@ import java.util.zip.ZipFile
  */
 internal object ExtensionDexInspector {
     data class ClassInfo(val source: String, val superClass: String?,
-                         val interfaces: List<String>)
+                         val interfaces: List<String>, val accessFlags: Int)
     private fun u16(b: ByteArray, p: Int): Int {
         require(p >= 0 && p + 2 <= b.size)
         return (b[p].toInt() and 255) or ((b[p + 1].toInt() and 255) shl 8)
@@ -72,6 +72,7 @@ internal object ExtensionDexInspector {
                                 val p = defsOff + i * 32
                                 val classIndex = u32(b, p)
                                 if (type(classIndex) != target) continue
+                                val accessFlags = u32(b, p + 4)
                                 val superIndex = u32(b, p + 8)
                                 val superClass = if (superIndex == -1) null else type(superIndex)
                                 val interfacesOff = u32(b, p + 12)
@@ -80,7 +81,7 @@ internal object ExtensionDexInspector {
                                     require(count in 0..4096 && interfacesOff.toLong() + 4L + count * 2L <= b.size)
                                     (0 until count).map { type(u16(b, interfacesOff + 4 + it * 2)) }
                                 }
-                                return ClassInfo("${File(apk).name}/${entry.name}", superClass, interfaces) to errors
+                                return ClassInfo("${File(apk).name}/${entry.name}", superClass, interfaces, accessFlags) to errors
                             }
                         } catch (e: Exception) {
                             errors.add("${File(apk).name}/${entry.name}: ${e.javaClass.simpleName}: ${e.message}")

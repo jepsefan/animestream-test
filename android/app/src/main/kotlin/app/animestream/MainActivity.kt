@@ -210,6 +210,15 @@ class MainActivity: FlutterActivity() {
         base["dexTransitiveMissingDependencies"] = transitiveMissing.joinToString(", ")
             .ifEmpty { "(none found in superclass/interface chain)" }
         base["dexHierarchyScanErrors"] = hierarchyErrors.joinToString("\\n").ifEmpty { "(none)" }
+        // DEX access flags are authoritative even when ART rejects a class.
+        val dexFinalChain = hierarchy.mapNotNull { line ->
+            val className = line.substringBefore(" -> ")
+            val definition = ExtensionDexInspector.inspect(apkPaths, className).first
+            definition?.let {
+                "$className: final=${(it.accessFlags and 0x10) != 0}, accessFlags=0x${it.accessFlags.toString(16)}"
+            }
+        }
+        base["dexHierarchyAccessFlags"] = dexFinalChain.joinToString("\n")
         base["dexObfuscatedSuperclassResolved"] = if (dexClassInfo?.superClass != null &&
             dexClassInfo.superClass in availableClasses)
             hierarchy.any { it.startsWith("${dexClassInfo.superClass} ->") } else false

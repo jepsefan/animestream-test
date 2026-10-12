@@ -14,7 +14,7 @@ internal class ExtensionIsolatedClassLoader(
     optimizedDirectory: String,
     librarySearchPath: String?,
     parent: ClassLoader,
-    private val extensionPackage: String
+    private val extensionClassNames: Set<String>
 ) : DexClassLoader(dexPath, optimizedDirectory, librarySearchPath, parent) {
 
     override fun loadClass(name: String, resolve: Boolean): Class<*> {
@@ -23,7 +23,7 @@ internal class ExtensionIsolatedClassLoader(
                 if (resolve) resolveClass(it)
                 return it
             }
-            if (name == extensionPackage || name.startsWith("${extensionPackage}.")) {
+            if (name in extensionClassNames) {
                 try {
                     val local = findClass(name)
                     if (resolve) resolveClass(local)

@@ -6,7 +6,8 @@ Only the latest beta and two previous betas are shown here. Earlier history is i
 - Remove the remaining 1000 ms ASS interpolation cap so animations can advance while the Android TV player reports a stale position.
 - Distinguish fresh and repeated player positions; only use fresh reports to correct clock drift, while pause/buffering and seek transitions still re-anchor.
 - Add freshReports/staleReports counters to ASS performance logs for beta26 validation.
-- Keep native assrender AAR, extension diagnostics, and Better Player fork unchanged.
+- Add metadata-only Aniyomi extension superclass/interface hierarchy diagnostics, including obfuscated superclass `i`, transitive missing dependencies and hierarchy scan errors. No extension code is executed and host API support is not yet implemented.
+- Keep native assrender AAR and Better Player fork unchanged.
 - APK build and Android TV behavior have not yet been verified.
 
 ## v1.4.9-beta25 — ASS clock stall recovery and Aniyomi host API diagnostics

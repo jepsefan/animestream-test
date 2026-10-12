@@ -5,8 +5,13 @@ open class AnimeFilter<T>(val name: String, val state: T)
 class AnimeFilterList(val list: List<AnimeFilter<*>> = emptyList()) : List<AnimeFilter<*>> by list {
     constructor(vararg filters: AnimeFilter<*>) : this(filters.toList())
 }
-interface SAnime
-interface SEpisode
+interface SAnime {
+    var url: String
+    var initialized: Boolean
+}
+interface SEpisode {
+    var url: String
+}
 class AnimesPage(val animes: List<SAnime>, val hasNextPage: Boolean)
 class AnimeRelation(val name: String, val animes: List<SAnime>)
 class SAnimeEpisodeUpdate(val anime: SAnime, val episodes: List<SEpisode>)

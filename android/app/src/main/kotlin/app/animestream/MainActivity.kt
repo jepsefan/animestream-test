@@ -178,6 +178,41 @@ class MainActivity: FlutterActivity() {
                 true
             } catch (_: Throwable) { false }
         )
+        // Walk the in-APK superclass chain (including obfuscated names such as
+        // "i") and its declared interfaces. Metadata-only: no class execution.
+        val hierarchy = mutableListOf<String>()
+        val hierarchyErrors = mutableListOf<String>()
+        val transitiveMissing = linkedSetOf<String>()
+        val visited = mutableSetOf<String>()
+        val pending = ArrayDeque<String>()
+        if (dexClassInfo != null) pending.add(expected)
+        while (pending.isNotEmpty() && visited.size < 64) {
+            val name = pending.removeFirst()
+            if (!visited.add(name)) continue
+            if (name !in availableClasses) {
+                if (!name.startsWith("java.") && !name.startsWith("javax.") &&
+                    !name.startsWith("android.") && !name.startsWith("kotlin.")) {
+                    transitiveMissing.add(name)
+                }
+                continue
+            }
+            val (definition, errors) = ExtensionDexInspector.inspect(apkPaths, name)
+            if (definition == null) {
+                hierarchyErrors.add("$name: ${errors.joinToString("; ")}")
+                continue
+            }
+            val parents = listOfNotNull(definition.superClass) + definition.interfaces
+            hierarchy.add("$name -> ${parents.joinToString(", ").ifEmpty { "(no parents)" }}")
+            for (parent in parents) if (parent !in visited) pending.add(parent)
+        }
+        if (pending.isNotEmpty()) hierarchyErrors.add("Hierarchy scan capped at 64 classes")
+        base["dexHierarchy"] = hierarchy.joinToString("\\n")
+        base["dexTransitiveMissingDependencies"] = transitiveMissing.joinToString(", ")
+            .ifEmpty { "(none found in superclass/interface chain)" }
+        base["dexHierarchyScanErrors"] = hierarchyErrors.joinToString("\\n").ifEmpty { "(none)" }
+        base["dexObfuscatedSuperclassResolved"] = if (dexClassInfo?.superClass != null &&
+            dexClassInfo.superClass in availableClasses)
+            hierarchy.any { it.startsWith("${dexClassInfo.superClass} ->") } else false
         // Diagnose host API requirements from DEX metadata without executing the extension.
         // A class can be listed in DEX but remain unloadable when its host interfaces
         // are absent from AnimeStream's classpath.

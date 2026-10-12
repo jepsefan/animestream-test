@@ -2,6 +2,13 @@
 
 Only the latest beta and two previous betas are shown here. Earlier history is in [CHANGELOG.md](CHANGELOG.md).
 
+## v1.4.9-beta26 — ASS playback clock continuity
+- Remove the remaining 1000 ms ASS interpolation cap so animations can advance while the Android TV player reports a stale position.
+- Distinguish fresh and repeated player positions; only use fresh reports to correct clock drift, while pause/buffering and seek transitions still re-anchor.
+- Add freshReports/staleReports counters to ASS performance logs for beta26 validation.
+- Keep native assrender AAR, extension diagnostics, and Better Player fork unchanged.
+- APK build and Android TV behavior have not yet been verified.
+
 ## v1.4.9-beta25 — ASS clock stall recovery and Aniyomi host API diagnostics
 - ASS monotonic playback clock no longer caps interpolation at 1000 ms when the player backend reports an unchanged position. This targets ASS animations freezing while video continues.
 - Re-anchor the subtitle clock on play/pause, buffering transitions, seek and significant drift **only when a fresh position report arrives**. Track stalled and recovered player position reports in [ASSRENDER][CLOCK] and 5-second performance logs.
@@ -11,6 +18,3 @@ Only the latest beta and two previous betas are shown here. Earlier history is i
 
 ## v1.4.9-beta24 — ASS playback clock and Aniyomi DEX fix
 - Interpolated subtitle clock between coarse player notifications; DEX header validation corrected; explicit dependency inspection status.
-
-## v1.4.9-beta23 — Extension and ASS performance diagnostics
-- DEX superclass/interfaces inspection and Flutter/native ASS performance logs.

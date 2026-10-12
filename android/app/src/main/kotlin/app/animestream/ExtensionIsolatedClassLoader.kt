@@ -18,7 +18,7 @@ internal class ExtensionIsolatedClassLoader(
 ) : DexClassLoader(dexPath, optimizedDirectory, librarySearchPath, parent) {
 
     override fun loadClass(name: String, resolve: Boolean): Class<*> {
-        synchronized(getClassLoadingLock(name)) {
+        synchronized(this) {
             findLoadedClass(name)?.let {
                 if (resolve) resolveClass(it)
                 return it

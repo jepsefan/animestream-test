@@ -333,14 +333,14 @@ class MainActivity: FlutterActivity() {
             "PathClassLoader" to PathClassLoader(dexPath, info.nativeLibraryDir,
                 javaClass.classLoader)
         )
-        base["loaderTopology"] = diagnosticLoaders.joinToString("; ") { (name, loader) ->
-            "$name parent=${loader.parent?.javaClass?.name ?: "bootstrap"}"
-        }
         val isolatedLoader = ExtensionIsolatedClassLoader(
             dexPath, codeCacheDir.absolutePath, info.nativeLibraryDir,
             javaClass.classLoader, availableClasses
         )
         val diagnosticLoaders = loaders + ("IsolatedChildFirst" to isolatedLoader)
+        base["loaderTopology"] = diagnosticLoaders.joinToString("; ") { (name, loader) ->
+            "$name parent=${loader.parent?.javaClass?.name ?: "bootstrap"}"
+        }
         val outcomes = mutableMapOf<String, String>()
         var resolvedBy: String? = null
         var firstError: Throwable? = null

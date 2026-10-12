@@ -91,6 +91,14 @@ flutter {
 
 dependencies {
     implementation("androidx.multidex:multidex:2.0.1")
+    // Runtime libraries referenced by Aniyomi extension bytecode.
+    // These do not replace the Aniyomi source-api module itself.
+    implementation("io.reactivex:rxjava:1.3.8")
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
+    implementation("org.jsoup:jsoup:1.17.2")
+    implementation("androidx.preference:preference-ktx:1.2.1")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1")
+
     // Download assrender-release.aar from jepsefan/assrender Actions.
     // Place it in android/app/libs/ before building AnimeStream.
     implementation(files("libs/assrender-release.aar"))

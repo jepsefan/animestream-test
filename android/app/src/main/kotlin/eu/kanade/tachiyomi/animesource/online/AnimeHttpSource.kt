@@ -1,0 +1,80 @@
+package eu.kanade.tachiyomi.animesource.online
+
+import eu.kanade.tachiyomi.animesource.AnimeCatalogueSource
+import eu.kanade.tachiyomi.animesource.model.*
+import okhttp3.Headers
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import okhttp3.Response
+import rx.Observable
+import java.security.MessageDigest
+
+/**
+ * First working HTTP/Rx bridge for Aniyomi's legacy source hooks.
+ *
+ * Deliberately limited to the common request/parse entry points. Upstream
+ * AnimeHttpSource has additional methods and dependency-injected network
+ * helpers that still need ABI-compatible implementations.
+ */
+abstract class AnimeHttpSource : AnimeCatalogueSource {
+    abstract val baseUrl: String
+    open fun getHomeUrl(): String = baseUrl
+    open val versionId: Int = 1
+    override val id: Long by lazy { generateId(name, lang, versionId) }
+
+    open val client: OkHttpClient by lazy { OkHttpClient.Builder().build() }
+    val headers: Headers by lazy { headersBuilder().build() }
+
+    protected open fun headersBuilder(): Headers.Builder =
+        Headers.Builder().add("User-Agent", "Mozilla/5.0 (AnimeStream Aniyomi compatibility)")
+
+    protected fun generateId(name: String, lang: String, versionId: Int): Long {
+        val bytes = MessageDigest.getInstance("MD5")
+            .digest("${name.lowercase()}/$lang/$versionId".toByteArray())
+        var id = 0L
+        for (i in 0 until 8) id = (id shl 8) or (bytes[i].toLong() and 255)
+        return id and Long.MAX_VALUE
+    }
+
+    override fun toString(): String = "$name (${lang.uppercase()})"
+
+    protected open fun popularAnimeRequest(page: Int): Request = throw UnsupportedOperationException()
+    protected open fun popularAnimeParse(response: Response): AnimesPage = throw UnsupportedOperationException()
+    protected open fun searchAnimeRequest(page: Int, query: String, filters: AnimeFilterList): Request =
+        throw UnsupportedOperationException()
+    protected open fun searchAnimeParse(response: Response): AnimesPage = throw UnsupportedOperationException()
+    protected open fun latestUpdatesRequest(page: Int): Request = throw UnsupportedOperationException()
+    protected open fun latestUpdatesParse(response: Response): AnimesPage = throw UnsupportedOperationException()
+
+    private fun <T> fetch(request: Request, parse: (Response) -> T): Observable<T> =
+        Observable.fromCallable {
+            client.newCall(request).execute().use { response ->
+                if (!response.isSuccessful) throw java.io.IOException("HTTP ${response.code}")
+                parse(response)
+            }
+        }
+
+    override fun fetchPopularAnime(page: Int): Observable<AnimesPage> =
+        fetch(popularAnimeRequest(page), ::popularAnimeParse)
+
+    override fun fetchSearchAnime(page: Int, query: String, filters: AnimeFilterList): Observable<AnimesPage> =
+        fetch(searchAnimeRequest(page, query, filters), ::searchAnimeParse)
+
+    override fun fetchLatestUpdates(page: Int): Observable<AnimesPage> =
+        fetch(latestUpdatesRequest(page), ::latestUpdatesParse)
+
+    open fun animeDetailsRequest(anime: SAnime): Request =
+        Request.Builder().url(baseUrl + anime.url).headers(headers).build()
+    protected open fun animeDetailsParse(response: Response): SAnime =
+        throw UnsupportedOperationException()
+    open fun episodeListRequest(anime: SAnime): Request =
+        Request.Builder().url(baseUrl + anime.url).headers(headers).build()
+    protected open fun episodeListParse(response: Response): List<SEpisode> =
+        throw UnsupportedOperationException()
+
+    override fun fetchAnimeDetails(anime: SAnime): Observable<SAnime> =
+        fetch(animeDetailsRequest(anime)) { animeDetailsParse(it).apply { initialized = true } }
+
+    override fun fetchEpisodeList(anime: SAnime): Observable<List<SEpisode>> =
+        fetch(episodeListRequest(anime), ::episodeListParse)
+}

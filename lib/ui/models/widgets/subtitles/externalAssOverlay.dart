@@ -71,6 +71,7 @@ class _ExternalAssOverlayState extends State<ExternalAssOverlay>
   void initState() {
     super.initState();
     _frameTicker = createTicker(_onFrame);
+    AssUpdateFrequency.current.addListener(_onAssFpsChanged);
     AssUpdateFrequency.load().then((fps) {
       if (mounted) _assFps = fps;
     });
@@ -218,6 +219,12 @@ class _ExternalAssOverlayState extends State<ExternalAssOverlay>
         : interpolated.clamp(0, duration);
   }
 
+  void _onAssFpsChanged() {
+    if (!mounted) return;
+    _assFps = AssUpdateFrequency.current.value;
+    _lastCappedFrameUs = -1;
+  }
+
   void _onFrame(Duration elapsed) {
     if (!_ready || !mounted) return;
     final position = _assPosition();
@@ -356,6 +363,7 @@ class _ExternalAssOverlayState extends State<ExternalAssOverlay>
   void dispose() {
     ++_generation;
     _frameTicker.stop();
+    AssUpdateFrequency.current.removeListener(_onAssFpsChanged);
     _frameTicker.dispose();
     widget.controller.removeListener(_onPlayerUpdate);
     _playbackClock.stop();

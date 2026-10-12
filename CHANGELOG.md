@@ -1,5 +1,6 @@
 ## v1.4.9-beta26 — ASS playback clock continuity
 - Keep ASS animations advancing when player position notifications stop updating; distinguish fresh/stale reports and add counters for diagnosis.
+- Extend Aniyomi DEX diagnostics to inspect obfuscated superclass chains and transitive host API dependencies, without executing extension code.
 - No changes to native assrender or Aniyomi extension execution support.
 
 # Beta19 (in progress)

@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 import 'dart:typed_data';
+import 'package:animestream/core/data/assUpdateFrequency.dart';
 
 import 'package:animestream/ui/models/playerControllers/videoController.dart';
 import 'package:flutter/material.dart';
@@ -34,6 +35,8 @@ class _ExternalAssOverlayState extends State<ExternalAssOverlay>
   static const _channel = MethodChannel('animestream.app/assrender');
   late final Ticker _frameTicker;
   int _lastIdlePollUs = 0;
+  int _assFps = 0;
+  int _lastCappedFrameUs = -1;
   final Stopwatch _playbackClock = Stopwatch();
   int? _clockAnchorPosition;
   int _clockAnchorElapsedMs = 0;
@@ -68,6 +71,9 @@ class _ExternalAssOverlayState extends State<ExternalAssOverlay>
   void initState() {
     super.initState();
     _frameTicker = createTicker(_onFrame);
+    AssUpdateFrequency.load().then((fps) {
+      if (mounted) _assFps = fps;
+    });
     _playbackClock.start();
     widget.controller.addListener(_onPlayerUpdate);
     _onPlayerUpdate();
@@ -253,8 +259,12 @@ class _ExternalAssOverlayState extends State<ExternalAssOverlay>
     }
     final active = _cueTimes.any((cue) => cue.$1 <= position && position < cue.$2);
     final nowUs = elapsed.inMicroseconds;
-    if (active || _lastPosition < 0 || position < _lastPosition ||
-        nowUs - _lastIdlePollUs >= 150000) {
+    final minIntervalUs = _assFps == 0 ? 0 : (1000000 / _assFps).ceil();
+    final permitted = _lastCappedFrameUs < 0 || nowUs < _lastCappedFrameUs ||
+        nowUs - _lastCappedFrameUs >= minIntervalUs;
+    if (permitted && (active || _lastPosition < 0 || position < _lastPosition ||
+        nowUs - _lastIdlePollUs >= 150000)) {
+      _lastCappedFrameUs = nowUs;
       if (!active) _lastIdlePollUs = nowUs;
       _render();
     }

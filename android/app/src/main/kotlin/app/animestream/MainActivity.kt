@@ -278,6 +278,24 @@ class MainActivity: FlutterActivity() {
                 }
             }
         }
+        // A package-context loader can resolve dependencies packaged as split APKs
+        // using Android's own installed-package class path. This is still
+        // metadata-only: Class.forName(..., false, ...) does not initialize code.
+        try {
+            val packageContext = createPackageContext(
+                packageName, android.content.Context.CONTEXT_INCLUDE_CODE or
+                    android.content.Context.CONTEXT_IGNORE_SECURITY
+            )
+            val clazz = Class.forName(target, false, packageContext.classLoader)
+            outcomes["PackageContextClassLoader"] = "class_found: ${clazz.name}"
+            if (resolvedBy == null) resolvedBy = "PackageContextClassLoader"
+        } catch (e: Throwable) {
+            val causes = generateSequence(e) { it.cause }.take(8).toList()
+            outcomes["PackageContextClassLoader"] = causes.joinToString(" -> ") {
+                it.javaClass.simpleName + ": " + (it.message ?: "")
+            }
+        }
+        base["packageContextClassLoaderResult"] = outcomes["PackageContextClassLoader"]
         base["dexClassLoaderResult"] = outcomes["DexClassLoader"]
         base["pathClassLoaderResult"] = outcomes["PathClassLoader"]
         base["resolvedByLoader"] = resolvedBy

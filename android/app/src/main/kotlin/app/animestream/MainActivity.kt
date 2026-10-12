@@ -333,13 +333,18 @@ class MainActivity: FlutterActivity() {
             "PathClassLoader" to PathClassLoader(dexPath, info.nativeLibraryDir,
                 javaClass.classLoader)
         )
-        base["loaderTopology"] = loaders.joinToString("; ") { (name, loader) ->
+        base["loaderTopology"] = diagnosticLoaders.joinToString("; ") { (name, loader) ->
             "$name parent=${loader.parent?.javaClass?.name ?: "bootstrap"}"
         }
+        val isolatedLoader = ExtensionIsolatedClassLoader(
+            dexPath, codeCacheDir.absolutePath, info.nativeLibraryDir,
+            javaClass.classLoader, availableClasses
+        )
+        val diagnosticLoaders = loaders + ("IsolatedChildFirst" to isolatedLoader)
         val outcomes = mutableMapOf<String, String>()
         var resolvedBy: String? = null
         var firstError: Throwable? = null
-        for ((name, loader) in loaders) {
+        for ((name, loader) in diagnosticLoaders) {
             try {
                 val clazz = Class.forName(target, false, loader)
                 outcomes[name] = "class_found: ${clazz.name}"
@@ -404,7 +409,7 @@ class MainActivity: FlutterActivity() {
                     "${error.javaClass.simpleName}: ${error.message}"
             }
         }
-        base["loaderSuperclassComparison"] = loaders.joinToString("\n") { (name, loader) ->
+        base["loaderSuperclassComparison"] = diagnosticLoaders.joinToString("\n") { (name, loader) ->
             if (superName == null) "$name: no superclass"
             else try {
                 val loaded = Class.forName(superName, false, loader)
@@ -436,9 +441,11 @@ class MainActivity: FlutterActivity() {
             "PackageContext: ${base["packageContextSuperclassResolution"] ?: "(unavailable)"}",
             "DEX hierarchy flags: ${base["dexHierarchyAccessFlags"] ?: "(unavailable)"}",
             "Loader topology: ${base["loaderTopology"] ?: "(unavailable)"}",
-            "Superclass comparison: ${base["loaderSuperclassComparison"] ?: "(unavailable)"}"
+            "Superclass comparison: ${base["loaderSuperclassComparison"] ?: "(unavailable)"}",
+            "Isolated child-first: ${outcomes["IsolatedChildFirst"] ?: "(unavailable)"}"
         ).joinToString("\n")
         base["packageContextClassLoaderResult"] = outcomes["PackageContextClassLoader"]
+        base["isolatedChildFirstResult"] = outcomes["IsolatedChildFirst"]
         base["dexClassLoaderResult"] = outcomes["DexClassLoader"]
         base["pathClassLoaderResult"] = outcomes["PathClassLoader"]
         base["resolvedByLoader"] = resolvedBy

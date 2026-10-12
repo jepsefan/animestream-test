@@ -317,8 +317,8 @@ class MainActivity: FlutterActivity() {
         base["missingHostApiClassCount"] = hostApiProbe.values.count { it != "available" }
         base["missingAniyomiHostApiTypes"] = missingHostInterfaces.joinToString(", ")
             .ifEmpty { "(none detected in direct dependencies)" }
-        base["hostApiDependencyStatus"] = if (missingHostInterfaces.isNotEmpty())
-            "missing_host_api_dependency_detected" else "no_direct_host_api_dependency_detected"
+        base["hostApiDependencyStatus"] = if (hostApiProbe.values.any { it != "available" })
+            "host_api_runtime_resolution_failed" else "host_api_dependencies_resolved_or_not_required"
         if (target == null) {
             base["status"] = "class_not_in_dex"
             base["diagnosis"] = "Declared entry point absent from scanned base/split APK DEX files"

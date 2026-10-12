@@ -4,7 +4,8 @@ Only the latest beta and two previous betas are shown here. Earlier history is i
 
 ## v1.4.9-beta31 — Aniyomi Host API scaffolding (partial)
 - Added first-pass Kotlin source contracts for AnimeSource, AnimeCatalogueSource and ConfigurableAnimeSource, plus minimal placeholder model types. These are NOT verified binary compatible and cannot yet execute extensions.
-- AnimeHttpSource, model field/method ABI, network host, injection, preference storage, and real class instantiation remain unimplemented. Do not use this as a working extension runtime.
+- Added an initial AnimeHttpSource HTTP/RxJava bridge for legacy popular/search/latest/detail/episode request-and-parse hooks. This is partial and not binary-compatibility verified.
+- Complete model field/method ABI, network host/injection, preference storage, newer API hooks, and real class instantiation remain unimplemented. Do not use this as a working extension runtime.
 - Added a third non-initializing class-resolution test using Android's installed-package context classloader, in addition to DexClassLoader and PathClassLoader.
 - Added Android runtime dependencies RxJava 1, OkHttp, Jsoup, AndroidX Preference and Kotlin coroutines; their integration is not build-verified.
 - Added hostApiMissingClassNames and hostApiReadinessStatus so missing dependencies can be read directly.

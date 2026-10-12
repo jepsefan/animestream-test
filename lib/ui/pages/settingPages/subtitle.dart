@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:animestream/core/data/assUpdateFrequency.dart';
 
 import 'package:animestream/core/app/runtimeDatas.dart';
 import 'package:animestream/core/data/preferences.dart';
@@ -35,6 +36,9 @@ class _SubtitleSettingPageState extends State<SubtitleSettingPage> {
     // subtitleSettings = SubtitleSettings();
     // settings = subtitleSettings;
     readSubSettings();
+    AssUpdateFrequency.load().then((fps) {
+      if (mounted) setState(() => assFps = fps);
+    });
   }
 
   @override
@@ -80,6 +84,7 @@ class _SubtitleSettingPageState extends State<SubtitleSettingPage> {
 
   bool initialised = false;
   bool previewMode = false;
+  int assFps = 0;
 
   late SubtitleSettings settings;
 
@@ -185,6 +190,27 @@ class _SubtitleSettingPageState extends State<SubtitleSettingPage> {
                               padding: EdgeInsets.only(bottom: 40),
                               shrinkWrap: true,
                               children: [
+                                _itemTitle("ASS Renderer"),
+                                ListTile(
+                                  title: Text("Update Frequency", style: TextStyle(color: appTheme.textMainColor)),
+                                  subtitle: Text("Auto follows display vsync; higher rates increase load.",
+                                      style: TextStyle(color: appTheme.textMainColor)),
+                                  trailing: DropdownButton<int>(
+                                    value: assFps,
+                                    dropdownColor: appTheme.backgroundSubColor,
+                                    items: const [
+                                      DropdownMenuItem(value: 0, child: Text("Auto")),
+                                      DropdownMenuItem(value: 30, child: Text("30 FPS")),
+                                      DropdownMenuItem(value: 60, child: Text("60 FPS")),
+                                      DropdownMenuItem(value: 120, child: Text("120 FPS")),
+                                    ],
+                                    onChanged: (fps) async {
+                                      if (fps == null) return;
+                                      await AssUpdateFrequency.save(fps);
+                                      if (mounted) setState(() => assFps = fps);
+                                    },
+                                  ),
+                                ),
                                 _itemTitle("Font Family"),
                                 Container(
                                   margin: EdgeInsets.only(bottom: 20),

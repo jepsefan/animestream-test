@@ -3,6 +3,7 @@ package app.animestream
 import android.content.Context
 import android.app.Application
 import uy.kohesive.injekt.Injekt
+import uy.kohesive.injekt.api.TypeReference
 import android.content.pm.PackageManager
 import dalvik.system.DexFile
 import android.os.Build
@@ -69,7 +70,7 @@ internal class ExtensionSearchProbe(private val context: Context) {
                 "error" to "Android applicationContext is not an Application"
             )
         synchronized(ExtensionSearchProbe::class.java) {
-            Injekt.addSingleton(application as Application)
+            Injekt.addSingleton(object : TypeReference<Application>() {}, application)
         }
         val pm = context.packageManager
         val info = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {

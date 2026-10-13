@@ -101,7 +101,11 @@ dependencies {
     // Match the OkHttp ABI used by current Aniyomi extensions.
     implementation("com.squareup.okhttp3:okhttp:5.4.0")
     implementation("org.jsoup:jsoup:1.17.2")
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.3")
+    // Aniyomi's Json+Okio bridge is a separate artifact: extensions reference
+    // kotlinx.serialization.json.okio.OkioStreamsKt at runtime.
+    // Keep both kotlinx serialization artifacts on the same upstream version.
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.9.0")
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json-okio:1.9.0")
     implementation("androidx.preference:preference-ktx:1.2.1")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1")
 

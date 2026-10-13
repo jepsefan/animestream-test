@@ -55,6 +55,18 @@ class MainActivity: FlutterActivity() {
                         }
                     }
                 }
+                "testExtensionSearch" -> {
+                    val pkg = call.argument<String>("packageName")
+                    val query = call.argument<String>("query")
+                    if (pkg.isNullOrBlank() || query.isNullOrBlank()) {
+                        result.error("INVALID_SEARCH", "Missing packageName or query", null)
+                    } else {
+                        Thread {
+                            val data = ExtensionSearchProbe(this).search(pkg, query)
+                            runOnUiThread { result.success(data) }
+                        }.start()
+                    }
+                }
                 "listInstalledExtensions" -> {
                     try {
                         result.success(listInstalledAnimeExtensions())

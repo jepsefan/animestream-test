@@ -5,7 +5,7 @@ Only the three most recent beta versions are kept here. When a new beta is added
 ## v1.4.9-beta34.3 — Better extension error diagnostics (unverified)
 - Capture nested exceptions and stack traces for failed extension searches.
 - Collapse verbose class diagnostics and clarify that playback is not yet supported.
-- Host Application injection remains unresolved; build and device test required.
+- Added Android Application registration in Injekt before extension initialization; build and device test required.
 
 ## v1.4.9-beta34.2 — Extension search runtime dependencies (unverified)
 - Added Injekt core runtime dependency and R8 keep rules for kotlinx.serialization classes.

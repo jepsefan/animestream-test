@@ -70,7 +70,9 @@ internal class ExtensionSearchProbe(private val context: Context) {
                 "error" to "Android applicationContext is not an Application"
             )
         synchronized(ExtensionSearchProbe::class.java) {
-            Injekt.addSingleton(object : TypeReference<Application>() {}, application)
+            Injekt.addSingleton(object : TypeReference<Application> {
+                override val type: java.lang.reflect.Type = Application::class.java
+            }, application)
         }
         val pm = context.packageManager
         val info = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {

@@ -103,7 +103,7 @@ class MainActivity: FlutterActivity() {
 
     // Diagnostic only: enumerate APK DEX classes and resolve without initialization.
     // This does not instantiate or execute extension source classes.
-    private fun inspectExtensionClass(packageName: String): Map<String, Any?> {
+    private fun inspectExtensionClass(packageName: String, attemptInstantiation: Boolean = false): Map<String, Any?> {
         val pm = packageManager
         val info = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             pm.getApplicationInfo(packageName, PackageManager.ApplicationInfoFlags.of(PackageManager.GET_META_DATA.toLong()))

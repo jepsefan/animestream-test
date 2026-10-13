@@ -11,6 +11,12 @@ class AniyomiExtensionBridge {
     return Map<String, dynamic>.from(raw ?? const {});
   }
 
+  static Future<Map<String, dynamic>> testExtensionInstantiation(String packageName) async {
+    final raw = await _channel.invokeMethod<Map<dynamic, dynamic>>(
+      'testExtensionInstantiation', {'packageName': packageName});
+    return Map<String, dynamic>.from(raw ?? const {});
+  }
+
   static Future<List<AniyomiExtensionInfo>> listInstalledExtensions() async {
     final raw = await _channel.invokeMethod<List<dynamic>>('listInstalledExtensions');
     return (raw ?? const <dynamic>[])

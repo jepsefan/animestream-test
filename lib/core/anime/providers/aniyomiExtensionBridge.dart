@@ -17,6 +17,14 @@ class AniyomiExtensionBridge {
     return Map<String, dynamic>.from(raw ?? const {});
   }
 
+  /// Runs an installed extension's search code only after explicit user consent.
+  static Future<Map<String, dynamic>> testExtensionSearch(
+      String packageName, String query) async {
+    final raw = await _channel.invokeMethod<Map<dynamic, dynamic>>(
+      'testExtensionSearch', {'packageName': packageName, 'query': query});
+    return Map<String, dynamic>.from(raw ?? const {});
+  }
+
   static Future<List<AniyomiExtensionInfo>> listInstalledExtensions() async {
     final raw = await _channel.invokeMethod<List<dynamic>>('listInstalledExtensions');
     return (raw ?? const <dynamic>[])

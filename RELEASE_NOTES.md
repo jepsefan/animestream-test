@@ -2,6 +2,11 @@
 
 Only the three most recent beta versions are kept here. When a new beta is added, the oldest entry moves to [CHANGELOG.md](CHANGELOG.md).
 
+## v1.4.9-beta34.6 — AnimeHttpSource URL ABI and OkHttp alignment (unverified)
+- Add source model and episode setUrlWithoutDomain methods used by 123Anime.
+- Align OkHttp dependency with Aniyomi 5.4.0 and include ResponseBody.source method diagnostics for AnimeOnsen.
+- Requires build and device testing. Playback and automatic matching remain unsupported.
+
 ## v1.4.9-beta34.5 — Aniyomi Host API compatibility (unverified)
 - Add Aniyomi JsoupExtensionsKt parsing helpers for 123Anime.
 - Add minimal NetworkHelper, protected AnimeHttpSource.getNetwork() access, and Injekt registration for AnimeOnsen.
@@ -13,9 +18,3 @@ Only the three most recent beta versions are kept here. When a new beta is added
 - Register kotlinx.serialization.json.Json with the Injekt container before extension loading for AnimeOnsen.
 - Fix visible literal newline escapes in extension source class labels.
 - AnimePahe deferred because its website is unavailable. Build and device search remain to be tested; no playback or source matching yet.
-
-## v1.4.9-beta34.3 — Better extension error diagnostics (unverified)
-- Capture nested exceptions and stack traces for failed extension searches.
-- Collapse verbose class diagnostics and clarify that playback is not yet supported.
-- Added Android Application registration in Injekt before extension initialization; build and device test required.
-

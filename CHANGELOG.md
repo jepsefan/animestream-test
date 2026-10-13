@@ -1,3 +1,18 @@
+## v1.4.9-beta34 — Aniyomi search diagnostic (development)
+- New manually triggered extension search in Manage Providers with confirmation and result diagnostics.
+- Flutter-to-Android search bridge; isolated classloader and bounded search results.
+- No automatic source matching, episode lists or playable streams yet. Build/device verification pending.
+
+## v1.4.9-beta33.1–beta33.4 — Aniyomi extension execution groundwork
+- Confirmed isolated class loading and constructor ABI for 123Anime and AnimeOnsen.
+- Added explicit instance creation test; resolved missing Kotlin runtime classes in release builds.
+- User-reported Beta 33.4 diagnostics confirmed successful instance creation for both extensions.
+- Search, episode retrieval and playback remained unverified.
+
+## v1.4.9-beta32 — Isolated classloader investigation
+- Diagnosed obfuscated superclass verification failures; added child-first loader and runtime/DEX diagnostics.
+- User tests showed classes could be resolved using the isolated loader.
+
 ## v1.4.9-beta26 — ASS playback clock continuity
 - Keep ASS animations advancing when player position notifications stop updating; distinguish fresh/stale reports and add counters for diagnosis.
 - Extend Aniyomi DEX diagnostics to inspect obfuscated superclass chains and transitive host API dependencies, without executing extension code.

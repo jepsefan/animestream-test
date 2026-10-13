@@ -22,6 +22,9 @@ class _PluginPageState extends State<PluginPage> {
   String? _busyId;
   final Map<String, String> _classDiagnostics = {};
   final Set<String> _testingExtensions = {};
+  final Map<String, String> _searchDiagnostics = {};
+  final Map<String, TextEditingController> _searchControllers = {};
+  final Set<String> _searchingExtensions = {};
 
   @override
   void initState() {
@@ -158,6 +161,65 @@ class _PluginPageState extends State<PluginPage> {
     }
   }
 
+  Future<void> _confirmSearch(AniyomiExtensionInfo ext) async {
+    final controller = _searchControllers.putIfAbsent(
+        ext.packageName, () => TextEditingController());
+    final query = controller.text.trim();
+    if (query.isEmpty) {
+      setState(() => _searchDiagnostics[ext.packageName] = 'Enter a search query.');
+      return;
+    }
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Run extension search?'),
+        content: Text('This executes code from ${ext.name} and may connect to '
+            'external websites. Continue only if you trust this extension.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false),
+              child: const Text('Cancel')),
+          TextButton(onPressed: () => Navigator.pop(context, true),
+              child: const Text('Search')),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    setState(() {
+      _searchingExtensions.add(ext.packageName);
+      _searchDiagnostics[ext.packageName] = 'Searching...';
+    });
+    try {
+      final data = await AniyomiExtensionBridge.testExtensionSearch(
+          ext.packageName, query);
+      if (!mounted) return;
+      final results = (data['results'] as List?) ?? const [];
+      final summary = <String>[
+        'Status: ${data['status'] ?? 'unknown'}',
+        if (data['error'] != null) 'Error: ${data['error']}',
+        'Results: ${data['resultCount'] ?? results.length}',
+        for (final item in results)
+          if (item is Map)
+            '${item['title'] ?? '(untitled)'}\n'
+            'URL: ${item['url'] ?? ''}\n'
+            'Cover: ${item['cover'] ?? ''}',
+      ].join('\n\n');
+      setState(() => _searchDiagnostics[ext.packageName] = summary);
+    } catch (error) {
+      if (mounted) setState(() =>
+          _searchDiagnostics[ext.packageName] = 'Search failed: $error');
+    } finally {
+      if (mounted) setState(() => _searchingExtensions.remove(ext.packageName));
+    }
+  }
+
+  @override
+  void dispose() {
+    for (final controller in _searchControllers.values) {
+      controller.dispose();
+    }
+    super.dispose();
+  }
+
   Future<void> _install(ProviderDetails item) async {
     setState(() => _busyId = item.identifier);
     try {
@@ -256,6 +318,33 @@ class _PluginPageState extends State<PluginPage> {
                               '${_classDiagnostics[ext.packageName] != null ? "\n\n${_classDiagnostics[ext.packageName]}" : ""}',
                             ),
                           ),
+                          const SizedBox(height: 12),
+                          TextField(
+                            controller: _searchControllers.putIfAbsent(
+                                ext.packageName, () => TextEditingController()),
+                            decoration: const InputDecoration(
+                              labelText: 'Extension search test',
+                              hintText: 'Anime title',
+                              border: OutlineInputBorder(),
+                            ),
+                            textInputAction: TextInputAction.search,
+                            onSubmitted: (_) => _searchingExtensions.contains(ext.packageName)
+                                ? null : _confirmSearch(ext),
+                          ),
+                          Align(
+                            alignment: Alignment.centerRight,
+                            child: TextButton(
+                              onPressed: _searchingExtensions.contains(ext.packageName)
+                                  ? null : () => _confirmSearch(ext),
+                              child: Text(_searchingExtensions.contains(ext.packageName)
+                                  ? 'Searching...' : 'Test search'),
+                            ),
+                          ),
+                          if (_searchDiagnostics[ext.packageName] != null)
+                            Align(
+                              alignment: Alignment.centerLeft,
+                              child: SelectableText(_searchDiagnostics[ext.packageName]!),
+                            ),
                           Wrap(
                             alignment: WrapAlignment.end,
                             spacing: 8,

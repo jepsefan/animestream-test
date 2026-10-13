@@ -9,6 +9,8 @@ import okhttp3.Request
 import okhttp3.Response
 import rx.Observable
 import java.security.MessageDigest
+import java.net.URI
+import java.net.URISyntaxException
 
 /**
  * First working HTTP/Rx bridge for Aniyomi's legacy source hooks.
@@ -37,6 +39,32 @@ abstract class AnimeHttpSource : AnimeCatalogueSource {
         var id = 0L
         for (i in 0 until 8) id = (id shl 8) or (bytes[i].toLong() and 255)
         return id and Long.MAX_VALUE
+    }
+
+
+    /**
+     * Aniyomi's member extension methods are compiled as public instance methods
+     * on AnimeHttpSource with JVM descriptors (SAnime, String) and (SEpisode, String).
+     * Installed extensions call these directly during search-result parsing.
+     */
+    fun SAnime.setUrlWithoutDomain(url: String) {
+        this.url = getUrlWithoutDomain(url)
+    }
+
+    fun SEpisode.setUrlWithoutDomain(url: String) {
+        this.url = getUrlWithoutDomain(url)
+    }
+
+    private fun getUrlWithoutDomain(original: String): String {
+        return try {
+            val uri = URI(original)
+            var result = uri.path ?: return original
+            uri.query?.let { result += "?$it" }
+            uri.fragment?.let { result += "#$it" }
+            result
+        } catch (_: URISyntaxException) {
+            original
+        }
     }
 
     override fun toString(): String = "$name (${lang.uppercase()})"

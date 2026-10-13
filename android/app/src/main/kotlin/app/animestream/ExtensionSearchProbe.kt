@@ -1,6 +1,7 @@
 package app.animestream
 
 import android.content.Context
+import android.content.pm.PackageManager
 import dalvik.system.DexFile
 import android.os.Build
 import java.io.File

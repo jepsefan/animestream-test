@@ -217,6 +217,10 @@ class _PluginPageState extends State<PluginPage> {
         if (data['titleMatchCount'] != null)
           'Matching displayed titles: ${data['titleMatchCount']} of ${results.length}',
         'Results: ${data['resultCount'] ?? results.length}',
+        if (data['resultRelevance'] != null)
+          'Relevance: ${data['resultRelevance']}',
+        if (data['alternateEndpoint'] is Map)
+          '123Anime /search endpoint test: ${data['alternateEndpoint']}',
         if (networkDiagnostics.isNotEmpty)
           'Network diagnostics (no secrets):\n$networkLines',
         for (final item in results)

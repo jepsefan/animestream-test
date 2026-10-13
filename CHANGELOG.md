@@ -1,3 +1,6 @@
+## v1.4.9-beta34.3 — Better extension diagnostics
+- Nested error chain and stack trace, collapsible class diagnostics; Application injection still pending.
+
 ## v1.4.9-beta34.2 — Extension search runtime dependencies
 - Added Injekt runtime dependency, serialization keep rules and missing-runtime diagnostics for Aniyomi search.
 - Build and runtime compatibility remain unverified.

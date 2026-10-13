@@ -436,17 +436,8 @@ class MainActivity: FlutterActivity() {
                 "(flags=0x${dexSuperDefinition.accessFlags.toString(16)})"
         }
         base["superclassDiagnosticSummary"] = superclassSummary
-        base["diagnosticDetails"] = listOf(
-            superclassSummary,
-            "PackageContext: ${base["packageContextSuperclassResolution"] ?: "(unavailable)"}",
-            "DEX hierarchy flags: ${base["dexHierarchyAccessFlags"] ?: "(unavailable)"}",
-            "Loader topology: ${base["loaderTopology"] ?: "(unavailable)"}",
-            "Superclass comparison: ${base["loaderSuperclassComparison"] ?: "(unavailable)"}",
-            "Isolated child-first: ${outcomes["IsolatedChildFirst"] ?: "(unavailable)"}",
-            "Extension ABI: ${base["extensionAbiReadiness"] ?: "(unavailable)"}",
-            "Constructors: ${base["extensionConstructorProbe"] ?: "(unavailable)"}"
-        ).joinToString("\n")
-        // Beta 33: reflection-only ABI probe. No initialization or constructor invocation.
+        // Beta 33.1: reflection-only ABI probe. No initialization or constructor invocation.
+        base["extensionInstantiationStatus"] = "not_attempted"
         try {
             val entry = Class.forName(target, false, isolatedLoader)
             val source = Class.forName("eu.kanade.tachiyomi.animesource.AnimeSource", false, javaClass.classLoader)
@@ -467,6 +458,19 @@ class MainActivity: FlutterActivity() {
             base["extensionAbiReadiness"] = "reflection_failed"
             base["extensionConstructorProbe"] = "${error.javaClass.simpleName}: ${error.message}"
         }
+        base["diagnosticDetails"] = listOf(
+            superclassSummary,
+            "PackageContext: ${base["packageContextSuperclassResolution"] ?: "(unavailable)"}",
+            "DEX hierarchy flags: ${base["dexHierarchyAccessFlags"] ?: "(unavailable)"}",
+            "Loader topology: ${base["loaderTopology"] ?: "(unavailable)"}",
+            "Superclass comparison: ${base["loaderSuperclassComparison"] ?: "(unavailable)"}",
+            "Isolated child-first: ${outcomes["IsolatedChildFirst"] ?: "(unavailable)"}",
+            "Extension ABI: ${base["extensionAbiReadiness"] ?: "(unavailable)"}",
+            "Constructors: ${base["extensionConstructorProbe"] ?: "(unavailable)"}",
+            "Implements host AnimeSource: ${base["extensionImplementsHostAnimeSource"] ?: "(unavailable)"}",
+            "No-arg constructor: ${base["extensionNoArgConstructorAvailable"] ?: "(unavailable)"}",
+            "Instantiation: ${base["extensionInstantiationStatus"] ?: "not_attempted"}"
+        ).joinToString("\n")
         base["packageContextClassLoaderResult"] = outcomes["PackageContextClassLoader"]
         base["isolatedChildFirstResult"] = outcomes["IsolatedChildFirst"]
         base["dexClassLoaderResult"] = outcomes["DexClassLoader"]

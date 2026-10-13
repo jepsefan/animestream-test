@@ -1,3 +1,11 @@
+## v1.4.9-beta34.9 — Search relevance and safe network diagnostics
+- Added per-request HTTP host/status, authorization presence, query match comparison and mitigation header diagnostics, without logging query values, tokens or cookies.
+- Flag suspicious search results when displayed titles do not include the submitted phrase.
+- Beta 34.8 device tests: 123Anime executes but returns generic titles for "Ascendance of a Bookworm"; AnimeOnsen reaches HTTP 403.
+
+## v1.4.9-beta34.6 — URL and OkHttp compatibility (archived from release notes)
+- Added setUrlWithoutDomain methods and upgraded OkHttp to 5.4.0.
+
 ## v1.4.9-beta34.8 — Serialization JSON Okio runtime
 - Add kotlinx-serialization-json-okio 1.9.0, update serialization-json from 1.6.3 to 1.9.0 and preflight the class OkioStreamsKt. Requires build/device validation.
 

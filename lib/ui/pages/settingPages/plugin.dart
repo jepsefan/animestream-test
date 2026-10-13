@@ -313,8 +313,8 @@ class _PluginPageState extends State<PluginPage> {
                             alignment: Alignment.centerLeft,
                             child: SelectableText(
                               'Extension detected — playback not yet supported'
-                              '\\nSource class: ${ext.sourceClass ?? "unknown"}'
-                              '${ext.sourceFactory != null ? "\\nSource factory: ${ext.sourceFactory}" : ""}',
+                              '\nSource class: ${ext.sourceClass ?? "unknown"}'
+                              '${ext.sourceFactory != null ? "\nSource factory: ${ext.sourceFactory}" : ""}',
                             ),
                           ),
                           if (_classDiagnostics[ext.packageName] != null)

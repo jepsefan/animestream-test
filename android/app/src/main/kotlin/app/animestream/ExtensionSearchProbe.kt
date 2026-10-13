@@ -5,6 +5,7 @@ import android.app.Application
 import uy.kohesive.injekt.Injekt
 import uy.kohesive.injekt.api.TypeReference
 import kotlinx.serialization.json.Json
+import eu.kanade.tachiyomi.network.NetworkHelper
 import android.content.pm.PackageManager
 import dalvik.system.DexFile
 import android.os.Build
@@ -70,10 +71,14 @@ internal class ExtensionSearchProbe(private val context: Context) {
                 "status" to "missing_application",
                 "error" to "Android applicationContext is not an Application"
             )
+        val networkHelper = NetworkHelper.initialize(application)
         synchronized(ExtensionSearchProbe::class.java) {
             Injekt.addSingleton(object : TypeReference<Application> {
                 override val type: java.lang.reflect.Type = Application::class.java
             }, application)
+            Injekt.addSingleton(object : TypeReference<NetworkHelper> {
+                override val type: java.lang.reflect.Type = NetworkHelper::class.java
+            }, networkHelper)
             // AnimeOnsen retrieves Json via the same global Injekt container.
             Injekt.addSingleton(object : TypeReference<Json> {
                 override val type: java.lang.reflect.Type = Json::class.java

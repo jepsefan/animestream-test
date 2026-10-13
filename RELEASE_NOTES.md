@@ -2,6 +2,11 @@
 
 Only the three most recent beta versions are kept here. When a new beta is added, the oldest entry moves to [CHANGELOG.md](CHANGELOG.md).
 
+## v1.4.9-beta34.3 — Better extension error diagnostics (unverified)
+- Capture nested exceptions and stack traces for failed extension searches.
+- Collapse verbose class diagnostics and clarify that playback is not yet supported.
+- Host Application injection remains unresolved; build and device test required.
+
 ## v1.4.9-beta34.2 — Extension search runtime dependencies (unverified)
 - Added Injekt core runtime dependency and R8 keep rules for kotlinx.serialization classes.
 - Added pre-search diagnostics for InjektKt and JsonObjectBuilder, reporting missing_host_runtime if absent.
@@ -13,7 +18,3 @@ Only the three most recent beta versions are kept here. When a new beta is added
 - Search diagnostics return up to 20 titles, source URLs and cover URLs, or an error. The search operation has a 25-second wait limit.
 - This is a diagnostic only: AniList remains the primary metadata source. No episode loading, stream playback or automatic matching is enabled.
 - **Not yet build-verified or device-tested.** The partial Aniyomi Host API and filter ABI may still need changes.
-
-## v1.4.9-beta33.4 — Kotlin runtime and extension instantiation
-- Added release keep rules for Kotlin runtime and coroutines classes used dynamically by Aniyomi APKs.
-- User-provided Beta 33.4 diagnostics showed successful instance creation for 123Anime and AnimeOnsen; search and playback were not tested.

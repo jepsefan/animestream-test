@@ -195,6 +195,21 @@ class _PluginPageState extends State<PluginPage> {
       final results = (data['results'] as List?) ?? const [];
       final networkDiagnostics =
           (data['networkDiagnostics'] as List?) ?? const [];
+      final networkLines = networkDiagnostics.map((entry) {
+        if (entry is! Map) return 'Unknown request';
+        final method = entry['method'] ?? '';
+        final host = entry['host'] ?? '';
+        final path = entry['path'] ?? '';
+        final status = entry['status'] ?? '';
+        final authorization = entry['authorization'] ?? 'unknown';
+        final keyword = entry.containsKey('keywordMatchesQuery')
+            ? ', keyword matched: ${entry['keywordMatchesQuery']}'
+            : '';
+        final mitigation = entry.containsKey('cfMitigated')
+            ? ', cf-mitigated: ${entry['cfMitigated']}'
+            : '';
+        return '$method $host$path → HTTP $status, auth: $authorization$keyword$mitigation';
+      }).join('\\n');
       final summary = <String>[
         'Status: ${data['status'] ?? 'unknown'}',
         if (data['error'] != null) 'Error: ${data['error']}',
@@ -203,21 +218,7 @@ class _PluginPageState extends State<PluginPage> {
           'Matching displayed titles: ${data['titleMatchCount']} of ${results.length}',
         'Results: ${data['resultCount'] ?? results.length}',
         if (networkDiagnostics.isNotEmpty)
-          'Network diagnostics (no secrets):\\n${networkDiagnostics.map((entry) {
-            if (entry is! Map) return 'Unknown request';
-            final method = entry['method'] ?? '';
-            final host = entry['host'] ?? '';
-            final path = entry['path'] ?? '';
-            final status = entry['status'] ?? '';
-            final authorization = entry['authorization'] ?? 'unknown';
-            final keyword = entry.containsKey('keywordMatchesQuery')
-                ? ', keyword matched: ${entry['keywordMatchesQuery']}'
-                : '';
-            final mitigation = entry.containsKey('cfMitigated')
-                ? ', cf-mitigated: ${entry['cfMitigated']}'
-                : '';
-            return '$method $host$path → HTTP $status, auth: $authorization$keyword$mitigation';
-          }).join('\\n')}',
+          'Network diagnostics (no secrets):\\n$networkLines',
         for (final item in results)
           if (item is Map)
             '${item['title'] ?? '(untitled)'}\n'

@@ -209,7 +209,7 @@ class _PluginPageState extends State<PluginPage> {
             ? ', cf-mitigated: ${entry['cfMitigated']}'
             : '';
         return '$method $host$path → HTTP $status, auth: $authorization$keyword$mitigation';
-      }).join('\\n');
+      }).join('\n');
       final summary = <String>[
         'Status: ${data['status'] ?? 'unknown'}',
         if (data['error'] != null) 'Error: ${data['error']}',
@@ -218,7 +218,7 @@ class _PluginPageState extends State<PluginPage> {
           'Matching displayed titles: ${data['titleMatchCount']} of ${results.length}',
         'Results: ${data['resultCount'] ?? results.length}',
         if (networkDiagnostics.isNotEmpty)
-          'Network diagnostics (no secrets):\\n$networkLines',
+          'Network diagnostics (no secrets):\n$networkLines',
         for (final item in results)
           if (item is Map)
             '${item['title'] ?? '(untitled)'}\n'

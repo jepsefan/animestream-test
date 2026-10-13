@@ -2,6 +2,12 @@
 
 Only the three most recent beta versions are kept here. When a new beta is added, the oldest entry moves to [CHANGELOG.md](CHANGELOG.md).
 
+## v1.4.9-beta34.7 — Preserve Okio ABI for external extensions (unverified)
+- User confirmed successful 123Anime `Naruto` search with 28 results in beta34.6; existing in-app sources also work.
+- AnimeOnsen still fails because R8 renamed the `okio.BufferedSource` return type of `okhttp3.ResponseBody.source()` to `pb`.
+- Keep `okio.**` class and interface names to preserve Java method descriptors referenced by external APKs.
+- No episode loading or playback yet. Build and device verification required for AnimeOnsen.
+
 ## v1.4.9-beta34.6 — AnimeHttpSource URL ABI and OkHttp alignment (unverified)
 - Add source model and episode setUrlWithoutDomain methods used by 123Anime.
 - Align OkHttp dependency with Aniyomi 5.4.0 and include ResponseBody.source method diagnostics for AnimeOnsen.
@@ -13,8 +19,3 @@ Only the three most recent beta versions are kept here. When a new beta is added
 - These are compatibility shims, not the full Aniyomi networking stack. Cloudflare handling and full cookie support are not implemented.
 - Build and phone search still need verification. AnimePahe remains deferred.
 
-## v1.4.9-beta34.4 — Aniyomi network and JSON host compatibility (unverified)
-- Add Aniyomi-compatible RequestsKt HTTP helpers for 123Anime, including Kotlin default argument entry points.
-- Register kotlinx.serialization.json.Json with the Injekt container before extension loading for AnimeOnsen.
-- Fix visible literal newline escapes in extension source class labels.
-- AnimePahe deferred because its website is unavailable. Build and device search remain to be tested; no playback or source matching yet.

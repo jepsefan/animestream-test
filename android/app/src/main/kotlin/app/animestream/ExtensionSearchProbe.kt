@@ -11,6 +11,9 @@ import dalvik.system.DexFile
 import android.os.Build
 import java.io.File
 import java.util.concurrent.TimeUnit
+import okhttp3.HttpUrl.Companion.toHttpUrl
+import okhttp3.Request
+import org.jsoup.Jsoup
 
 /** Explicit opt-in test only. Loads third-party extension code and may make network calls. */
 internal class ExtensionSearchProbe(private val context: Context) {
@@ -160,26 +163,97 @@ internal class ExtensionSearchProbe(private val context: Context) {
                     "getThumbnailUrl")?.toString() ?: "")
             )
         }
-        // A source can ignore an input query and return its homepage or a
-        // generic browse page. Distinguish a successful HTTP/parse operation
-        // from verified title matches without silently filtering away results.
-        val normalizedQuery = query.trim().lowercase().replace(Regex("\\s+"), " ")
+        // The source might use an alternate Japanese/romaji title. A direct
+        // substring comparison can signal uncertainty, never prove an error.
+        val normalizedQuery = normalizeTitle(query)
         val matches = results.count { result ->
-            (result["title"] as? String)?.lowercase()
-                ?.replace(Regex("\\s+"), " ")?.contains(normalizedQuery) == true
+            normalizeTitle(result["title"] as? String ?: "").contains(normalizedQuery)
         }
-        val noTitleMatch = normalizedQuery.isNotEmpty() && animes.isNotEmpty() && matches == 0
+        val distinctTitles = results.map {
+            normalizeTitle(it["title"] as? String ?: "")
+        }.filter { it.isNotBlank() }.distinct().size
+        val noDirectMatch = normalizedQuery.isNotBlank() && animes.isNotEmpty() && matches == 0
+        val relevance = when {
+            !noDirectMatch -> "direct_title_match_or_empty"
+            distinctTitles <= 2 && results.size >= 2 -> "possible_alternate_titles"
+            else -> "unverified_unrelated_catalogue"
+        }
+
+        // Independent diagnosis of the website's second search endpoint:
+        // the installed 123Anime extension uses /filter?keyword=, while the
+        // website also exposes /search?keyword=. Does NOT replace extension
+        // results, rewrite requests, or affect normal anime providers.
+        val alternateProbe = if (noDirectMatch &&
+            packageName == "eu.kanade.tachiyomi.animeextension.en.onetwothreeanime"
+        ) probe123AnimeAlternateSearch(query, networkHelper) else null
+
         return mapOf(
-            "status" to if (noTitleMatch) "search_completed_unmatched" else "search_completed",
+            "status" to if (noDirectMatch) "search_completed_unverified" else "search_completed",
             "query" to query, "sourceClass" to entry,
             "resultCount" to animes.size, "results" to results,
             "titleMatchCount" to matches,
-            "warning" to if (noTitleMatch)
-                "Source returned results but none of the displayed titles contains the requested search phrase; this may be a fallback or unfiltered catalogue page."
+            "resultRelevance" to relevance,
+            "warning" to if (noDirectMatch && relevance == "possible_alternate_titles")
+                "No literal title match. Results may use a Japanese/romaji alias; verify against AniList before treating them as unrelated."
+                else if (noDirectMatch)
+                "The source returned titles unrelated to the requested phrase. A default/browse listing is possible; do not auto-match these results."
                 else null,
+            "alternateEndpoint" to alternateProbe,
             "networkDiagnostics" to networkHelper.searchNetworkDiagnostics(),
             "hasNextPage" to (read(page, "getHasNextPage") ?: false)
         )
+    }
+
+    private fun normalizeTitle(value: String): String =
+        value.trim().lowercase().replace(Regex("\\s+"), " ")
+
+    /**
+     * Diagnostic probe only: compare 123Anime's website /search endpoint
+     * with the /filter endpoint used by its external APK. Restrict to a
+     * known host; do not log URL query values, credentials or response HTML.
+     */
+    private fun probe123AnimeAlternateSearch(
+        query: String,
+        networkHelper: NetworkHelper
+    ): Map<String, Any?> {
+        val url = "https://123animehub.cc/search".toHttpUrl().newBuilder()
+            .addQueryParameter("keyword", query)
+            .build()
+        val request = Request.Builder()
+            .url(url)
+            .header("User-Agent", networkHelper.defaultUserAgentProvider())
+            .build()
+        return try {
+            val shortClient = networkHelper.client.newBuilder()
+                .callTimeout(10, TimeUnit.SECONDS)
+                .build()
+            shortClient.newCall(request).execute().use { response ->
+                val html = response.body?.string().orEmpty()
+                val doc = Jsoup.parse(html, url.toString())
+                val titles = doc.select("div.film-list div.item")
+                    .mapNotNull { item ->
+                        item.selectFirst("a.name")?.text()?.trim()?.takeIf { it.isNotBlank() }
+                            ?: item.selectFirst("img[alt]")?.attr("alt")?.trim()
+                                ?.takeIf { it.isNotBlank() }
+                    }
+                val normalizedQuery = normalizeTitle(query)
+                mapOf(
+                    "endpoint" to "/search",
+                    "httpStatus" to response.code,
+                    "resultCount" to titles.size,
+                    "directTitleMatches" to titles.count {
+                        normalizeTitle(it).contains(normalizedQuery)
+                    },
+                    "sampleTitles" to titles.take(5)
+                )
+            }
+        } catch (error: Exception) {
+            mapOf(
+                "endpoint" to "/search",
+                "error" to error.javaClass.simpleName + ": " +
+                    (error.message ?: "unknown")
+            )
+        }
     }
 
     private fun read(value: Any, vararg names: String): Any? {

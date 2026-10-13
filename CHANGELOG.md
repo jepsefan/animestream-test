@@ -1,3 +1,12 @@
+## v1.4.9-beta34.10 — Alternate source search diagnostics
+- Show search result relevance without assuming English titles must equal romanized Japanese titles.
+- Compare /filter versus /search for installed 123Anime with a bounded extra diagnostic request; no automatic fallback or source change.
+- AnimeOnsen's four Japanese-title results were returned with HTTP 200 and a Bearer token, and may be correct alternate-title matches.
+- Build and device verification required.
+
+## v1.4.9-beta34.7 — Okio ABI fix (archived from release notes)
+- Keep Okio JVM method descriptors to support dynamically loaded extensions.
+
 ## v1.4.9-beta34.9 — Search relevance and safe network diagnostics
 - Added per-request HTTP host/status, authorization presence, query match comparison and mitigation header diagnostics, without logging query values, tokens or cookies.
 - Flag suspicious search results when displayed titles do not include the submitted phrase.

@@ -1,7 +1,89 @@
 package app.animestream
 
-internal data class ExtensionSearchResult(
-    val status: String,
-    val query: String,
-    val results: List<Map<String, String>> = emptyList()
-)
+import android.content.Context
+import android.content.pm.PackageManager
+import android.os.Build
+import java.io.File
+import java.util.concurrent.TimeUnit
+
+/** Explicit opt-in test only. Loads third-party extension code and may make network calls. */
+internal class ExtensionSearchProbe(private val context: Context) {
+    fun search(packageName: String, query: String): Map<String, Any?> {
+        if (query.isBlank()) return mapOf("status" to "invalid_query")
+        return try {
+            runSearch(packageName, query.trim())
+        } catch (error: Throwable) {
+            val cause = (error as? java.lang.reflect.InvocationTargetException)
+                ?.targetException ?: error
+            mapOf("status" to "search_failed",
+                "error" to (cause.javaClass.simpleName + ": " + cause.message))
+        }
+    }
+
+    private fun runSearch(packageName: String, query: String): Map<String, Any?> {
+        val pm = context.packageManager
+        val info = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            pm.getApplicationInfo(packageName,
+                PackageManager.ApplicationInfoFlags.of(PackageManager.GET_META_DATA.toLong()))
+        } else {
+            @Suppress("DEPRECATION")
+            pm.getApplicationInfo(packageName, PackageManager.GET_META_DATA)
+        }
+        val declared = info.metaData?.getString("tachiyomi.animeextension.class")
+            ?: return mapOf("status" to "no_source_class")
+        val entry = declared.split(';', ',').first().trim().let {
+            if (it.startsWith(".")) packageName + it else it
+        }
+        val paths = listOfNotNull(info.sourceDir) +
+            (info.splitSourceDirs?.toList() ?: emptyList())
+        val loader = ExtensionIsolatedClassLoader(
+            paths.joinToString(File.pathSeparator),
+            context.codeCacheDir.absolutePath, info.nativeLibraryDir,
+            context.javaClass.classLoader
+        )
+        val source = Class.forName(entry, true, loader).getDeclaredConstructor().newInstance()
+        val catalogue = Class.forName(
+            "eu.kanade.tachiyomi.animesource.AnimeCatalogueSource",
+            false, context.javaClass.classLoader
+        )
+        if (!catalogue.isInstance(source)) {
+            return mapOf("status" to "not_catalogue_source", "className" to entry)
+        }
+        val filtersClass = Class.forName(
+            "eu.kanade.tachiyomi.animesource.model.AnimeFilterList",
+            false, context.javaClass.classLoader
+        )
+        val filters = filtersClass.getDeclaredConstructor().newInstance()
+        val method = catalogue.getMethod("fetchSearchAnime",
+            Int::class.javaPrimitiveType, String::class.java, filtersClass)
+        val observable = method.invoke(source, 1, query, filters) as rx.Observable<*>
+        val page = observable.toBlocking().toFuture()
+            .get(25, TimeUnit.SECONDS)
+            ?: return mapOf("status" to "empty_response", "query" to query)
+        val animes = read(page, "getAnimes", "getAnimeList") as? List<*>
+            ?: return mapOf("status" to "unexpected_page_type",
+                "pageClass" to page.javaClass.name)
+        val results = animes.take(20).mapNotNull { anime ->
+            if (anime == null) null else mapOf(
+                "title" to (read(anime, "getTitle")?.toString() ?: ""),
+                "url" to (read(anime, "getUrl")?.toString() ?: ""),
+                "cover" to (read(anime, "getThumbnail_url",
+                    "getThumbnailUrl")?.toString() ?: "")
+            )
+        }
+        return mapOf("status" to "search_completed", "query" to query,
+            "sourceClass" to entry, "resultCount" to animes.size,
+            "results" to results,
+            "hasNextPage" to (read(page, "getHasNextPage") ?: false))
+    }
+
+    private fun read(value: Any, vararg names: String): Any? {
+        for (name in names) {
+            val method = value.javaClass.methods.firstOrNull {
+                it.name == name && it.parameterTypes.isEmpty()
+            } ?: continue
+            return method.invoke(value)
+        }
+        return null
+    }
+}

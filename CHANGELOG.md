@@ -1,4 +1,4 @@
-## v1.4.9-beta34.1 — Extension search runtime dependencies
+## v1.4.9-beta34.2 — Extension search runtime dependencies
 - Added Injekt runtime dependency, serialization keep rules and missing-runtime diagnostics for Aniyomi search.
 - Build and runtime compatibility remain unverified.
 

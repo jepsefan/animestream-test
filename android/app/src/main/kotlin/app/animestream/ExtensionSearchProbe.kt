@@ -14,10 +14,25 @@ internal class ExtensionSearchProbe(private val context: Context) {
         return try {
             runSearch(packageName, query.trim())
         } catch (error: Throwable) {
-            val cause = (error as? java.lang.reflect.InvocationTargetException)
-                ?.targetException ?: error
-            mapOf("status" to "search_failed",
-                "error" to (cause.javaClass.simpleName + ": " + cause.message))
+            val chain = mutableListOf<String>()
+            val visited = java.util.Collections.newSetFromMap(
+                java.util.IdentityHashMap<Throwable, Boolean>()
+            )
+            var current: Throwable? = error
+            while (current != null && visited.add(current) && chain.size < 8) {
+                chain.add(current.javaClass.name + ": " + (current.message ?: "(no message)"))
+                current = if (current is java.lang.reflect.InvocationTargetException) {
+                    current.targetException ?: current.cause
+                } else {
+                    current.cause
+                }
+            }
+            mapOf(
+                "status" to "search_failed",
+                "error" to chain.joinToString(" -> "),
+                "errorChain" to chain,
+                "stackTrace" to error.stackTraceToString().take(12000)
+            )
         }
     }
 

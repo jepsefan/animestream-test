@@ -36,7 +36,11 @@ internal class ExtensionSearchProbe(private val context: Context) {
             val sourceSignatures = okhttpBody.methods
                 .filter { it.name == "source" || it.name == "getSource" }
                 .map { it.toGenericString() }
+            val networkTrace = try {
+                NetworkHelper.requireInstance().searchNetworkDiagnostics()
+            } catch (_: IllegalStateException) { emptyList() }
             mapOf(
+                "networkDiagnostics" to networkTrace,
                 "status" to "search_failed",
                 "okhttpRuntime" to (okhttpBody.classLoader?.javaClass?.name ?: "bootstrap"),
                 "okhttpSourceSignatures" to sourceSignatures,
@@ -80,6 +84,7 @@ internal class ExtensionSearchProbe(private val context: Context) {
                 "error" to "Android applicationContext is not an Application"
             )
         val networkHelper = NetworkHelper.initialize(application)
+        networkHelper.beginSearchDiagnostics(query)
         synchronized(ExtensionSearchProbe::class.java) {
             Injekt.addSingleton(object : TypeReference<Application> {
                 override val type: java.lang.reflect.Type = Application::class.java
@@ -155,10 +160,26 @@ internal class ExtensionSearchProbe(private val context: Context) {
                     "getThumbnailUrl")?.toString() ?: "")
             )
         }
-        return mapOf("status" to "search_completed", "query" to query,
-            "sourceClass" to entry, "resultCount" to animes.size,
-            "results" to results,
-            "hasNextPage" to (read(page, "getHasNextPage") ?: false))
+        // A source can ignore an input query and return its homepage or a
+        // generic browse page. Distinguish a successful HTTP/parse operation
+        // from verified title matches without silently filtering away results.
+        val normalizedQuery = query.trim().lowercase().replace(Regex("\\s+"), " ")
+        val matches = results.count { result ->
+            (result["title"] as? String)?.lowercase()
+                ?.replace(Regex("\\s+"), " ")?.contains(normalizedQuery) == true
+        }
+        val noTitleMatch = normalizedQuery.isNotEmpty() && animes.isNotEmpty() && matches == 0
+        return mapOf(
+            "status" to if (noTitleMatch) "search_completed_unmatched" else "search_completed",
+            "query" to query, "sourceClass" to entry,
+            "resultCount" to animes.size, "results" to results,
+            "titleMatchCount" to matches,
+            "warning" to if (noTitleMatch)
+                "Source returned results but none of the displayed titles contains the requested search phrase; this may be a fallback or unfiltered catalogue page."
+                else null,
+            "networkDiagnostics" to networkHelper.searchNetworkDiagnostics(),
+            "hasNextPage" to (read(page, "getHasNextPage") ?: false)
+        )
     }
 
     private fun read(value: Any, vararg names: String): Any? {

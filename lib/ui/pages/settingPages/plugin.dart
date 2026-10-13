@@ -238,12 +238,22 @@ class _PluginPageState extends State<PluginPage> {
                               '${_classDiagnostics[ext.packageName] != null ? "\n\n${_classDiagnostics[ext.packageName]}" : ""}',
                             ),
                           ),
-                          Align(
-                            alignment: Alignment.centerRight,
-                            child: TextButton(
-                              onPressed: () => _inspectClass(ext),
-                              child: const Text('Test class'),
-                            ),
+                          Wrap(
+                            alignment: WrapAlignment.end,
+                            spacing: 8,
+                            children: [
+                              TextButton(
+                                onPressed: _testingExtensions.contains(ext.packageName)
+                                    ? null : () => _inspectClass(ext),
+                                child: const Text('Test class'),
+                              ),
+                              TextButton(
+                                onPressed: _testingExtensions.contains(ext.packageName)
+                                    ? null : () => _confirmInstantiation(ext),
+                                child: Text(_testingExtensions.contains(ext.packageName)
+                                    ? 'Testing...' : 'Test instantiation'),
+                              ),
+                            ],
                           ),
                         ],
                       ),

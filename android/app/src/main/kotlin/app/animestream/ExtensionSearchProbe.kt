@@ -51,7 +51,8 @@ internal class ExtensionSearchProbe(private val context: Context) {
     private fun runSearch(packageName: String, query: String): Map<String, Any?> {
         val requiredRuntime = listOf(
             "uy.kohesive.injekt.InjektKt",
-            "kotlinx.serialization.json.JsonObjectBuilder"
+            "kotlinx.serialization.json.JsonObjectBuilder",
+            "kotlinx.serialization.json.okio.OkioStreamsKt"
         )
         val missingRuntime = requiredRuntime.filter { name ->
             try {

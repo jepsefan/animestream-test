@@ -43,6 +43,18 @@ class MainActivity: FlutterActivity() {
                         }
                     }
                 }
+                "testExtensionInstantiation" -> {
+                    val packageName = call.argument<String>("packageName")
+                    if (packageName.isNullOrBlank()) {
+                        result.error("INVALID_PACKAGE", "Missing packageName", null)
+                    } else {
+                        try {
+                            result.success(inspectExtensionClass(packageName, true))
+                        } catch (e: Throwable) {
+                            result.error("INSTANTIATION_TEST_FAILED", e.toString(), null)
+                        }
+                    }
+                }
                 "listInstalledExtensions" -> {
                     try {
                         result.success(listInstalledAnimeExtensions())

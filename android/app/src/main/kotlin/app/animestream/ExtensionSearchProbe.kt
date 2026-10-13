@@ -4,6 +4,7 @@ import android.content.Context
 import android.app.Application
 import uy.kohesive.injekt.Injekt
 import uy.kohesive.injekt.api.TypeReference
+import kotlinx.serialization.json.Json
 import android.content.pm.PackageManager
 import dalvik.system.DexFile
 import android.os.Build
@@ -73,6 +74,13 @@ internal class ExtensionSearchProbe(private val context: Context) {
             Injekt.addSingleton(object : TypeReference<Application> {
                 override val type: java.lang.reflect.Type = Application::class.java
             }, application)
+            // AnimeOnsen retrieves Json via the same global Injekt container.
+            Injekt.addSingleton(object : TypeReference<Json> {
+                override val type: java.lang.reflect.Type = Json::class.java
+            }, Json {
+                ignoreUnknownKeys = true
+                explicitNulls = false
+            })
         }
         val pm = context.packageManager
         val info = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {

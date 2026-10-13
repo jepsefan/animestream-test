@@ -2,7 +2,11 @@
 - Added Injekt runtime dependency, serialization keep rules and missing-runtime diagnostics for Aniyomi search.
 - Build and runtime compatibility remain unverified.
 
-## Archived release notes — beta33.2 and earlier
+## Archived release notes — beta33.3 and earlier
+
+## v1.4.9-beta33.3 — Kotlin class visibility diagnostics
+- Added Kotlin stdlib dependency and host/isolated classloader probes for Function0, Intrinsics, Unit and Continuation.
+- User testing showed missing Kotlin runtime classes in release, motivating Beta 33.4.
 
 ## v1.4.9-beta33.2 — Manual instantiation test
 - Added explicit instantiation diagnostics and UI confirmation; no automatic extension execution.

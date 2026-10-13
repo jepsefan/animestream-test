@@ -1,6 +1,8 @@
 package app.animestream
 
 import android.content.Context
+import android.app.Application
+import uy.kohesive.injekt.Injekt
 import android.content.pm.PackageManager
 import dalvik.system.DexFile
 import android.os.Build
@@ -58,6 +60,16 @@ internal class ExtensionSearchProbe(private val context: Context) {
                 "missingRuntimeClasses" to missingRuntime,
                 "query" to query
             )
+        }
+        // Aniyomi extensions request Application from the host's global Injekt registry.
+        // Register the real app instance before loading/initializing extension classes.
+        val application = context.applicationContext as? Application
+            ?: return mapOf(
+                "status" to "missing_application",
+                "error" to "Android applicationContext is not an Application"
+            )
+        synchronized(ExtensionSearchProbe::class.java) {
+            Injekt.addSingleton(application as Application)
         }
         val pm = context.packageManager
         val info = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {

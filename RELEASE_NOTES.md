@@ -1,3 +1,30 @@
+## v1.4.9-beta34 — Aniyomi extension search probe (unverified)
+- Added an opt-in `Test search` field and confirmation dialog to Manage Providers for installed Aniyomi APKs.
+- Added Flutter MethodChannel `testExtensionSearch` and an Android background-thread probe that attempts `fetchSearchAnime` through the isolated classloader.
+- Search diagnostics return up to 20 titles, source URLs and cover URLs, or an error. The search operation has a 25-second wait limit.
+- This is a diagnostic only: AniList remains the primary metadata source. No episode loading, stream playback or automatic matching is enabled.
+- **Not yet build-verified or device-tested.** The partial Aniyomi Host API and filter ABI may still need changes.
+
+## v1.4.9-beta33.4 — Kotlin runtime and extension instantiation
+- Added release keep rules for Kotlin runtime and coroutines classes used dynamically by Aniyomi APKs.
+- User-provided Beta 33.4 diagnostics showed successful instance creation for 123Anime and AnimeOnsen; search and playback were not tested.
+
+## v1.4.9-beta33.3 — Kotlin class visibility diagnostics
+- Added Kotlin stdlib dependency and host/isolated classloader probes for Function0, Intrinsics, Unit and Continuation.
+- User testing showed missing Kotlin runtime classes in release, motivating Beta 33.4.
+
+## v1.4.9-beta33.2 — Manual instantiation test
+- Added explicit instantiation diagnostics and UI confirmation; no automatic extension execution.
+- User testing showed NoClassDefFoundError for Kotlin Function0.
+
+## v1.4.9-beta33.1 — ABI diagnostics
+- Fixed diagnostic ordering so constructor and AnimeSource compatibility information is shown.
+- User testing confirmed class loading and parameterless constructors for 123Anime and AnimeOnsen.
+
+## v1.4.9-beta32 — Isolated class loading diagnostics
+- Introduced and refined isolated child-first class loading and DEX/superclass diagnostics.
+- User testing showed successful class resolution, resolving earlier final-superclass verification conflicts.
+
 # AnimeStream v1.4.9 — latest beta release notes
 
 Only the latest beta and two previous betas are shown here. Earlier history is in [CHANGELOG.md](CHANGELOG.md).

@@ -1,3 +1,9 @@
+## v1.4.9-beta34.4 — Aniyomi network and JSON host compatibility
+- Port Aniyomi RequestsKt GET/POST/PUT/DELETE request builders and basic coroutine HTTP calls. Register Json in Injekt and fix literal newline labels. Build/device unverified.
+
+## v1.4.9-beta34 — Aniyomi search probe (archived)
+- Added manually triggered extension search and initial Flutter/Android search diagnostics; runtime compatibility incomplete.
+
 ## v1.4.9-beta34.3 — Better extension diagnostics
 - Nested error chain and stack trace, collapsible class diagnostics; Android Application registered in Injekt before search; unverified.
 

@@ -94,6 +94,8 @@ dependencies {
     implementation("androidx.multidex:multidex:2.0.1")
     // Runtime libraries referenced by Aniyomi extension bytecode.
     // These do not replace the Aniyomi source-api module itself.
+    // Explicitly package Kotlin stdlib for dynamically loaded Aniyomi extensions.
+    implementation("org.jetbrains.kotlin:kotlin-stdlib:2.2.0")
     implementation("io.reactivex:rxjava:1.3.8")
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
     implementation("org.jsoup:jsoup:1.17.2")

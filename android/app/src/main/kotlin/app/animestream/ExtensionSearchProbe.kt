@@ -1,7 +1,7 @@
 package app.animestream
 
 import android.content.Context
-import android.content.pm.PackageManager
+import dalvik.system.DexFile
 import android.os.Build
 import java.io.File
 import java.util.concurrent.TimeUnit
@@ -36,10 +36,20 @@ internal class ExtensionSearchProbe(private val context: Context) {
         }
         val paths = listOfNotNull(info.sourceDir) +
             (info.splitSourceDirs?.toList() ?: emptyList())
+        val extensionClasses = paths.flatMap { apk ->
+            val dex = DexFile(apk)
+            try {
+                val entries = dex.entries()
+                val names = mutableListOf<String>()
+                while (entries.hasMoreElements()) names.add(entries.nextElement())
+                names
+            } finally { dex.close() }
+        }.toSet()
         val loader = ExtensionIsolatedClassLoader(
             paths.joinToString(File.pathSeparator),
             context.codeCacheDir.absolutePath, info.nativeLibraryDir,
-            context.javaClass.classLoader
+            context.javaClass.classLoader,
+            extensionClasses
         )
         val source = Class.forName(entry, true, loader).getDeclaredConstructor().newInstance()
         val catalogue = Class.forName(

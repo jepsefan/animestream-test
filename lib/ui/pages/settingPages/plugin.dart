@@ -312,12 +312,18 @@ class _PluginPageState extends State<PluginPage> {
                           Align(
                             alignment: Alignment.centerLeft,
                             child: SelectableText(
-                              'Detected, not executable yet'
-                              '\nSource class: ${ext.sourceClass ?? "unknown"}'
-                              '${ext.sourceFactory != null ? "\nSource factory: ${ext.sourceFactory}" : ""}'
-                              '${_classDiagnostics[ext.packageName] != null ? "\n\n${_classDiagnostics[ext.packageName]}" : ""}',
+                              'Extension detected — playback not yet supported'
+                              '\\nSource class: ${ext.sourceClass ?? "unknown"}'
+                              '${ext.sourceFactory != null ? "\\nSource factory: ${ext.sourceFactory}" : ""}',
                             ),
                           ),
+                          if (_classDiagnostics[ext.packageName] != null)
+                            ExpansionTile(
+                              title: const Text('Class diagnostics'),
+                              children: [
+                                SelectableText(_classDiagnostics[ext.packageName]!),
+                              ],
+                            ),
                           const SizedBox(height: 12),
                           TextField(
                             controller: _searchControllers.putIfAbsent(

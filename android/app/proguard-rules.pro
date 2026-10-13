@@ -8,6 +8,11 @@
 -keep class uy.kohesive.injekt.** { *; }
 -keep class rx.** { *; }
 -keep class okhttp3.** { *; }
+# External Aniyomi APKs invoke okhttp3.ResponseBody.source(): okio.BufferedSource.
+# Preserve the Okio binary type names in its JVM method descriptor. In beta34.6
+# R8 renamed BufferedSource to "pb", causing NoSuchMethodError in AnimeOnsen.
+-keep class okio.** { *; }
+-keep interface okio.** { *; }
 -keep class org.jsoup.** { *; }
 
 # Aniyomi extension bytecode references Kotlin runtime classes dynamically.

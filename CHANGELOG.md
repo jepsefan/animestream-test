@@ -1,3 +1,9 @@
+## v1.4.9-beta34.6 — URL ABI and OkHttp dependency
+- Add SAnime/SEpisode setUrlWithoutDomain methods, align OkHttp to 5.4.0, log runtime ResponseBody source signatures. Build/device compatibility unverified.
+
+## v1.4.9-beta34.3 — Better extension diagnostics (archived)
+- Show underlying error chain and register Android Application in Injekt.
+
 ## v1.4.9-beta34.5 — Aniyomi Host API compatibility
 - Add JsoupExtensionsKt, minimal NetworkHelper, protected getNetwork() ABI bridge, and Injekt registration. Not yet build- or device-verified.
 

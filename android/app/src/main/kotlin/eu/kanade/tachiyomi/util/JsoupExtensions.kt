@@ -4,6 +4,7 @@ import okhttp3.Response
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Document
 import org.jsoup.nodes.Element
+import java.io.IOException
 
 /**
  * Aniyomi source-api Jsoup helpers.
@@ -24,5 +25,5 @@ fun Element.attrOrText(css: String): String {
 }
 
 fun Response.asJsoup(html: String? = null): Document {
-    return Jsoup.parse(html ?: body.string(), request.url.toString())
+    return Jsoup.parse(html ?: (body?.string() ?: throw IOException("HTTP response has no body")), request.url.toString())
 }

@@ -98,7 +98,8 @@ dependencies {
     implementation("org.jetbrains.kotlin:kotlin-stdlib:2.2.0")
     implementation("uy.kohesive.injekt:injekt-core:1.16.1")
     implementation("io.reactivex:rxjava:1.3.8")
-    implementation("com.squareup.okhttp3:okhttp:4.12.0")
+    // Match the OkHttp ABI used by current Aniyomi extensions.
+    implementation("com.squareup.okhttp3:okhttp:5.4.0")
     implementation("org.jsoup:jsoup:1.17.2")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.3")
     implementation("androidx.preference:preference-ktx:1.2.1")

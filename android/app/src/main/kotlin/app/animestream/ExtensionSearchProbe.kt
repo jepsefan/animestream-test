@@ -22,6 +22,28 @@ internal class ExtensionSearchProbe(private val context: Context) {
     }
 
     private fun runSearch(packageName: String, query: String): Map<String, Any?> {
+        val requiredRuntime = listOf(
+            "uy.kohesive.injekt.InjektKt",
+            "kotlinx.serialization.json.JsonObjectBuilder"
+        )
+        val missingRuntime = requiredRuntime.filter { name ->
+            try {
+                Class.forName(name, false, context.classLoader)
+                false
+            } catch (_: ClassNotFoundException) {
+                true
+            } catch (_: LinkageError) {
+                true
+            }
+        }
+        if (missingRuntime.isNotEmpty()) {
+            return mapOf(
+                "status" to "missing_host_runtime",
+                "error" to "Missing host runtime classes: " + missingRuntime.joinToString(", "),
+                "missingRuntimeClasses" to missingRuntime,
+                "query" to query
+            )
+        }
         val pm = context.packageManager
         val info = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             pm.getApplicationInfo(packageName,

@@ -1,3 +1,9 @@
+## v1.4.9-beta34.8 — Serialization JSON Okio runtime
+- Add kotlinx-serialization-json-okio 1.9.0, update serialization-json from 1.6.3 to 1.9.0 and preflight the class OkioStreamsKt. Requires build/device validation.
+
+## v1.4.9-beta34.5 — Host API and Jsoup compatibility (archived from release notes)
+- Added JsoupExtensionsKt parsing helpers, NetworkHelper and its registration, and the AnimeHttpSource getNetwork() bridge.
+
 ## v1.4.9-beta34.7 — Preserve Okio ABI
 - Keep `okio.**` to retain `ResponseBody.source(): okio.BufferedSource` method descriptor for AnimeOnsen. The user confirmed 123Anime search succeeds in beta34.6 with 28 Naruto results. Fix not yet device-tested.
 

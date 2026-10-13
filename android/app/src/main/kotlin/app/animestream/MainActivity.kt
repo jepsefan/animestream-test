@@ -497,7 +497,8 @@ class MainActivity: FlutterActivity() {
             "Constructors: ${base["extensionConstructorProbe"] ?: "(unavailable)"}",
             "Implements host AnimeSource: ${base["extensionImplementsHostAnimeSource"] ?: "(unavailable)"}",
             "No-arg constructor: ${base["extensionNoArgConstructorAvailable"] ?: "(unavailable)"}",
-            "Instantiation: ${base["extensionInstantiationStatus"] ?: "not_attempted"}"
+            "Instantiation: ${base["extensionInstantiationStatus"] ?: "not_attempted"}",
+            "Instantiation error: ${base["extensionInstantiationError"] ?: "(none)"}"
         ).joinToString("\n")
         base["packageContextClassLoaderResult"] = outcomes["PackageContextClassLoader"]
         base["isolatedChildFirstResult"] = outcomes["IsolatedChildFirst"]

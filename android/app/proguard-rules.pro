@@ -3,6 +3,8 @@
 -keep class eu.kanade.tachiyomi.animesource.** { *; }
 -keep interface eu.kanade.tachiyomi.animesource.** { *; }
 -keep class eu.kanade.tachiyomi.network.** { *; }
+# Top-level JsoupExtensionsKt methods are called from external APKs via JVM linkage.
+-keep class eu.kanade.tachiyomi.util.** { *; }
 -keep class uy.kohesive.injekt.** { *; }
 -keep class rx.** { *; }
 -keep class okhttp3.** { *; }

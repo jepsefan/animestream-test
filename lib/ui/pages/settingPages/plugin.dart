@@ -118,6 +118,24 @@ class _PluginPageState extends State<PluginPage> {
     }
   }
 
+  Future<void> _confirmInstantiation(AniyomiExtensionInfo ext) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Run extension constructor?'),
+        content: Text('This runs code from ${ext.name} on your device. '
+            'Only continue if you trust this installed extension.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false),
+              child: const Text('Cancel')),
+          TextButton(onPressed: () => Navigator.pop(context, true),
+              child: const Text('Run test')),
+        ],
+      ),
+    );
+    if (confirmed == true && mounted) await _testInstantiation(ext);
+  }
+
   Future<void> _testInstantiation(AniyomiExtensionInfo ext) async {
     setState(() => _testingExtensions.add(ext.packageName));
     try {

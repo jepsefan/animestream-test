@@ -1,3 +1,9 @@
+## v1.4.9-beta34.7 — Preserve Okio ABI
+- Keep `okio.**` to retain `ResponseBody.source(): okio.BufferedSource` method descriptor for AnimeOnsen. The user confirmed 123Anime search succeeds in beta34.6 with 28 Naruto results. Fix not yet device-tested.
+
+## v1.4.9-beta34.4 — Network and Json host integration (archived from release notes)
+- Added RequestsKt HTTP helpers, Json Injekt registration and UI newline fix.
+
 ## v1.4.9-beta34.6 — URL ABI and OkHttp dependency
 - Add SAnime/SEpisode setUrlWithoutDomain methods, align OkHttp to 5.4.0, log runtime ResponseBody source signatures. Build/device compatibility unverified.
 

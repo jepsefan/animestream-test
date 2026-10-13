@@ -442,8 +442,31 @@ class MainActivity: FlutterActivity() {
             "DEX hierarchy flags: ${base["dexHierarchyAccessFlags"] ?: "(unavailable)"}",
             "Loader topology: ${base["loaderTopology"] ?: "(unavailable)"}",
             "Superclass comparison: ${base["loaderSuperclassComparison"] ?: "(unavailable)"}",
-            "Isolated child-first: ${outcomes["IsolatedChildFirst"] ?: "(unavailable)"}"
+            "Isolated child-first: ${outcomes["IsolatedChildFirst"] ?: "(unavailable)"}",
+            "Extension ABI: ${base["extensionAbiReadiness"] ?: "(unavailable)"}",
+            "Constructors: ${base["extensionConstructorProbe"] ?: "(unavailable)"}"
         ).joinToString("\n")
+        // Beta 33: reflection-only ABI probe. No initialization or constructor invocation.
+        try {
+            val entry = Class.forName(target, false, isolatedLoader)
+            val source = Class.forName("eu.kanade.tachiyomi.animesource.AnimeSource", false, javaClass.classLoader)
+            val ctors = entry.declaredConstructors
+            base["extensionConstructorProbe"] = ctors.joinToString("; ") { ctor ->
+                "(${ctor.parameterTypes.joinToString(",") { it.name }})"
+            }
+            base["extensionImplementsHostAnimeSource"] = source.isAssignableFrom(entry)
+            base["extensionNoArgConstructorAvailable"] = ctors.any { it.parameterTypes.isEmpty() }
+            base["extensionInstantiationStatus"] = "not_attempted"
+            base["extensionAbiReadiness"] = when {
+                !source.isAssignableFrom(entry) -> "host_source_type_mismatch"
+                java.lang.reflect.Modifier.isAbstract(entry.modifiers) -> "abstract_entry_point"
+                ctors.none { it.parameterTypes.isEmpty() } -> "requires_constructor_arguments"
+                else -> "constructor_present_not_executed"
+            }
+        } catch (error: Throwable) {
+            base["extensionAbiReadiness"] = "reflection_failed"
+            base["extensionConstructorProbe"] = "${error.javaClass.simpleName}: ${error.message}"
+        }
         base["packageContextClassLoaderResult"] = outcomes["PackageContextClassLoader"]
         base["isolatedChildFirstResult"] = outcomes["IsolatedChildFirst"]
         base["dexClassLoaderResult"] = outcomes["DexClassLoader"]

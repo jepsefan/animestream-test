@@ -470,6 +470,24 @@ class MainActivity: FlutterActivity() {
             base["extensionAbiReadiness"] = "reflection_failed"
             base["extensionConstructorProbe"] = "${error.javaClass.simpleName}: ${error.message}"
         }
+        // Beta 33.3: identify Kotlin runtime visibility before invoking extension code.
+        val kotlinRuntimeTypes = listOf(
+            "kotlin.jvm.functions.Function0",
+            "kotlin.jvm.internal.Intrinsics",
+            "kotlin.Unit",
+            "kotlin.coroutines.Continuation"
+        )
+        base["kotlinRuntimeProbe"] = kotlinRuntimeTypes.joinToString("; ") { type ->
+            listOf("host" to javaClass.classLoader, "isolated" to isolatedLoader)
+                .joinToString(", ") { (label, loader) ->
+                    try {
+                        val cls = Class.forName(type, false, loader)
+                        "$label:$type=available via ${cls.classLoader?.javaClass?.name ?: "bootstrap"}"
+                    } catch (error: Throwable) {
+                        "$label:$type=${error.javaClass.simpleName}: ${error.message}"
+                    }
+                }
+        }
         if (attemptInstantiation && base["extensionAbiReadiness"] == "constructor_present_not_executed") {
             try {
                 val entry = Class.forName(target, false, isolatedLoader)
@@ -498,7 +516,8 @@ class MainActivity: FlutterActivity() {
             "Implements host AnimeSource: ${base["extensionImplementsHostAnimeSource"] ?: "(unavailable)"}",
             "No-arg constructor: ${base["extensionNoArgConstructorAvailable"] ?: "(unavailable)"}",
             "Instantiation: ${base["extensionInstantiationStatus"] ?: "not_attempted"}",
-            "Instantiation error: ${base["extensionInstantiationError"] ?: "(none)"}"
+            "Instantiation error: ${base["extensionInstantiationError"] ?: "(none)"}",
+            "Kotlin runtime: ${base["kotlinRuntimeProbe"] ?: "(unavailable)"}"
         ).joinToString("\n")
         base["packageContextClassLoaderResult"] = outcomes["PackageContextClassLoader"]
         base["isolatedChildFirstResult"] = outcomes["IsolatedChildFirst"]

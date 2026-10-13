@@ -470,6 +470,22 @@ class MainActivity: FlutterActivity() {
             base["extensionAbiReadiness"] = "reflection_failed"
             base["extensionConstructorProbe"] = "${error.javaClass.simpleName}: ${error.message}"
         }
+        if (attemptInstantiation && base["extensionAbiReadiness"] == "constructor_present_not_executed") {
+            try {
+                val entry = Class.forName(target, false, isolatedLoader)
+                val instance = entry.getDeclaredConstructor().newInstance()
+                base["extensionInstantiationStatus"] = "instance_created"
+                base["extensionInstanceClass"] = instance.javaClass.name
+            } catch (error: Throwable) {
+                val cause = (error as? java.lang.reflect.InvocationTargetException)
+                    ?.targetException ?: error
+                base["extensionInstantiationStatus"] = "failed"
+                base["extensionInstantiationError"] =
+                    cause.javaClass.simpleName + ": " + cause.message
+            }
+        } else if (attemptInstantiation) {
+            base["extensionInstantiationStatus"] = "skipped_abi_not_ready"
+        }
         base["diagnosticDetails"] = listOf(
             superclassSummary,
             "PackageContext: ${base["packageContextSuperclassResolution"] ?: "(unavailable)"}",

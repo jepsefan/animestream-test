@@ -1,3 +1,9 @@
+## v1.4.9-beta34.5 — Aniyomi Host API compatibility
+- Add JsoupExtensionsKt, minimal NetworkHelper, protected getNetwork() ABI bridge, and Injekt registration. Not yet build- or device-verified.
+
+## v1.4.9-beta34.2 — Extension search runtime dependencies (archived)
+- Added Injekt core and kotlinx.serialization dependencies and keep rules.
+
 ## v1.4.9-beta34.4 — Aniyomi network and JSON host compatibility
 - Port Aniyomi RequestsKt GET/POST/PUT/DELETE request builders and basic coroutine HTTP calls. Register Json in Injekt and fix literal newline labels. Build/device unverified.
 

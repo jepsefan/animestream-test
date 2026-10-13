@@ -1,6 +1,7 @@
 package eu.kanade.tachiyomi.animesource.online
 
 import eu.kanade.tachiyomi.animesource.AnimeCatalogueSource
+import eu.kanade.tachiyomi.network.NetworkHelper
 import eu.kanade.tachiyomi.animesource.model.*
 import okhttp3.Headers
 import okhttp3.OkHttpClient
@@ -22,11 +23,13 @@ abstract class AnimeHttpSource : AnimeCatalogueSource {
     open val versionId: Int = 1
     override val id: Long by lazy { generateId(name, lang, versionId) }
 
-    open val client: OkHttpClient by lazy { OkHttpClient.Builder().build() }
+    // Aniyomi extensions link against protected getNetwork(): NetworkHelper.
+    protected val network: NetworkHelper by lazy { NetworkHelper.requireInstance() }
+    open val client: OkHttpClient get() = network.client
     val headers: Headers by lazy { headersBuilder().build() }
 
     protected open fun headersBuilder(): Headers.Builder =
-        Headers.Builder().add("User-Agent", "Mozilla/5.0 (AnimeStream Aniyomi compatibility)")
+        Headers.Builder().add("User-Agent", network.defaultUserAgentProvider())
 
     protected fun generateId(name: String, lang: String, versionId: Int): Long {
         val bytes = MessageDigest.getInstance("MD5")

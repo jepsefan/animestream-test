@@ -13,3 +13,7 @@
 -keep class kotlin.** { *; }
 -keep interface kotlin.** { *; }
 -keep class kotlinx.coroutines.** { *; }
+
+# Aniyomi extensions invoke Kotlin serialization through dynamically loaded bytecode.
+-keep class kotlinx.serialization.** { *; }
+-keep interface kotlinx.serialization.** { *; }

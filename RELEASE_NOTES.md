@@ -2,7 +2,7 @@
 
 Only the three most recent beta versions are kept here. When a new beta is added, the oldest entry moves to [CHANGELOG.md](CHANGELOG.md).
 
-## v1.4.9-beta34.1 — Extension search runtime dependencies (unverified)
+## v1.4.9-beta34.2 — Extension search runtime dependencies (unverified)
 - Added Injekt core runtime dependency and R8 keep rules for kotlinx.serialization classes.
 - Added pre-search diagnostics for InjektKt and JsonObjectBuilder, reporting missing_host_runtime if absent.
 - Search success is not yet verified; Android release build and device testing are required.

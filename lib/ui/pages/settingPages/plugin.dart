@@ -21,6 +21,7 @@ class _PluginPageState extends State<PluginPage> {
   String? _error;
   String? _busyId;
   final Map<String, String> _classDiagnostics = {};
+  final Set<String> _testingExtensions = {};
 
   @override
   void initState() {
@@ -114,6 +115,28 @@ class _PluginPageState extends State<PluginPage> {
           .join('\n'));
     } catch (e) {
       if (mounted) setState(() => _classDiagnostics[ext.packageName] = 'Inspection error: $e');
+    }
+  }
+
+  Future<void> _testInstantiation(AniyomiExtensionInfo ext) async {
+    setState(() => _testingExtensions.add(ext.packageName));
+    try {
+      final data = await AniyomiExtensionBridge.testExtensionInstantiation(ext.packageName);
+      if (!mounted) return;
+      final result = 'Instantiation: ${data['extensionInstantiationStatus'] ?? 'unknown'}'
+          '\nInstance class: ${data['extensionInstanceClass'] ?? '(none)'}'
+          '\nError: ${data['extensionInstantiationError'] ?? '(none)'}';
+      setState(() {
+        _classDiagnostics[ext.packageName] =
+            '${_classDiagnostics[ext.packageName] ?? ''}\n$result'.trim();
+      });
+    } catch (error) {
+      if (mounted) {
+        setState(() => _classDiagnostics[ext.packageName] =
+            '${_classDiagnostics[ext.packageName] ?? ''}\nInstantiation test failed: $error'.trim());
+      }
+    } finally {
+      if (mounted) setState(() => _testingExtensions.remove(ext.packageName));
     }
   }
 

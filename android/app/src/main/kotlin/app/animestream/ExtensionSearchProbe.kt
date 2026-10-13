@@ -38,9 +38,10 @@ internal class ExtensionSearchProbe(private val context: Context) {
                 .map { it.toGenericString() }
             mapOf(
                 "status" to "search_failed",
-                "okhttpRuntime" to (okhttpBody.protectionDomain?.codeSource?.location?.toString() ?: okhttpBody.classLoader?.javaClass?.name ?: "unknown"),
+                "okhttpRuntime" to (okhttpBody.classLoader?.javaClass?.name ?: "bootstrap"),
                 "okhttpSourceSignatures" to sourceSignatures,
-                "error" to chain.joinToString(" -> "),
+                "error" to (chain.joinToString(" -> ") +
+                    "\nOkHttp ResponseBody source methods: " + sourceSignatures.joinToString("; ")),
                 "errorChain" to chain,
                 "stackTrace" to error.stackTraceToString().take(12000)
             )

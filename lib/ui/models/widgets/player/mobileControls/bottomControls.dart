@@ -102,62 +102,83 @@ class _BottomControlsState extends State<BottomControls> {
       BuildContext context,
       PlayerDataProvider dataProvider,
       PlayerProvider playerProvider) {
-    showModalBottomSheet(
+    // The modal is a sibling route: Provider.of inside it may fail.
+    showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
       backgroundColor: appTheme.modalSheetBackgroundColor,
-      builder: (sheetContext) => SafeArea(
-        child: ConstrainedBox(
-          constraints: BoxConstraints(
-              maxHeight: MediaQuery.sizeOf(sheetContext).height * 0.75),
-          child: Consumer2<PlayerDataProvider, PlayerProvider>(
-            builder: (context, currentData, currentPlayer, _) {
-              final tracks = currentData.availableSubtitleTracks;
-              final selected = currentData.selectedSubtitleTrack;
-              return Column(mainAxisSize: MainAxisSize.min, children: [
-                const Padding(
-                  padding: EdgeInsets.all(16),
-                  child: Text('Subtitle tracks',
-                      style: TextStyle(fontSize: 20)),
-                ),
-                Flexible(
-                  child: ListView(
-                    shrinkWrap: true,
-                    children: [
-                      ListTile(
-                        leading: Icon(
-                          !currentPlayer.state.showSubs
-                              ? Icons.radio_button_checked
-                              : Icons.radio_button_unchecked),
-                        title: const Text('Off'),
-                        onTap: () {
-                          currentPlayer.toggleSubs(action: false);
-                          Navigator.of(sheetContext).pop();
-                        },
+      builder: (sheetContext) {
+        final height = MediaQuery.sizeOf(sheetContext).height * 0.75;
+        return SafeArea(
+          child: SizedBox(
+            height: height > 430 ? 430 : height,
+            child: AnimatedBuilder(
+              animation: Listenable.merge([dataProvider, playerProvider]),
+              builder: (context, _) {
+                final tracks = dataProvider.availableSubtitleTracks;
+                final selected = dataProvider.selectedSubtitleTrack;
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 18, 20, 12),
+                      child: Text(
+                        'Subtitle tracks (${tracks.length})',
+                        style: TextStyle(fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: appTheme.textMainColor),
                       ),
-                      ...tracks.map((track) => ListTile(
-                        leading: Icon(
-                          currentPlayer.state.showSubs &&
-                                  selected?.url == track.url
-                              ? Icons.radio_button_checked
-                              : Icons.radio_button_unchecked),
-                        title: Text(track.label),
-                        subtitle: Text(
-                          '${track.language} • ${track.format.isEmpty ? "Unknown format" : track.format.toUpperCase()}'),
-                        onTap: () {
-                          currentData.selectSubtitleTrack(track);
-                          currentPlayer.toggleSubs(action: true);
-                          Navigator.of(sheetContext).pop();
-                        },
-                      )),
-                    ],
-                  ),
-                ),
-              ]);
-            },
+                    ),
+                    Expanded(
+                      child: ListView(
+                        children: [
+                          ListTile(
+                            leading: Icon(
+                              !playerProvider.state.showSubs
+                                  ? Icons.radio_button_checked
+                                  : Icons.radio_button_unchecked,
+                              color: appTheme.textMainColor,
+                            ),
+                            title: Text('Off',
+                                style: TextStyle(color: appTheme.textMainColor)),
+                            onTap: () {
+                              playerProvider.toggleSubs(action: false);
+                              Navigator.of(sheetContext).pop();
+                            },
+                          ),
+                          for (final track in tracks)
+                            ListTile(
+                              leading: Icon(
+                                playerProvider.state.showSubs &&
+                                        selected?.url == track.url
+                                    ? Icons.radio_button_checked
+                                    : Icons.radio_button_unchecked,
+                                color: appTheme.textMainColor,
+                              ),
+                              title: Text(track.label.isNotEmpty
+                                  ? track.label : track.language,
+                                  style: TextStyle(color: appTheme.textMainColor)),
+                              subtitle: Text(
+                                '${track.language} • ${track.format.isEmpty ? "Unknown format" : track.format.toUpperCase()}',
+                                style: TextStyle(color:
+                                    appTheme.textMainColor.withOpacity(0.7)),
+                              ),
+                              onTap: () {
+                                dataProvider.selectSubtitleTrack(track);
+                                playerProvider.toggleSubs(action: true);
+                                Navigator.of(sheetContext).pop();
+                              },
+                            ),
+                        ],
+                      ),
+                    ),
+                  ],
+                );
+              },
+            ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 

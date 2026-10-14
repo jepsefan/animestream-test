@@ -366,6 +366,18 @@ class _PluginPageState extends State<PluginPage> {
         'Status: ${data['status'] ?? 'unknown'}',
         if (data['error'] != null) 'Error: ${data['error']}',
         'Videos found: ${data['videoCount'] ?? videos.length}',
+        if (data['diagnosis'] != null)
+          'Diagnosis: ${data['diagnosis']}',
+        if (data['status'] == 'stream_list_empty')
+          'No video streams were returned. The test is NOT considered successful.',
+        if (data['safeRequestSummary'] is List)
+          'Request stages (no URLs or secrets):',
+        if (data['safeRequestSummary'] is List)
+          for (final stage in data['safeRequestSummary'] as List)
+            if (stage is Map)
+              '${stage['stage'] ?? 'unknown'}: '
+              '${stage['host'] ?? ''} • HTTP ${stage['status'] ?? '?'}'
+              ' • ${stage['contentType'] ?? ''}',
         if (data['truncated'] == true) 'Showing first 40 streams',
         for (final video in videos)
           if (video is Map)

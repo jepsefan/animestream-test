@@ -55,6 +55,53 @@ class PlayerDataProvider extends ChangeNotifier {
           sliderValue: 0,
         );
 
+  // Keep track preference for this playback session. Rebind by language when
+  // the player switches server or episode (URLs are not interchangeable).
+  String? _preferredSubtitleLanguage;
+  String? _selectedSubtitleUrl;
+  String? _selectedSubtitleStreamUrl;
+
+  List<ExternalSubtitleTrack> get availableSubtitleTracks {
+    final stream = _state.currentStream;
+    if (stream.subtitleTracks.isNotEmpty) return stream.subtitleTracks;
+    final url = stream.subtitle;
+    if (url == null || url.isEmpty) return const [];
+    return [
+      ExternalSubtitleTrack(
+        url: url,
+        language: 'Default',
+        label: 'Default',
+        format: stream.subtitleFormat ?? '',
+      )
+    ];
+  }
+
+  ExternalSubtitleTrack? get selectedSubtitleTrack {
+    final tracks = availableSubtitleTracks;
+    if (tracks.isEmpty) return null;
+    if (_selectedSubtitleStreamUrl == _state.currentStream.url &&
+        _selectedSubtitleUrl != null) {
+      for (final track in tracks) {
+        if (track.url == _selectedSubtitleUrl) return track;
+      }
+    }
+    if (_preferredSubtitleLanguage != null) {
+      for (final track in tracks) {
+        if (track.language.toLowerCase() ==
+            _preferredSubtitleLanguage!.toLowerCase()) return track;
+      }
+    }
+    return tracks.first;
+  }
+
+  void selectSubtitleTrack(ExternalSubtitleTrack track) {
+    if (!availableSubtitleTracks.any((item) => item.url == track.url)) return;
+    _selectedSubtitleStreamUrl = _state.currentStream.url;
+    _selectedSubtitleUrl = track.url;
+    _preferredSubtitleLanguage = track.language;
+    notifyListeners();
+  }
+
   PlayerDataProviderState get state => _state;
 
   final discord = (currentUserSettings?.enableDiscordRichPresence ?? false) ? DiscordDesktopRPC() : null;

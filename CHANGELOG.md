@@ -1,3 +1,9 @@
+## v1.4.9-beta34.21 — Inspect Aniyomi subtitle formats; search fallback
+- Detect ASS/SSA, WebVTT and SRT using actual subtitle file headers and timestamp syntax. Bound HTTP reads, preserve stream headers, and do not log signed URLs.
+- Gradually populate subtitle format labels without assuming unknown formats are ASS.
+- Retry season-specific Aniyomi searches without season suffix and with punctuation-normalized titles. Validate series/season identity before auto-linking.
+- No changes to AnimeOnsen DASH decoding. Build/device verification pending.
+
 ## v1.4.9-beta34.20 — Fix grey subtitle selection and Aniyomi season searches
 - Eliminate Provider lookup in a separate subtitle modal route; use the player notifiers captured in the watch page, with an explicit bottom-sheet height, scrollable track list and theme text colors.
 - Retry the base title when a season-specific extension search returns no results (including Manual Search); don't automatically select unrelated seasons.

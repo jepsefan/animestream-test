@@ -1,3 +1,11 @@
+## v1.4.9-beta34.14 — Stream extraction diagnostics
+- Report stream_list_empty when no videos resolve and classify network stage failures without showing signed URLs.
+- Improve 123Anime stream-resolution diagnostics while retaining AnimeOnsen stream support.
+- Build and device tests pending.
+
+## v1.4.9-beta34.11 — Search routing (archived from release notes)
+- Route 123Anime plain-text searches to /search.
+
 ## v1.4.9-beta34.13 — Aniyomi stream list diagnostic
 - Implement Video, Track and Hoster model ABI compatibility and the legacy fetchVideoList Rx request/parser flow.
 - Display a per-episode Test streams button, restricted to user-selected episodes. Return sanitized stream quality/format/host and audio/subtitle counts, not raw media URLs or auth headers.

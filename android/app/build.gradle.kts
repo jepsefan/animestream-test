@@ -92,6 +92,8 @@ flutter {
 
 dependencies {
     implementation("androidx.multidex:multidex:2.0.1")
+    implementation("androidx.core:core:1.16.0")
+    implementation("com.android.tools.build:apksig:9.0.0")
     // Runtime libraries referenced by Aniyomi extension bytecode.
     // These do not replace the Aniyomi source-api module itself.
     // Explicitly package Kotlin stdlib for dynamically loaded Aniyomi extensions.

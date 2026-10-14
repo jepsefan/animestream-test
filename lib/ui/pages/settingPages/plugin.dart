@@ -649,7 +649,7 @@ class _PluginPageState extends State<PluginPage> {
                       ),
                     const Divider(),
                     if (_installed.isEmpty)
-                      const ListTile(title: Text('No saved providers found')),
+                      const ListTile(title: Text('No additional Dart providers installed')),
                     for (final item in _installed)
                       ListTile(
                         title: Text(item.name),

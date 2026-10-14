@@ -35,7 +35,7 @@ Future<AnimeSpecificPreference?> getAnimeSpecificPreference(String anilistId) as
   manSearch = item["manualSearchQuery"];
   lastWatch = item['lastWatchDuration'];
   provider = item['preferredProvider'];
-  Logs.app.log(item.toString());
+  // Do not log saved extension URLs, which may contain source tokens.
 
   // Update lastAccessed for LRU on read
   if (item.isNotEmpty) {
@@ -50,7 +50,11 @@ Future<AnimeSpecificPreference?> getAnimeSpecificPreference(String anilistId) as
       lastWatchDuration: lastWatch,
       manualSearchQuery: manSearch,
       preferredProvider: provider,
-      previouslyUsedServer: item['previouslyUsedServer']);
+      previouslyUsedServer: item['previouslyUsedServer'],
+      previouslyUsedServerQuality: item['previouslyUsedServerQuality'],
+      extensionSelections: item['extensionSelections'] is Map
+          ? Map<String, String>.from(item['extensionSelections'] as Map)
+          : null);
 }
 
 Future<void> saveAnimeSpecificPreference(String anilistId, AnimeSpecificPreference preference) async {
@@ -73,10 +77,22 @@ Future<void> saveAnimeSpecificPreference(String anilistId, AnimeSpecificPreferen
 
   // Handle other simple fields
   for (final entry in prefMap.entries) {
-    if (entry.key == 'lastWatchDuration') continue; // already merged above
+    if (entry.key == 'lastWatchDuration' ||
+        entry.key == 'extensionSelections') continue; // already merged above
     if (entry.value != null) {
       item[entry.key] = entry.value;
     }
+  }
+
+  // Merge separate extension matches instead of overwriting other sources.
+  if (prefMap['extensionSelections'] is Map) {
+    final existing = Map<String, String>.from(
+        item['extensionSelections'] is Map
+            ? item['extensionSelections'] as Map
+            : const <String, String>{});
+    existing.addAll(Map<String, String>.from(
+        prefMap['extensionSelections'] as Map));
+    item['extensionSelections'] = existing;
   }
 
   // Update lastAccessed for LRU on write

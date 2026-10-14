@@ -140,4 +140,15 @@ abstract class AnimeHttpSource : AnimeCatalogueSource {
 
     override fun fetchEpisodeList(anime: SAnime): Observable<List<SEpisode>> =
         fetch(episodeListRequest(anime), ::episodeListParse)
+
+    // Legacy Rx API used by the tested Aniyomi extension APKs.
+    protected open fun videoListRequest(episode: SEpisode): Request =
+        Request.Builder().url(baseUrl + episode.url).headers(headers).build()
+
+    protected open fun videoListParse(response: Response): List<Video> =
+        throw UnsupportedOperationException("Extension must implement videoListParse")
+
+    override fun fetchVideoList(episode: SEpisode): Observable<List<Video>> =
+        fetch(videoListRequest(episode), ::videoListParse)
+
 }

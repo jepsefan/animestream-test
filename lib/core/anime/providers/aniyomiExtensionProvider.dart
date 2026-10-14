@@ -104,12 +104,18 @@ class AniyomiExtensionProvider extends AnimeProvider {
               (key, value) => MapEntry(key.toString(), value.toString()))
           : <String, String>{};
       final subtitle = item['subtitle']?.toString();
+      final rawTracks = item['subtitleTracks'] as List? ?? const [];
+      final subtitles = rawTracks.whereType<Map>().map(
+          (entry) => ExternalSubtitleTrack.fromMap(entry)).where(
+          (track) => track.url.startsWith('https://') ||
+              track.url.startsWith('http://')).toList();
       streams.add(VideoStream(
         quality: item['quality']?.toString() ?? 'Auto',
         url: url,
         server: '${extension.name} [Ext]',
         backup: false,
         subtitle: subtitle?.isNotEmpty == true ? subtitle : null,
+        subtitleTracks: subtitles,
         subtitleFormat: (item['subtitleFormat'] ?? '').toString(),
         customHeaders: headers,
       ));

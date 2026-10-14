@@ -89,10 +89,10 @@ class ExtensionAniListMatcher {
         'title': name,
         'url': (entry['url'] ?? '').toString(),
         'sourceCover': (entry['cover'] ?? '').toString(),
-        'anilistId': confidence >= 70 ? best?['id'] : null,
-        'anilistTitle': confidence >= 70
-            ? (best?['english'] ?? best?['romaji']) : null,
-        'anilistCover': confidence >= 70 ? best?['cover'] : null,
+        'anilistId': confidence >= 70 && best != null ? best['id'] : null,
+        'anilistTitle': confidence >= 70 && best != null
+            ? (best['english'] ?? best['romaji']) : null,
+        'anilistCover': confidence >= 70 && best != null ? best['cover'] : null,
         'score': confidence,
         'matchStatus': confidence >= 90 ? 'strong' :
             confidence >= 70 ? 'possible' : 'manual_selection_required',

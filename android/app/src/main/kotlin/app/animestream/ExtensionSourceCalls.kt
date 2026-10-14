@@ -5,7 +5,6 @@ import eu.kanade.tachiyomi.animesource.AnimeSource
 import eu.kanade.tachiyomi.animesource.model.*
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
-import rx.Observable
 import java.util.concurrent.TimeUnit
 
 /**
@@ -19,6 +18,7 @@ internal object ExtensionSourceCalls {
         val cause = (error as? java.lang.reflect.InvocationTargetException)?.targetException ?: error
         return cause is AbstractMethodError || cause is NoSuchMethodError ||
             cause is UnsupportedOperationException ||
+            cause is java.lang.IncompatibleClassChangeError ||
             (cause is IllegalStateException && cause.message == "Not used")
     }
 

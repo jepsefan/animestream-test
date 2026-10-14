@@ -103,55 +103,11 @@ internal class ExtensionSearchProbe(private val context: Context) {
                 explicitNulls = false
             })
         }
-        val pm = context.packageManager
-        val info = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            pm.getApplicationInfo(packageName,
-                PackageManager.ApplicationInfoFlags.of(PackageManager.GET_META_DATA.toLong()))
-        } else {
-            @Suppress("DEPRECATION")
-            pm.getApplicationInfo(packageName, PackageManager.GET_META_DATA)
-        }
-        val declared = info.metaData?.getString("tachiyomi.animeextension.class")
-            ?: return mapOf("status" to "no_source_class")
-        val entry = declared.split(';', ',').first().trim().let {
-            if (it.startsWith(".")) packageName + it else it
-        }
-        val paths = listOfNotNull(info.sourceDir) +
-            (info.splitSourceDirs?.toList() ?: emptyList())
-        val extensionClasses = paths.flatMap { apk ->
-            val dex = DexFile(apk)
-            try {
-                val entries = dex.entries()
-                val names = mutableListOf<String>()
-                while (entries.hasMoreElements()) names.add(entries.nextElement())
-                names
-            } finally { dex.close() }
-        }.toSet()
-        val loader = ExtensionIsolatedClassLoader(
-            paths.joinToString(File.pathSeparator),
-            context.codeCacheDir.absolutePath, info.nativeLibraryDir,
-            context.javaClass.classLoader,
-            extensionClasses
-        )
-        val source = Class.forName(entry, true, loader).getDeclaredConstructor().newInstance()
-        val catalogue = Class.forName(
-            "eu.kanade.tachiyomi.animesource.AnimeCatalogueSource",
-            false, context.javaClass.classLoader
-        )
-        if (!catalogue.isInstance(source)) {
-            return mapOf("status" to "not_catalogue_source", "className" to entry)
-        }
-        val filtersClass = Class.forName(
-            "eu.kanade.tachiyomi.animesource.model.AnimeFilterList",
-            false, context.javaClass.classLoader
-        )
-        val filters = filtersClass.getDeclaredConstructor().newInstance()
-        val method = catalogue.getMethod("fetchSearchAnime",
-            Int::class.javaPrimitiveType, String::class.java, filtersClass)
-        val observable = method.invoke(source, 1, query, filters) as rx.Observable<*>
-        val page = observable.toBlocking().toFuture()
-            .get(25, TimeUnit.SECONDS)
-            ?: return mapOf("status" to "empty_response", "query" to query)
+        val source = ExtensionHostRuntime(context).load(packageName).source
+        val entry = source.javaClass.name
+        val catalogue = source as? eu.kanade.tachiyomi.animesource.AnimeCatalogueSource
+            ?: return mapOf("status" to "not_catalogue_source", "className" to entry)
+        val page = ExtensionSourceCalls.search(catalogue, query)
         val animes = read(page, "getAnimes", "getAnimeList") as? List<*>
             ?: return mapOf("status" to "unexpected_page_type",
                 "pageClass" to page.javaClass.name)

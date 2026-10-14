@@ -88,8 +88,40 @@ abstract class AnimeHttpSource : AnimeCatalogueSource {
     override fun fetchPopularAnime(page: Int): Observable<AnimesPage> =
         fetch(popularAnimeRequest(page), ::popularAnimeParse)
 
-    override fun fetchSearchAnime(page: Int, query: String, filters: AnimeFilterList): Observable<AnimesPage> =
-        fetch(searchAnimeRequest(page, query, filters), ::searchAnimeParse)
+    override fun fetchSearchAnime(page: Int, query: String, filters: AnimeFilterList): Observable<AnimesPage> {
+        val request = searchAnimeRequest(page, query, filters)
+        // Compatibility routing for the installed 123Anime extension. Its
+        // searchAnimeRequest() uses /filter?keyword=, which the current site
+        // returns as an unfiltered browse list. The website's /search?keyword=
+        // produces the requested titles and uses the exact same card markup,
+        // handled by the extension's existing searchAnimeParse().
+        //
+        // Only redirect a plain text search, NOT advanced filters, browsing,
+        // or any other extension. No APK modification or global interceptor.
+        val is123Anime = javaClass.name ==
+            "eu.kanade.tachiyomi.animeextension.en.onetwothreeanime.OneThreeTwoAnime"
+        val compatibleHost = request.url.host in setOf("123animehub.cc", "123anime.la")
+        val plainSearch = request.method == "GET" &&
+            request.url.encodedPath == "/filter" &&
+            query.isNotBlank() &&
+            request.url.queryParameter("keyword")?.trim() == query.trim() &&
+            request.url.queryParameterNames.all {
+                it == "keyword" || it == "sort" || it == "page"
+            } &&
+            (request.url.queryParameter("sort") == null ||
+                request.url.queryParameter("sort") == "default")
+        val effectiveRequest = if (is123Anime && compatibleHost && plainSearch) {
+            request.newBuilder().url(
+                request.url.newBuilder()
+                    .encodedPath("/search")
+                    .removeAllQueryParameters("sort")
+                    .build()
+            ).build()
+        } else {
+            request
+        }
+        return fetch(effectiveRequest, ::searchAnimeParse)
+    }
 
     override fun fetchLatestUpdates(page: Int): Observable<AnimesPage> =
         fetch(latestUpdatesRequest(page), ::latestUpdatesParse)

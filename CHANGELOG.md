@@ -1,3 +1,9 @@
+## v1.4.9-beta34.18 — Aniyomi source and DASH playback fixes
+- Attempt up to seven distinct AniList title aliases for external extension searches without auto-selecting ambiguous results.
+- Treat .mpd and .dash as MPEG-DASH manifests before performing HTTP HEAD detection; do not parse DASH as HLS or prematurely apply HLS quality tracks.
+- Show a recoverable error screen if player setup throws; preserve the existing player implementation.
+- Build and device validation pending.
+
 ## v1.4.9-beta34.17 — Remove retired AniDB sources
 - Removed AniDB V1/V2/V3 from the built-in provider list and internal source registry, including the legacy V3 alias.
 - Deleted the retired AniDB HTML scraper and stream extraction implementation (lib/core/anime/providers/anidb.dart).

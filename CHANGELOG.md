@@ -1,3 +1,10 @@
+## v1.4.9-beta34.22 — AnimeOnsen subtitle language and 123Anime streaming diagnostics
+- Label AnimeOnsen external /v4/subtitles/{id}/{locale}/{episode} endpoints as ASS for all locale variants, default to English and retain session language selection.
+- Keep existing libass ASS renderer and AnimeOnsen DASH playback unchanged.
+- Native playback stream resolution reports safe stage/status classifications (empty server tabs, empty targets, no playable media), and server picker shows a diagnostic instead of only a blank server list.
+- Signed stream URLs, headers, credentials and cookies are not added to diagnostics.
+- 123Anime source-side resolution remains unverified. APK build and on-device test pending.
+
 ## v1.4.9-beta34.21 — Inspect Aniyomi subtitle formats; search fallback
 - Detect ASS/SSA, WebVTT and SRT using actual subtitle file headers and timestamp syntax. Bound HTTP reads, preserve stream headers, and do not log signed URLs.
 - Gradually populate subtitle format labels without assuming unknown formats are ASS.

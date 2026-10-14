@@ -2,6 +2,14 @@
 
 Only the three latest beta versions are kept here. Older entries are archived in [CHANGELOG.md](CHANGELOG.md).
 
+## v1.4.9-beta34.20 — Subtitle selector and search fallback (build testing pending)
+- Fix blank/grey subtitle track dialog by using the existing player and data notifiers across Navigator routes, with a constrained scrollable sheet and explicit colors.
+- Preserve multi-language tracks, the Off option, libass ASS support, and long-press subtitle settings.
+- When an Aniyomi search returns no results for a title ending in Season/Part/Cour N, also try the base title in automatic and manual searches.
+- Do not link ambiguous source results automatically; manual series and season selection remains available.
+- No changes to the working AnimeOnsen DASH playback pipeline.
+- APK build and on-device tests not yet verified.
+
 ## v1.4.9-beta34.19 — Full Aniyomi external subtitle track selection (unverified)
 - Preserve every subtitle track returned by an installed Aniyomi extension, including track language, label, format and URL.
 - For extension streams with multiple tracks, the existing subtitle button opens a selector with each track and an Off option. Long-press still opens the usual subtitle settings.
@@ -16,11 +24,3 @@ Only the three latest beta versions are kept here. Older entries are archived in
 - Present a visible player initialization error and Back to episodes action instead of hiding thrown errors on an empty player screen.
 - Existing AniDB removal retained. Working conventional sources remain unchanged.
 - Changes are unverified on Android; further troubleshooting may be needed for white video output and 123Anime matching.
-
-## v1.4.9-beta34.17 — Remove retired AniDB sources (build validation pending)
-- Remove built-in AniDB V1, V2 and V3 from the source selector.
-- Delete the obsolete AniDB web scraping and video extraction implementation.
-- Remove all AniDB V1/V2/V3 and legacy V3 alias registrations and the unused import.
-- Existing AniList metadata integration, ordinary providers and Aniyomi extensions remain untouched.
-- If AniDB was previously selected, the existing missing-provider fallback selects another available provider.
-- Build and device validation pending.

@@ -374,12 +374,14 @@ class InfoProvider extends ChangeNotifier {
 
   /// Prefer a previously confirmed link. A source slug must never be
   /// guessed from an AniList identifier or selected solely by result order.
-  Future<void> _search(String query) async {
+  Future<void> _search(String query, int generation) async {
     final sourceId = selectedSource.identifier;
     if (AniyomiExtensionProvider.isExtensionId(sourceId)) {
       final saved = _extensionSelections[sourceId];
       if (saved != null && saved.isNotEmpty) {
         final links = await sourceManager.getAnimeEpisodes(sourceId, saved);
+        if (generation != _episodeRequestGeneration ||
+            sourceId != selectedSource.identifier) return;
         if (links.isNotEmpty) {
           paginate(links);
           _foundName = saved.split('\u001f').last;
@@ -441,6 +443,8 @@ class InfoProvider extends ChangeNotifier {
     final alias = selected['alias'];
     if (alias == null || alias.isEmpty) throw StateError('Source URL not found');
     final links = await sourceManager.getAnimeEpisodes(sourceId, alias);
+    if (generation != _episodeRequestGeneration ||
+        sourceId != selectedSource.identifier) return;
     paginate(links);
     _foundName = selected['name'];
     notifyListeners();
@@ -546,7 +550,7 @@ class InfoProvider extends ChangeNotifier {
       for (final title in titles) {
         if (attempts++ >= 16) break;
         try {
-          await _search(title);
+          await _search(title, generation);
           if (generation != _episodeRequestGeneration ||
               requestedSource != selectedSource.identifier) return;
           if (_epLinks.isNotEmpty) {
@@ -574,7 +578,7 @@ class InfoProvider extends ChangeNotifier {
       if (_manualSearchQuery != null) {
         searchTitle = _manualSearchQuery!;
       }
-      await _search(searchTitle);
+      await _search(searchTitle, generation);
       if (generation != _episodeRequestGeneration ||
           requestedSource != selectedSource.identifier) return;
       notifyListeners();
@@ -585,7 +589,7 @@ class InfoProvider extends ChangeNotifier {
       final didUseManualQuery = _manualSearchQuery != null;
       if (hasEnglishTitle && !didUseManualQuery) {
         try {
-          await _search(data.title['romaji'] ?? '');
+          await _search(data.title['romaji'] ?? '', generation);
           if (generation != _episodeRequestGeneration ||
               requestedSource != selectedSource.identifier) return;
           notifyListeners();

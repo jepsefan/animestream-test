@@ -72,11 +72,19 @@ class PlayerDataProvider extends ChangeNotifier {
   Future<void> extractCurrentStreamQualities() async {
     final url = _state.currentStream.url;
     final headers = _state.currentStream.customHeaders;
-    String? mime;
-    if (!url.contains(RegExp(r'\.(mkv|mp4|mov|webm|dash|m3u|m3u8)', caseSensitive: false))) {
-      //get mime if none is mentioned
-      mime = await getMediaMimeType(url, headers);
-      print(mime);
+    // DASH is an MPEG-DASH manifest, not an HLS master playlist. Leave it
+    // intact for Android ExoPlayer instead of parsing it as an HLS file.
+    final path = Uri.tryParse(url)?.path.toLowerCase() ?? '';
+    if (path.endsWith('.mpd') || path.endsWith('.dash')) {
+      _state = _state.copyWith(
+        qualities: [QualityStream(
+          url: url, resolution: 'default',
+          quality: _state.currentStream.quality,
+        )],
+        audioTracks: <AudioStream>[],
+      );
+      notifyListeners();
+      return;
     }
     try {
       final master = await parseMasterPlaylist(url, customHeader: headers);

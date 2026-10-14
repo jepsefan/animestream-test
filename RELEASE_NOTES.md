@@ -1,6 +1,13 @@
 # AnimeStream — latest three beta releases
 
-Only the three most recent beta versions are kept here. Older beta notes are archived in [CHANGELOG.md](CHANGELOG.md).
+Only the three most recent beta versions are kept here. Previous versions are archived in [CHANGELOG.md](CHANGELOG.md).
+
+## v1.4.9-beta34.12 — AniList matching and manual episode diagnostics (unverified)
+- Use AnimeStream's existing AniList API to rank extension search results against AniList English, romaji, native and synonym titles.
+- Prioritize stronger potential matches, display AniList title and AniList cover when the match is sufficiently strong, preserve source title/URL, and flag uncertain matches for manual selection.
+- Show individual extension results with source label, Sub/Dub indication and detected season.
+- Add an opt-in Test episodes action per selected result, backed by Android Host API fetchEpisodeList(). Display names, numbers and source paths; does not fetch video URLs or add playable sources yet.
+- AniList is still primary for metadata. No automatic binding of uncertain results to AniList IDs. Requires build and phone verification.
 
 ## v1.4.9-beta34.11 — 123Anime search routing and alternate titles (unverified)
 - Route only plain text searches in the installed 123Anime extension to /search instead of /filter when the original source request uses the broken browse-list endpoint.
@@ -15,9 +22,3 @@ Only the three most recent beta versions are kept here. Older beta notes are arc
 - Do not classify these as incorrect solely because their Romanized titles do not contain the English search phrase.
 - Show title relevance warnings without removing results. For 123Anime only, run a diagnostic comparison against /search?keyword= if no literal title matches are shown.
 - This is a diagnostic-only probe; no permanent rewrite of installed extension requests, no automatic AniList matching, episodes or playback yet. Build/device testing required.
-
-## v1.4.9-beta34.9 — Extension search diagnostics (unverified)
-- Added privacy-safe request diagnostics: HTTP status, request host/path, authorization header presence (not token values), Cloudflare mitigation header and exact keyword comparison for 123Anime.
-- Detect results that don't contain the requested phrase among displayed titles; show a warning instead of treating unrelated catalog results as verified search matches.
-- AnimeOnsen may require a search token from its home page; HTTP 403 is not automatically an application or authentication error. Diagnostic-only; no Cloudflare bypass added.
-- Keep existing extension runtime, ordinary sources, and all player behavior unchanged. Build/device verification required.

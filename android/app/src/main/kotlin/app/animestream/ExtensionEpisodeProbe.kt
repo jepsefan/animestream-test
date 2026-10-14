@@ -147,7 +147,31 @@ internal class ExtensionEpisodeProbe(private val context: Context) {
         }
     }
 
-    private fun performStreams(packageName: String, episodeUrl: String, episodeName: String): Map<String, Any?> {
+    /**
+     * Only called for an explicitly selected playback source. Unlike the
+     * diagnostic method this returns live URLs/headers to the player bridge.
+     * Never include those values in diagnostic output or log messages.
+     */
+    fun resolvePlaybackStreams(
+        packageName: String, episodeUrl: String, episodeName: String
+    ): Map<String, Any?> {
+        if (episodeUrl.isBlank() || episodeName.isBlank()) {
+            return mapOf("status" to "invalid_episode_selection")
+        }
+        return try {
+            performStreams(packageName, episodeUrl, episodeName, forPlayback = true)
+        } catch (error: Throwable) {
+            mapOf(
+                "status" to "stream_list_failed",
+                "error" to (error.cause ?: error).javaClass.simpleName
+            )
+        }
+    }
+
+    private fun performStreams(
+        packageName: String, episodeUrl: String, episodeName: String,
+        forPlayback: Boolean = false
+    ): Map<String, Any?> {
         val app = context.applicationContext as? Application
             ?: return mapOf("status" to "missing_application")
         val helper = NetworkHelper.initialize(app)
@@ -205,6 +229,38 @@ internal class ExtensionEpisodeProbe(private val context: Context) {
                 .get(35, TimeUnit.SECONDS)
         } finally {
             helper.endStreamDiagnostics()
+        }
+        if (forPlayback) {
+            val playable = videos.take(40).mapNotNull { video ->
+                val url = video.videoUrl
+                val uri = try { android.net.Uri.parse(url) } catch (_: Exception) { null }
+                if (uri == null || uri.scheme?.lowercase() !in setOf("http", "https") ||
+                    uri.host.isNullOrBlank()) return@mapNotNull null
+                val subtitle = video.subtitleTracks.firstOrNull()?.url
+                val subtitleFormat = when {
+                    subtitle?.substringBefore('?')?.endsWith(".ass", true) == true -> "ass"
+                    subtitle?.substringBefore('?')?.endsWith(".srt", true) == true -> "srt"
+                    subtitle?.substringBefore('?')?.endsWith(".vtt", true) == true -> "vtt"
+                    else -> ""
+                }
+                mapOf(
+                    "url" to url,
+                    "quality" to video.videoTitle.ifBlank { "Auto" },
+                    "server" to packageName.substringAfterLast('.'),
+                    "headers" to (video.headers?.toMultimap()?.mapValues {
+                        it.value.joinToString("; ")
+                    } ?: emptyMap<String, String>()),
+                    "subtitle" to (subtitle ?: ""),
+                    "subtitleFormat" to subtitleFormat,
+                    "audioTrackCount" to video.audioTracks.size,
+                    "subtitleTrackCount" to video.subtitleTracks.size
+                )
+            }
+            return mapOf(
+                "status" to if (playable.isEmpty()) "stream_list_empty" else "stream_list_completed",
+                "videos" to playable,
+                "videoCount" to playable.size
+            )
         }
         val traces = summarizeStreamRequests(helper.streamRequestDiagnostics())
         val diagnosis = if (videos.isEmpty()) diagnoseEmptyStreamList(packageName, traces)

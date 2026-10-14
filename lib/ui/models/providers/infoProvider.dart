@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 import 'package:animestream/core/anime/providers/providerDetails.dart';
+import 'package:animestream/core/anime/providers/aniyomiExtensionProvider.dart';
+import 'package:animestream/core/anime/providers/extensionAniListMatcher.dart';
 import 'package:animestream/core/anime/providers/types.dart';
 import 'package:animestream/core/app/logging.dart';
 import 'package:animestream/core/app/runtimeDatas.dart';
@@ -30,6 +32,7 @@ class InfoProvider extends ChangeNotifier {
 
   String? _foundName;
   String? _manualSearchQuery;
+  Map<String, String> _extensionSelections = {};
 
   MediaStatus? _mediaListStatus;
 
@@ -173,6 +176,7 @@ class InfoProvider extends ChangeNotifier {
     final asp = await getAnimeSpecificPreference(id.toString());
     _lastWatchedDurationMap = asp?.lastWatchDuration ?? {};
     _manualSearchQuery = asp?.manualSearchQuery;
+    _extensionSelections = Map<String, String>.from(asp?.extensionSelections ?? const {});
 
     aspProvider = asp?.preferredProvider;
 
@@ -368,23 +372,66 @@ class InfoProvider extends ChangeNotifier {
     // _currentPageIndex = _currentPageIndex >= _visibleEpList.length ? _visibleEpList.length-1 : _currentPageIndex;
   }
 
+  /// Prefer a previously confirmed link. A source slug must never be
+  /// guessed from an AniList identifier or selected solely by result order.
   Future<void> _search(String query) async {
-    final sr = await sourceManager.searchInSource(selectedSource.identifier, query);
-    if (sr.isEmpty) {
-      throw Exception("No results found from ${selectedSource.name} for: $query");
+    final sourceId = selectedSource.identifier;
+    if (AniyomiExtensionProvider.isExtensionId(sourceId)) {
+      final saved = _extensionSelections[sourceId];
+      if (saved != null && saved.isNotEmpty) {
+        final links = await sourceManager.getAnimeEpisodes(sourceId, saved);
+        if (links.isNotEmpty) {
+          paginate(links);
+          _foundName = saved.split('\u001f').last;
+          notifyListeners();
+          return;
+        }
+      }
     }
 
-    //to find a exact match
-    List<Map<String, String?>> match = sr
-        .where(
-          (e) => e['name'] == query,
-        )
-        .toList();
-    if (match.isEmpty) match = sr;
-    final links = await sourceManager.getAnimeEpisodes(selectedSource.identifier, match[0]['alias']!);
+    final results = await sourceManager.searchInSource(sourceId, query);
+    if (results.isEmpty) {
+      throw StateError('No results from ${selectedSource.name}');
+    }
+
+    Map<String, String?> selected;
+    if (AniyomiExtensionProvider.isExtensionId(sourceId)) {
+      // Only use exact title aliases from the current AniList series.
+      // Ambiguous seasons/editions must be confirmed in Manual Search.
+      final aliases = [
+        data.title['english'],
+        data.title['romaji'],
+        data.title['native'],
+      ].whereType<String>().map(ExtensionAniListMatcher.normalize)
+          .where((title) => title.isNotEmpty).toSet();
+      final exact = results.where((item) =>
+          aliases.contains(ExtensionAniListMatcher.normalize(
+              item['name'] ?? ''))).toList();
+      if (exact.length != 1) {
+        throw StateError('Select the correct Aniyomi title using Manual Search');
+      }
+      selected = exact.single;
+    } else {
+      final exact = results.where((item) => item['name'] == query).toList();
+      selected = exact.isNotEmpty ? exact.first : results.first;
+    }
+    final alias = selected['alias'];
+    if (alias == null || alias.isEmpty) throw StateError('Source URL not found');
+    final links = await sourceManager.getAnimeEpisodes(sourceId, alias);
     paginate(links);
-    _foundName = match[0]['name'];
+    _foundName = selected['name'];
     notifyListeners();
+  }
+
+  Future<void> saveExtensionSourceSelection(Map<String, String?> result) async {
+    final sourceId = selectedSource.identifier;
+    final alias = result['alias'];
+    if (!AniyomiExtensionProvider.isExtensionId(sourceId) ||
+        alias == null || alias.isEmpty) return;
+    _extensionSelections[sourceId] = alias;
+    await saveAnimeSpecificPreference(id.toString(),
+        AnimeSpecificPreference(
+            extensionSelections: {sourceId: alias}));
   }
 
   Future<void> getEpisodes() async {
@@ -392,7 +439,8 @@ class InfoProvider extends ChangeNotifier {
     _epSearcherror = false;
     try {
       String searchTitle = data.title['english'] ?? data.title['romaji'] ?? '';
-      if (_manualSearchQuery != null) {
+      if (_manualSearchQuery != null &&
+          !AniyomiExtensionProvider.isExtensionId(selectedSource.identifier)) {
         searchTitle = _manualSearchQuery!;
       }
       await _search(searchTitle);
@@ -403,7 +451,8 @@ class InfoProvider extends ChangeNotifier {
       // try again with romaji title if english title failed
 
       final hasEnglishTitle = data.title['english'] != null;
-      final didUseManualQuery = _manualSearchQuery != null;
+      final didUseManualQuery = _manualSearchQuery != null &&
+          !AniyomiExtensionProvider.isExtensionId(selectedSource.identifier);
 
       if (hasEnglishTitle && !didUseManualQuery) {
         // try once more with romaji title if english title failed

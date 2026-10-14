@@ -19,12 +19,12 @@ import uy.kohesive.injekt.api.TypeReference
  * or playback. This does NOT guess an episode list from an AniList entry.
  */
 internal class ExtensionEpisodeProbe(private val context: Context) {
-    fun load(packageName: String, sourceUrl: String, sourceTitle: String): Map<String, Any?> {
+    fun load(packageName: String, sourceUrl: String, sourceTitle: String, sourceId: Long? = null): Map<String, Any?> {
         if (sourceUrl.isBlank() || sourceTitle.isBlank()) {
             return mapOf("status" to "invalid_selection")
         }
         return try {
-            perform(packageName, sourceUrl, sourceTitle)
+            perform(packageName, sourceUrl, sourceTitle, sourceId)
         } catch (error: Throwable) {
             val errors = mutableListOf<String>()
             val seen = java.util.Collections.newSetFromMap(
@@ -45,7 +45,7 @@ internal class ExtensionEpisodeProbe(private val context: Context) {
         }
     }
 
-    private fun perform(packageName: String, sourceUrl: String, sourceTitle: String): Map<String, Any?> {
+    private fun perform(packageName: String, sourceUrl: String, sourceTitle: String, sourceId: Long?): Map<String, Any?> {
         val app = context.applicationContext as? Application
             ?: return mapOf("status" to "missing_application")
         val helper = NetworkHelper.initialize(app)
@@ -61,7 +61,7 @@ internal class ExtensionEpisodeProbe(private val context: Context) {
                 override val type: java.lang.reflect.Type = Json::class.java
             }, Json { ignoreUnknownKeys = true; explicitNulls = false })
         }
-        val source = ExtensionHostRuntime(context).load(packageName).source
+        val source = ExtensionHostRuntime(context).load(packageName, sourceId).source
         val anime = SAnime.create().apply {
             url = sourceUrl
             title = sourceTitle
@@ -84,13 +84,13 @@ internal class ExtensionEpisodeProbe(private val context: Context) {
         )
     }
     fun loadStreams(
-        packageName: String, episodeUrl: String, episodeName: String
+        packageName: String, episodeUrl: String, episodeName: String, sourceId: Long? = null
     ): Map<String, Any?> {
         if (episodeUrl.isBlank() || episodeName.isBlank()) {
             return mapOf("status" to "invalid_episode_selection")
         }
         return try {
-            performStreams(packageName, episodeUrl, episodeName)
+            performStreams(packageName, episodeUrl, episodeName, sourceId = sourceId)
         } catch (error: Throwable) {
             val errors = mutableListOf<String>()
             val seen = java.util.Collections.newSetFromMap(
@@ -122,13 +122,13 @@ internal class ExtensionEpisodeProbe(private val context: Context) {
      * Never include those values in diagnostic output or log messages.
      */
     fun resolvePlaybackStreams(
-        packageName: String, episodeUrl: String, episodeName: String
+        packageName: String, episodeUrl: String, episodeName: String, sourceId: Long? = null
     ): Map<String, Any?> {
         if (episodeUrl.isBlank() || episodeName.isBlank()) {
             return mapOf("status" to "invalid_episode_selection")
         }
         return try {
-            performStreams(packageName, episodeUrl, episodeName, forPlayback = true)
+            performStreams(packageName, episodeUrl, episodeName, sourceId = sourceId, forPlayback = true)
         } catch (error: Throwable) {
             mapOf(
                 "status" to "stream_list_failed",
@@ -139,7 +139,7 @@ internal class ExtensionEpisodeProbe(private val context: Context) {
 
     private fun performStreams(
         packageName: String, episodeUrl: String, episodeName: String,
-        forPlayback: Boolean = false
+        sourceId: Long? = null, forPlayback: Boolean = false
     ): Map<String, Any?> {
         val app = context.applicationContext as? Application
             ?: return mapOf("status" to "missing_application")
@@ -156,7 +156,7 @@ internal class ExtensionEpisodeProbe(private val context: Context) {
                 override val type: java.lang.reflect.Type = Json::class.java
             }, Json { ignoreUnknownKeys = true; explicitNulls = false })
         }
-        val source = ExtensionHostRuntime(context).load(packageName).source
+        val source = ExtensionHostRuntime(context).load(packageName, sourceId).source
         val episode = eu.kanade.tachiyomi.animesource.model.SEpisode.create().apply {
             url = episodeUrl
             name = episodeName

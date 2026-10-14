@@ -1,5 +1,6 @@
 import 'dart:convert';
-import 'package:animestream/core/network/network.dart';
+import 'dart:io';
+import 'dart:typed_data';
 import 'package:hive/hive.dart';
 
 /// Repositories and trusted signing-key fingerprints are stored locally.
@@ -124,18 +125,28 @@ class AniyomiRepositoryManager {
     if (url.scheme != 'https' || url.host.isEmpty) {
       throw const FormatException('HTTPS required');
     }
-    final response = await get(url).timeout(const Duration(seconds: 25));
-    if (response.statusCode != 200) {
-      throw StateError('Repository HTTP ' + response.statusCode.toString());
+    final client = HttpClient()..connectionTimeout = const Duration(seconds: 15);
+    try {
+      final req = await client.getUrl(url).timeout(const Duration(seconds: 20));
+      req.followRedirects = false;
+      final response = await req.close().timeout(const Duration(seconds: 25));
+      if (response.isRedirect) {
+        throw const FormatException('Repository redirects are not allowed');
+      }
+      if (response.statusCode != HttpStatus.ok) {
+        throw HttpException('Repository HTTP ${response.statusCode}');
+      }
+      final builder = BytesBuilder(copy: false);
+      await for (final chunk in response.timeout(const Duration(seconds: 25))) {
+        if (builder.length + chunk.length > limit) {
+          throw const FormatException('Repository response too large');
+        }
+        builder.add(chunk);
+      }
+      return jsonDecode(utf8.decode(builder.takeBytes()));
+    } finally {
+      client.close(force: true);
     }
-    if (response.bodyBytes.length > limit) {
-      throw const FormatException('Repository response too large');
-    }
-    final target = response.request?.url;
-    if (target != null && (target.scheme != 'https' || target.host != url.host)) {
-      throw const FormatException('Cross-host redirect blocked');
-    }
-    return jsonDecode(response.body);
   }
 }
 

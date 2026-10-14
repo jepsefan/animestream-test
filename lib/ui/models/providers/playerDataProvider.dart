@@ -70,10 +70,20 @@ class PlayerDataProvider extends ChangeNotifier {
   final Map<String, String> _detectedSubtitleFormats = {};
   final Set<String> _probingSubtitleUrls = {};
 
-  String subtitleFormatFor(ExternalSubtitleTrack track) =>
-      track.format.isNotEmpty
-          ? track.format.toLowerCase()
-          : (_detectedSubtitleFormats[track.url] ?? '');
+  String subtitleFormatFor(ExternalSubtitleTrack track) {
+    if (track.format.isNotEmpty) return track.format.toLowerCase();
+    // AnimeOnsen's /v4/subtitles/{id}/{locale}/{episode} API supplies
+    // ASS for any locale, including en-US. No extension suffix is present.
+    // Only trust this known API for streams actually from AnimeOnsen.
+    final streamServer = _state.currentStream.server.toLowerCase();
+    final uri = Uri.tryParse(track.url);
+    if (streamServer.contains('animeonsen') &&
+        uri?.host.toLowerCase() == 'api.animeonsen.xyz' &&
+        (uri?.path.startsWith('/v4/subtitles/') ?? false)) {
+      return 'ass';
+    }
+    return _detectedSubtitleFormats[track.url] ?? '';
+  }
 
   String subtitleFormatLabel(ExternalSubtitleTrack track) {
     final value = subtitleFormatFor(track);
@@ -190,6 +200,15 @@ class PlayerDataProvider extends ChangeNotifier {
       for (final track in tracks) {
         if (track.language.toLowerCase() ==
             _preferredSubtitleLanguage!.toLowerCase()) return track;
+      }
+    }
+    // English is the default if no language has been selected. Selecting
+    // another language takes precedence for the remainder of the session.
+    for (final track in tracks) {
+      final lang = track.language.trim().toLowerCase();
+      if (lang == 'english' || lang == 'en' || lang == 'en-us' ||
+          lang == 'en-gb' || lang.startsWith('english ')) {
+        return track;
       }
     }
     return tracks.first;

@@ -98,6 +98,69 @@ class _BottomControlsState extends State<BottomControls> {
         return child;
       });
 
+  void _showSubtitleTracks(
+      BuildContext context,
+      PlayerDataProvider dataProvider,
+      PlayerProvider playerProvider) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: appTheme.modalSheetBackgroundColor,
+      builder: (sheetContext) => SafeArea(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+              maxHeight: MediaQuery.sizeOf(sheetContext).height * 0.75),
+          child: Consumer2<PlayerDataProvider, PlayerProvider>(
+            builder: (context, currentData, currentPlayer, _) {
+              final tracks = currentData.availableSubtitleTracks;
+              final selected = currentData.selectedSubtitleTrack;
+              return Column(mainAxisSize: MainAxisSize.min, children: [
+                const Padding(
+                  padding: EdgeInsets.all(16),
+                  child: Text('Subtitle tracks',
+                      style: TextStyle(fontSize: 20)),
+                ),
+                Flexible(
+                  child: ListView(
+                    shrinkWrap: true,
+                    children: [
+                      ListTile(
+                        leading: Icon(
+                          !currentPlayer.state.showSubs
+                              ? Icons.radio_button_checked
+                              : Icons.radio_button_unchecked),
+                        title: const Text('Off'),
+                        onTap: () {
+                          currentPlayer.toggleSubs(action: false);
+                          Navigator.of(sheetContext).pop();
+                        },
+                      ),
+                      ...tracks.map((track) => ListTile(
+                        leading: Icon(
+                          currentPlayer.state.showSubs &&
+                                  selected?.url == track.url
+                              ? Icons.radio_button_checked
+                              : Icons.radio_button_unchecked),
+                        title: Text(track.label),
+                        subtitle: Text(
+                          '${track.language} • ${track.format.isEmpty ? "Unknown format" : track.format.toUpperCase()}'),
+                        onTap: () {
+                          currentData.selectSubtitleTrack(track);
+                          currentPlayer.toggleSubs(action: true);
+                          Navigator.of(sheetContext).pop();
+                        },
+                      )),
+                    ],
+                  ),
+                ),
+              ]);
+            },
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final dataProvider = context.read<PlayerDataProvider>();
@@ -308,7 +371,11 @@ class _BottomControlsState extends State<BottomControls> {
                     IconButton(
                       focusNode: _subtitleFocusNode,
                       onPressed: () {
-                        playerProvider.toggleSubs();
+                        if (dataProvider.availableSubtitleTracks.length > 1) {
+                          _showSubtitleTracks(context, dataProvider, playerProvider);
+                        } else {
+                          playerProvider.toggleSubs();
+                        }
                       },
                       onLongPress: () {
                         Navigator.of(context)
@@ -320,7 +387,7 @@ class _BottomControlsState extends State<BottomControls> {
                           dataProvider.initSubsettings();
                         });
                       },
-                      tooltip: "Subtitles",
+                      tooltip: "Subtitle tracks",
                       icon: Icon(
                         !playerProvider.state.showSubs ? Icons.subtitles_outlined : Icons.subtitles_rounded,
                         color: Colors.white,

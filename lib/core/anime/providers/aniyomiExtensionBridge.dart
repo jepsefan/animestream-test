@@ -1,6 +1,6 @@
 import 'package:flutter/services.dart';
 
-/// Experimental Android APK discovery. Does not execute extension code.
+/// Bridge to installed Android Aniyomi extension APKs.
 class AniyomiExtensionBridge {
   static const MethodChannel _channel =
       MethodChannel('animestream.app/aniyomi_extensions');
@@ -43,6 +43,19 @@ class AniyomiExtensionBridge {
       String packageName, String episodeUrl, String episodeName) async {
     final raw = await _channel.invokeMethod<Map<dynamic, dynamic>>(
         'testExtensionStreams', {
+      'packageName': packageName,
+      'episodeUrl': episodeUrl,
+      'episodeName': episodeName,
+    });
+    return Map<String, dynamic>.from(raw ?? const {});
+  }
+
+  /// Return the streams for an explicitly selected episode to the player.
+  /// The response can contain credentials in media URLs and headers. Never log it.
+  static Future<Map<String, dynamic>> resolveExtensionStreams(
+      String packageName, String episodeUrl, String episodeName) async {
+    final raw = await _channel.invokeMethod<Map<dynamic, dynamic>>(
+        'resolveExtensionStreams', {
       'packageName': packageName,
       'episodeUrl': episodeUrl,
       'episodeName': episodeName,

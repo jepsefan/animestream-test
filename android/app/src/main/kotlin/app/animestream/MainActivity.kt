@@ -6,6 +6,7 @@ import dalvik.system.DexFile
 import android.widget.Toast
 import android.content.pm.PackageManager
 import android.content.pm.FeatureInfo
+import java.security.MessageDigest
 import android.os.Build
 import android.os.Looper
 import android.os.Handler
@@ -185,12 +186,14 @@ class MainActivity: FlutterActivity() {
     // Android 11+ package visibility is declared in AndroidManifest.xml.
     private fun listInstalledAnimeExtensions(): List<Map<String, Any?>> {
         val pm = packageManager
-        val flags = (PackageManager.GET_META_DATA or PackageManager.GET_CONFIGURATIONS).toLong()
+        val signerFlag = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P)
+            PackageManager.GET_SIGNING_CERTIFICATES else PackageManager.GET_SIGNATURES
+        val flags = (PackageManager.GET_META_DATA or PackageManager.GET_CONFIGURATIONS or signerFlag).toLong()
         val packages = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             pm.getInstalledPackages(PackageManager.PackageInfoFlags.of(flags))
         } else {
             @Suppress("DEPRECATION")
-            pm.getInstalledPackages(PackageManager.GET_META_DATA or PackageManager.GET_CONFIGURATIONS)
+            pm.getInstalledPackages(flags.toInt())
         }
         return packages.mapNotNull { pkg ->
             val info = pkg.applicationInfo ?: return@mapNotNull null
@@ -201,8 +204,19 @@ class MainActivity: FlutterActivity() {
                 it.name == "tachiyomi.animeextension"
             } == true
             if (!hasExtensionFeature && sourceClass.isNullOrBlank() && sourceFactory.isNullOrBlank()) return@mapNotNull null
+            val signers = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                pkg.signingInfo?.apkContentsSigners?.map { it.toByteArray() }.orEmpty()
+            } else {
+                @Suppress("DEPRECATION")
+                pkg.signatures?.map { it.toByteArray() }.orEmpty()
+            }
+            val fingerprints = signers.map { bytes ->
+                MessageDigest.getInstance("SHA-256").digest(bytes)
+                    .joinToString("") { "%02x".format(it.toInt() and 255) }
+            }.sorted()
             mapOf(
                 "packageName" to pkg.packageName,
+                "signingFingerprints" to fingerprints,
                 "name" to pm.getApplicationLabel(info).toString(),
                 "version" to (pkg.versionName ?: ""),
                 "versionCode" to (if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) pkg.longVersionCode else {

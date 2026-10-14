@@ -330,7 +330,7 @@ class _PluginPageState extends State<PluginPage> {
       leading: url.startsWith('http')
           ? Image.network(url, width: 54, height: 78,
               fit: BoxFit.cover,
-              errorBuilder: (_, _, _) => const Icon(Icons.movie))
+              errorBuilder: (context, error, stackTrace) => const Icon(Icons.movie))
           : const Icon(Icons.movie),
       title: Text(title),
       subtitle: Column(

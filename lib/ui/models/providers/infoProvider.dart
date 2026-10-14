@@ -437,6 +437,9 @@ class InfoProvider extends ChangeNotifier {
   Future<void> getEpisodes() async {
     _foundName = null;
     _epSearcherror = false;
+    // Do not leave the previous provider's episodes visible after switching.
+    paginate([]);
+    notifyListeners();
     try {
       String searchTitle = data.title['english'] ?? data.title['romaji'] ?? '';
       if (_manualSearchQuery != null &&

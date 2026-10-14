@@ -91,6 +91,8 @@ class AniyomiExtensionInfo {
   final String packageName;
   final String name;
   final String version;
+  final int versionCode;
+  final List<String> signingFingerprints;
   final String? sourceClass;
   final String? sourceFactory;
 
@@ -98,6 +100,8 @@ class AniyomiExtensionInfo {
     required this.packageName,
     required this.name,
     required this.version,
+    this.versionCode = 0,
+    this.signingFingerprints = const [],
     this.sourceClass,
     this.sourceFactory,
   });
@@ -107,6 +111,9 @@ class AniyomiExtensionInfo {
         packageName: map['packageName'] as String,
         name: map['name'] as String,
         version: map['version'] as String,
+        versionCode: (map['versionCode'] as num?)?.toInt() ?? 0,
+        signingFingerprints: (map['signingFingerprints'] as List?)
+                ?.map((e) => e.toString()).toList() ?? const [],
         sourceClass: map['sourceClass'] as String?,
         sourceFactory: map['sourceFactory'] as String?,
       );

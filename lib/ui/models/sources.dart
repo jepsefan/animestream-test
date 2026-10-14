@@ -7,7 +7,6 @@ import 'package:animestream/core/anime/providers/animeonsen.dart';
 import 'package:animestream/core/anime/providers/animepahe.dart';
 import 'package:animestream/core/anime/providers/anizone.dart';
 import 'package:animestream/core/anime/providers/gojo.dart';
-import 'package:animestream/core/anime/providers/anidb.dart';
 import 'package:animestream/core/anime/providers/animeProvider.dart';
 import 'package:animestream/core/anime/providers/providerDetails.dart';
 import 'package:animestream/core/anime/providers/providerManager.dart';
@@ -33,9 +32,6 @@ class SourceManager {
     "AniZone",
     "Anikoto",
     "Animegg",
-    "AniDB V1",
-    "AniDB V2",
-    "AniDB V3",
   ]
       .map((e) => ProviderDetails(
           name: e,
@@ -146,10 +142,6 @@ final Map<String, AnimeProvider> sources = {
   "anizone": AniZone(),
   "animegg": Animegg(),
   "anikoto": Anikoto(),
-  "anidb": AniDBV3(),
-  "anidb v1": AniDBV1(),
-  "anidb v2": AniDBV2(),
-  "anidb v3": AniDBV3(),
 };
 
 AnimeProvider getClass(String source) {

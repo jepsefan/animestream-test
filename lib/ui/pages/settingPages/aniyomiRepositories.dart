@@ -1,5 +1,6 @@
 import 'package:animestream/core/anime/providers/aniyomiRepositoryManager.dart';
 import 'package:flutter/material.dart';
+import 'package:animestream/core/anime/providers/aniyomiExtensionBridge.dart';
 
 /// Browse user-added Aniyomi extension repositories without executing APKs.
 class AniyomiRepositoriesPage extends StatefulWidget {
@@ -17,11 +18,78 @@ class _AniyomiRepositoriesPageState extends State<AniyomiRepositoriesPage> {
   final Map<String, List<AniyomiCatalogEntry>> _catalogs = {};
   final Map<String, String> _errors = {};
   bool _busy = false;
+  Map<String, AniyomiExtensionInfo> _installed = {};
 
   @override
   void initState() {
     super.initState();
     _reload();
+    _refreshInstalled();
+  }
+
+  Future<void> _refreshInstalled() async {
+    try {
+      final list = await AniyomiExtensionBridge.listInstalledExtensions();
+      if (mounted) setState(() => _installed = {
+        for (final ext in list) ext.packageName: ext,
+      });
+    } catch (_) { /* Android-only catalog display */ }
+  }
+
+  Future<void> _install(AniyomiCatalogEntry entry, Uri repo) async {
+    if (_busy) return;
+    final fingerprint = await _manager.trustedFingerprint(repo);
+    if (fingerprint == null) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Trust the repository signing key first')));
+      return;
+    }
+    final installed = _installed[entry.packageName];
+    final isUpdate = installed != null;
+    if (!mounted) return;
+    final approved = await showDialog<bool>(
+      context: context,
+      builder: (dialog) => AlertDialog(
+        title: Text(isUpdate ? 'Update extension?' : 'Install extension?'),
+        content: SelectableText('${entry.name}\n'
+          'Publisher certificate SHA-256:\n$fingerprint\n\n'
+          'The APK will be downloaded, cryptographically verified, '
+          'then handed to Android for installation. Third-party APKs '
+          'can execute code and access the network.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(dialog, false),
+              child: const Text('Cancel')),
+          FilledButton(onPressed: () => Navigator.pop(dialog, true),
+              child: Text(isUpdate ? 'Verify & update' : 'Verify & install')),
+        ],
+      ),
+    );
+    if (approved != true || !mounted) return;
+    setState(() => _busy = true);
+    try {
+      // Re-fetch the current repository key/index before installing.
+      final catalog = await _manager.fetchExtensions(repo);
+      final fresh = catalog.where((e) => e.packageName == entry.packageName &&
+        e.versionCode == entry.versionCode && e.apkUrl == entry.apkUrl).firstOrNull;
+      if (fresh == null) throw StateError('Catalog entry changed. Refresh to continue.');
+      final response = await AniyomiExtensionBridge.installVerifiedExtension(
+        indexUrl: repo,
+        apkUrl: fresh.apkUrl,
+        packageName: fresh.packageName,
+        fingerprint: fingerprint,
+        versionCode: fresh.versionCode,
+        version: fresh.version,
+      );
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(response['status'] == 'permission_required'
+          ? 'Allow APK installation in Android settings, then try again'
+          : 'Android installer opened. Confirm installation there.')));
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Verified APK installation blocked: $e')));
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
   }
 
   Future<void> _reload() async {
@@ -82,6 +150,7 @@ class _AniyomiRepositoriesPageState extends State<AniyomiRepositoriesPage> {
     try {
       final entries = await _manager.fetchExtensions(repo);
       if (mounted) setState(() => _catalogs[repo.toString()] = entries);
+      await _refreshInstalled();
     } catch (e) {
       if (mounted) setState(() => _errors[repo.toString()] = e.toString());
     } finally {
@@ -168,24 +237,24 @@ class _AniyomiRepositoriesPageState extends State<AniyomiRepositoriesPage> {
                 ListTile(
                   title: Text(entry.name),
                   subtitle: Text(
-                    '${entry.language} • v${entry.version} • '
-                    '${entry.packageName}\n'
-                    '${entry.sources.join(", ")}',
+                    '${entry.language} • catalog v${entry.version}\n'
+                    '${_installed[entry.packageName] == null ? 'Not installed' : 'Installed v${_installed[entry.packageName]!.version}'}\n'
+                    '${entry.sources.toSet().join(", ")}',
                   ),
                   isThreeLine: true,
-                  trailing: const Tooltip(
-                    message: 'APK installation not implemented yet',
-                    child: Icon(Icons.info_outline),
-                  ),
+                  trailing: _installed[entry.packageName] != null &&
+                    _installed[entry.packageName]!.versionCode >= entry.versionCode
+                      ? const Icon(Icons.check_circle_outline)
+                      : TextButton(
+                          onPressed: _busy ? null : () => _install(entry, repo),
+                          child: Text(_installed.containsKey(entry.packageName)
+                            ? 'Update' : 'Install'),
+                        ),
                 ),
             ],
           )),
         const SizedBox(height: 12),
-        const Text('The signing fingerprint is pinned locally after confirmation. '
-          'Older saved repositories must be reapproved. '
-          'This screen browses catalog metadata only. '
-          'APK installation, signature verification, updates and full '
-          'extension execution compatibility are not implemented here.'),
+        const Text('APK signatures are verified against the locally approved certificate before Android is asked to install. Confirm installation in Android. Full Anikku Host API support is still in progress.'),
       ]),
     );
   }

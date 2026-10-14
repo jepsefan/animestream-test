@@ -75,9 +75,14 @@ internal class ExtensionHostRuntime(private val context: Context) {
             @Suppress("DEPRECATION")
             manager.getApplicationInfo(packageName, PackageManager.GET_META_DATA)
         }
-        val entryPoints = info.metaData?.getString("tachiyomi.animeextension.class")
-            ?.split(';', ',')?.map { it.trim() }?.filter { it.isNotBlank() }
-            ?: error("Extension does not declare source classes")
+        // Anikku primarily declares a class list; support packages that
+        // explicitly declare their source factory separately as well.
+        val classEntries = info.metaData?.getString("tachiyomi.animeextension.class")
+            .orEmpty().split(';', ',').map { it.trim() }.filter { it.isNotBlank() }
+        val factoryEntry = info.metaData?.getString("tachiyomi.animeextension.factory")
+            ?.trim()?.takeIf { it.isNotBlank() }
+        val entryPoints = (classEntries + listOfNotNull(factoryEntry)).distinct()
+        require(entryPoints.isNotEmpty()) { "Extension has no source entry points" }
         val apkPaths = listOfNotNull(info.sourceDir) + (info.splitSourceDirs?.toList() ?: emptyList())
         require(apkPaths.isNotEmpty()) { "No APK paths for extension" }
         val extensionClasses = mutableSetOf<String>()

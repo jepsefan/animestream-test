@@ -114,4 +114,126 @@ internal class ExtensionEpisodeProbe(private val context: Context) {
             "networkDiagnostics" to helper.searchNetworkDiagnostics()
         )
     }
+    fun loadStreams(
+        packageName: String, episodeUrl: String, episodeName: String
+    ): Map<String, Any?> {
+        if (episodeUrl.isBlank() || episodeName.isBlank()) {
+            return mapOf("status" to "invalid_episode_selection")
+        }
+        return try {
+            performStreams(packageName, episodeUrl, episodeName)
+        } catch (error: Throwable) {
+            val errors = mutableListOf<String>()
+            val seen = java.util.Collections.newSetFromMap(
+                java.util.IdentityHashMap<Throwable, Boolean>()
+            )
+            var throwable: Throwable? = error
+            while (throwable != null && seen.add(throwable) && errors.size < 8) {
+                // Messages from extractors can contain signed media URLs.
+                errors.add(throwable.javaClass.simpleName)
+                throwable = if (throwable is java.lang.reflect.InvocationTargetException) {
+                    throwable.targetException ?: throwable.cause
+                } else throwable.cause
+            }
+            mapOf(
+                "status" to "stream_list_failed",
+                "errorTypes" to errors,
+                "error" to errors.joinToString(" -> "),
+                "networkDiagnostics" to eu.kanade.tachiyomi.network.NetworkHelper
+                    .requireInstance().searchNetworkDiagnostics()
+            )
+        }
+    }
+
+    private fun performStreams(packageName: String, episodeUrl: String, episodeName: String): Map<String, Any?> {
+        val app = context.applicationContext as? Application
+            ?: return mapOf("status" to "missing_application")
+        val helper = NetworkHelper.initialize(app)
+        helper.beginSearchDiagnostics("")
+        synchronized(ExtensionEpisodeProbe::class.java) {
+            Injekt.addSingleton(object : TypeReference<Application> {
+                override val type: java.lang.reflect.Type = Application::class.java
+            }, app)
+            Injekt.addSingleton(object : TypeReference<NetworkHelper> {
+                override val type: java.lang.reflect.Type = NetworkHelper::class.java
+            }, helper)
+            Injekt.addSingleton(object : TypeReference<Json> {
+                override val type: java.lang.reflect.Type = Json::class.java
+            }, Json { ignoreUnknownKeys = true; explicitNulls = false })
+        }
+        val pm = context.packageManager
+        val info = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            pm.getApplicationInfo(packageName,
+                PackageManager.ApplicationInfoFlags.of(PackageManager.GET_META_DATA.toLong()))
+        } else {
+            @Suppress("DEPRECATION")
+            pm.getApplicationInfo(packageName, PackageManager.GET_META_DATA)
+        }
+        val sourceName = info.metaData?.getString("tachiyomi.animeextension.class")
+            ?: return mapOf("status" to "no_source_class")
+        val entry = sourceName.split(';', ',').first().trim().let {
+            if (it.startsWith(".")) packageName + it else it
+        }
+        val paths = listOfNotNull(info.sourceDir) + (info.splitSourceDirs?.toList() ?: emptyList())
+        val extensionClasses = paths.flatMap { apk ->
+            val dex = DexFile(apk)
+            try {
+                val names = mutableListOf<String>()
+                val enumeration = dex.entries()
+                while (enumeration.hasMoreElements()) names.add(enumeration.nextElement())
+                names
+            } finally { dex.close() }
+        }.toSet()
+        val loader = ExtensionIsolatedClassLoader(
+            paths.joinToString(File.pathSeparator),
+            context.codeCacheDir.absolutePath,
+            info.nativeLibraryDir, context.javaClass.classLoader, extensionClasses
+        )
+        val instance = Class.forName(entry, true, loader).getDeclaredConstructor().newInstance()
+        val source = instance as? AnimeSource
+            ?: return mapOf("status" to "not_anime_source")
+        val episode = eu.kanade.tachiyomi.animesource.model.SEpisode.create().apply {
+            url = episodeUrl
+            name = episodeName
+        }
+        // One opt-in test. No playback, no media probing, no persistence.
+        val videos = source.fetchVideoList(episode).toBlocking().toFuture()
+            .get(35, TimeUnit.SECONDS)
+        return mapOf(
+            "status" to "stream_list_completed",
+            "episodeName" to episodeName,
+            "videoCount" to videos.size,
+            "videos" to videos.take(40).map { video ->
+                val resolvedUrl = video.videoUrl
+                val scheme = try { android.net.Uri.parse(resolvedUrl).scheme.orEmpty() }
+                    catch (_: Exception) { "" }
+                val host = try { android.net.Uri.parse(resolvedUrl).host.orEmpty() }
+                    catch (_: Exception) { "" }
+                val format = when {
+                    resolvedUrl.contains(".m3u8", true) -> "HLS"
+                    resolvedUrl.contains(".mpd", true) -> "DASH"
+                    resolvedUrl.contains(".mp4", true) -> "MP4"
+                    scheme == "http" && host in listOf("127.0.0.1", "localhost") -> "local_proxy"
+                    else -> "unknown"
+                }
+                mapOf(
+                    "quality" to video.videoTitle,
+                    "format" to format,
+                    "host" to host,
+                    "protocol" to scheme,
+                    "resolution" to video.resolution,
+                    "bitrate" to video.bitrate,
+                    "subtitleCount" to video.subtitleTracks.size,
+                    "audioCount" to video.audioTracks.size,
+                    "headerNames" to (video.headers?.names()?.filterNot {
+                        it.equals("Authorization", ignoreCase = true) ||
+                            it.equals("Cookie", ignoreCase = true)
+                    }?.take(8) ?: emptyList<String>())
+                )
+            },
+            "truncated" to (videos.size > 40),
+            "networkDiagnostics" to helper.searchNetworkDiagnostics()
+        )
+    }
+
 }

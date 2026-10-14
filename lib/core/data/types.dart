@@ -278,13 +278,16 @@ class AnimeSpecificPreference {
   final String? preferredProvider;
   final String? previouslyUsedServer;
   final String? previouslyUsedServerQuality;
+  /// Per-Anime, per-extension manually confirmed source aliases.
+  final Map<String, String>? extensionSelections;
 
   AnimeSpecificPreference(
       {this.lastWatchDuration,
       this.manualSearchQuery,
       this.preferredProvider,
       this.previouslyUsedServer,
-      this.previouslyUsedServerQuality});
+      this.previouslyUsedServerQuality,
+      this.extensionSelections});
 
   @override
   String toString() =>
@@ -297,6 +300,7 @@ class AnimeSpecificPreference {
     String? preferredProvider,
     String? previouslyUsedServer,
     String? previouslyUsedServerQuality,
+    Map<String, String>? extensionSelections,
   }) {
     return AnimeSpecificPreference(
       lastWatchDuration: lastWatchDuration ?? this.lastWatchDuration,
@@ -304,6 +308,7 @@ class AnimeSpecificPreference {
       preferredProvider: preferredProvider ?? this.preferredProvider,
       previouslyUsedServer: previouslyUsedServer ?? this.previouslyUsedServer,
       previouslyUsedServerQuality: previouslyUsedServerQuality ?? this.previouslyUsedServerQuality,
+      extensionSelections: extensionSelections ?? this.extensionSelections,
     );
   }
 
@@ -314,6 +319,7 @@ class AnimeSpecificPreference {
       'preferredProvider': preferredProvider,
       'previouslyUsedServer': previouslyUsedServer,
       'previouslyUsedServerQuality': previouslyUsedServerQuality,
+      'extensionSelections': extensionSelections,
     };
   }
 
@@ -325,7 +331,10 @@ class AnimeSpecificPreference {
         preferredProvider: map['preferredProvider'] != null ? map['preferredProvider'] as String : null,
         previouslyUsedServer: map['previouslyUsedServer'] != null ? map['previouslyUsedServer'] as String : null,
         previouslyUsedServerQuality:
-            map['previouslyUsedServerQuality'] != null ? map['previouslyUsedServerQuality'] as String : null);
+            map['previouslyUsedServerQuality'] != null ? map['previouslyUsedServerQuality'] as String : null,
+        extensionSelections: map['extensionSelections'] is Map
+            ? Map<String, String>.from(map['extensionSelections'] as Map)
+            : null);
   }
 
   String toJson() => json.encode(toMap());

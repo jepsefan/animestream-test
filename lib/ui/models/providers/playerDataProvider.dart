@@ -147,11 +147,18 @@ class PlayerDataProvider extends ChangeNotifier {
   }
 
   Future<void> inspectAvailableSubtitleTracks() async {
-    // The selected subtitle needs its format promptly for the renderer.
     final selected = selectedSubtitleTrack;
     if (selected != null) await inspectSubtitleTrack(selected);
-    // Do not issue 9 concurrent HTTP requests just to populate a menu.
-    // Remaining formats are discovered when the user selects those tracks.
+  }
+
+  Future<void> inspectRemainingSubtitleTracks() async {
+    // Populate format labels in the open menu without blocking video startup.
+    // Sequential requests avoid overloading the extension's subtitle host.
+    final selectedUrl = selectedSubtitleTrack?.url;
+    for (final track in availableSubtitleTracks) {
+      if (track.url == selectedUrl) continue;
+      await inspectSubtitleTrack(track);
+    }
   }
 
 

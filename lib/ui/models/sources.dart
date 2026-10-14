@@ -1,3 +1,6 @@
+import 'dart:io';
+import 'package:animestream/core/anime/providers/aniyomiExtensionBridge.dart';
+import 'package:animestream/core/anime/providers/aniyomiExtensionProvider.dart';
 import 'package:animestream/core/anime/providers/anikoto.dart';
 import 'package:animestream/core/anime/providers/animegg.dart';
 import 'package:animestream/core/anime/providers/animeonsen.dart';
@@ -51,6 +54,7 @@ class SourceManager {
   final List<ProviderDetails> _sources = [];
 
   final ProviderPlugin _plugin = ProviderPlugin();
+  final Map<String, AniyomiExtensionProvider> _aniyomi = {};
 
   List<ProviderDetails> get sources => _sources;
 
@@ -70,6 +74,32 @@ class SourceManager {
     final providers = await ProviderManager().getSavedProviders();
     if (clearBeforeLoading) _sources.clear();
     _sources.addAll(providers);
+    if (Platform.isAndroid) {
+      await refreshAniyomiExtensions();
+    }
+  }
+
+  Future<void> refreshAniyomiExtensions() async {
+    if (!Platform.isAndroid) return;
+    try {
+      final installed = await AniyomiExtensionBridge.listInstalledExtensions();
+      _aniyomi.clear();
+      _sources.removeWhere((e) =>
+          AniyomiExtensionProvider.isExtensionId(e.identifier));
+      for (final ext in installed) {
+        final provider = AniyomiExtensionProvider(ext);
+        final identifier = '${AniyomiExtensionProvider.identifierPrefix}${ext.packageName}';
+        _aniyomi[identifier] = provider;
+        _sources.add(ProviderDetails(
+          name: '${ext.name} [Ext]',
+          identifier: identifier,
+          version: ext.version,
+          supportDownloads: false,
+        ));
+      }
+    } catch (_) {
+      // Installed-extension discovery is optional: retain normal providers.
+    }
   }
 
   Future<List<Map<String, String?>>> searchInSource(String source, String query) async {
@@ -96,7 +126,14 @@ class SourceManager {
   }
 
   Future<AnimeProvider> _getProvider(String identifier) async {
-    final AnimeProvider? provider = _useInbuiltProviders ? getClass(identifier) : await _plugin.getProvider(identifier);
+    if (AniyomiExtensionProvider.isExtensionId(identifier)) {
+      final provider = _aniyomi[identifier];
+      if (provider == null) throw StateError('Aniyomi extension no longer installed');
+      return provider;
+    }
+    final AnimeProvider? provider = identifier.endsWith('_inbuilt')
+        ? getClass(identifier)
+        : await _plugin.getProvider(identifier);
     if (provider == null) throw Exception("$identifier Provider doesnt exist!");
     return provider;
   }

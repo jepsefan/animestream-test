@@ -250,9 +250,12 @@ internal class ExtensionEpisodeProbe(private val context: Context) {
                     val format = when {
                         path.endsWith(".ass") || path.endsWith(".ssa") ||
                             hint.contains(".ass") || hint.contains("[ass]") ||
-                            hint.contains("[ssa]") -> "ass"
-                        path.endsWith(".vtt") || hint.contains("[vtt]") -> "vtt"
-                        path.endsWith(".srt") || hint.contains("[srt]") -> "srt"
+                            hint.contains("[ssa]") || hint.contains("(ass)") ||
+                            hint.contains("(ssa)") -> "ass"
+                        path.endsWith(".vtt") || hint.contains("[vtt]") ||
+                            hint.contains("(vtt)") -> "vtt"
+                        path.endsWith(".srt") || hint.contains("[srt]") ||
+                            hint.contains("(srt)") -> "srt"
                         else -> ""
                     }
                     mapOf(

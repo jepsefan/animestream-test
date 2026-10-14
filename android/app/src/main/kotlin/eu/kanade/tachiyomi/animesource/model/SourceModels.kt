@@ -1,9 +1,49 @@
 package eu.kanade.tachiyomi.animesource.model
 
-/** Initial ABI types needed by AnimeSource; not a complete source-api model. */
-open class AnimeFilter<T>(val name: String, val state: T)
+/**
+ * Filter hierarchy compatible with the nested types used by Anikku extensions.
+ * Keep the source API in a shared host classloader rather than packaged per APK.
+ */
+sealed class AnimeFilter<T>(val name: String, var state: T) {
+    open class Header(name: String) : AnimeFilter<Any>(name, 0)
+    open class Separator(name: String = "") : AnimeFilter<Any>(name, 0)
+    abstract class Select<V>(name: String, val values: Array<V>, state: Int = 0) :
+        AnimeFilter<Int>(name, state)
+    abstract class Text(name: String, state: String = "") : AnimeFilter<String>(name, state)
+    abstract class CheckBox(name: String, state: Boolean = false) :
+        AnimeFilter<Boolean>(name, state)
+    abstract class TriState(name: String, state: Int = STATE_IGNORE) :
+        AnimeFilter<Int>(name, state) {
+        fun isIgnored() = state == STATE_IGNORE
+        fun isIncluded() = state == STATE_INCLUDE
+        fun isExcluded() = state == STATE_EXCLUDE
+        companion object {
+            const val STATE_IGNORE = 0
+            const val STATE_INCLUDE = 1
+            const val STATE_EXCLUDE = 2
+        }
+    }
+    abstract class Group<V>(name: String, state: List<V>) : AnimeFilter<List<V>>(name, state)
+    abstract class Sort(name: String, val values: Array<String>, state: Selection? = null) :
+        AnimeFilter<Sort.Selection?>(name, state) {
+        data class Selection(val index: Int, val ascending: Boolean)
+    }
+    abstract class AutoComplete(
+        name: String,
+        val hint: String,
+        val values: List<String>,
+        val skipAutoFillTags: List<String> = emptyList(),
+        val validPrefixes: List<String> = emptyList(),
+        state: List<String>
+    ) : AnimeFilter<List<String>>(name, state)
+
+    override fun equals(other: Any?): Boolean =
+        this === other || (other is AnimeFilter<*> && name == other.name && state == other.state)
+
+    override fun hashCode(): Int = 31 * name.hashCode() + (state?.hashCode() ?: 0)
+}
 class AnimeFilterList(val list: List<AnimeFilter<*>> = emptyList()) : List<AnimeFilter<*>> by list {
-    constructor(vararg filters: AnimeFilter<*>) : this(filters.toList())
+    constructor(vararg fs: AnimeFilter<*>) : this(fs.toList())
 }
 interface SAnime : java.io.Serializable {
     var url: String
@@ -20,6 +60,16 @@ interface SAnime : java.io.Serializable {
     var season_number: Double
     var initialized: Boolean
     var memo: kotlinx.serialization.json.JsonObject
+
+    // Public Anikku ABI getters used by source parsing and related titles.
+    val originalTitle: String get() = title
+    val originalAuthor: String? get() = author
+    val originalArtist: String? get() = artist
+    val originalThumbnailUrl: String? get() = thumbnail_url
+    val originalDescription: String? get() = description
+    val originalGenre: String? get() = genre
+    val originalStatus: Int get() = status
+
     fun getGenres(): List<String>? = genre?.split(", ")?.map { it.trim() }?.filter { it.isNotBlank() }?.distinct()
     fun copy(): SAnime = create().also {
         it.url = url; it.title = title; it.thumbnail_url = thumbnail_url
@@ -50,6 +100,9 @@ interface SEpisode : java.io.Serializable {
     var summary: String?
     var preview_url: String?
     var memo: kotlinx.serialization.json.JsonObject
+    var chapter_number: Float
+        get() = episode_number
+        set(value) { episode_number = value }
     fun copyFrom(other: SEpisode) {
         name = other.name; url = other.url; date_upload = other.date_upload
         episode_number = other.episode_number; fillermark = other.fillermark
@@ -62,7 +115,7 @@ enum class AnimeUpdateStrategy { ALWAYS_UPDATE, ONLY_FETCH_ONCE }
 enum class FetchType { Seasons, Episodes }
 class SAnimeImpl : SAnime {
     override lateinit var url: String
-    override lateinit var title: String
+    override var title: String = ""
     override var thumbnail_url: String? = null
     override var background_url: String? = null
     override var artist: String? = null
@@ -92,8 +145,8 @@ class AnimeRelation(val name: String, val animes: List<SAnime>)
 class SAnimeEpisodeUpdate(val anime: SAnime, val episodes: List<SEpisode>)
 class SAnimeSeasonUpdate(val anime: SAnime, val seasons: List<SAnime>)
 /**
- * Kotlin/JVM ABI for Aniyomi Video/Track/Hoster, including legacy constructors
- * used by older installed APK extensions. No playback is implemented here.
+ * Constructors match Anikku source-api Video and Hoster at the JVM boundary.
+ * Extra legacy constructors are retained to avoid breaking existing APKs.
  */
 data class Track(val url: String, val lang: String)
 
@@ -106,7 +159,7 @@ data class TimeStamp(
     val type: ChapterType = ChapterType.Other
 )
 
-data class Video(
+open class Video(
     var videoUrl: String = "",
     val videoTitle: String = "",
     val resolution: Int? = null,
@@ -116,23 +169,22 @@ data class Video(
     val subtitleTracks: List<Track> = emptyList(),
     val audioTracks: List<Track> = emptyList(),
     val timestamps: List<TimeStamp> = emptyList(),
-    val mpvArgs: List<Pair<String, String>> = emptyList(),
-    val ffmpegStreamArgs: List<Pair<String, String>> = emptyList(),
-    val ffmpegVideoArgs: List<Pair<String, String>> = emptyList(),
     val internalData: String = "",
     val initialized: Boolean = false,
-    val memo: kotlinx.serialization.json.JsonObject =
-        kotlinx.serialization.json.JsonObject(emptyMap())
+    val videoPageUrl: String = ""
 ) {
-    private var videoPageUrl: String = ""
-
-    @Deprecated("Use videoTitle instead")
+    @Deprecated("Use videoTitle")
     val quality: String get() = videoTitle
 
-    @Deprecated("Use videoUrl instead")
+    @Deprecated("Use videoPageUrl")
     val url: String get() = videoPageUrl
 
-    // Original legacy constructor still used by 123Anime and AnimeOnsen.
+    @Transient @Volatile
+    var status: State = State.QUEUE
+
+    enum class State { QUEUE, LOAD_VIDEO, READY, ERROR }
+
+    // Aniyomi pre-1.6 legacy URL-first constructor, including tracks.
     constructor(
         url: String,
         quality: String,
@@ -145,22 +197,11 @@ data class Video(
         videoTitle = quality,
         headers = headers,
         subtitleTracks = subtitleTracks,
-        audioTracks = audioTracks
-    ) {
+        audioTracks = audioTracks,
         videoPageUrl = url
-    }
+    )
 
-    // Earlier extension libraries supported an Android Uri argument.
-    @Suppress("UNUSED_PARAMETER")
-    constructor(
-        url: String,
-        quality: String,
-        videoUrl: String?,
-        uri: android.net.Uri? = null,
-        headers: okhttp3.Headers? = null
-    ) : this(url, quality, videoUrl, headers)
-
-    // Extensions compiled against the previous 14-field constructor.
+    // Constructor from an older 10-parameter source-api version.
     constructor(
         videoUrl: String,
         videoTitle: String,
@@ -171,39 +212,102 @@ data class Video(
         subtitleTracks: List<Track>,
         audioTracks: List<Track>,
         timestamps: List<TimeStamp>,
-        mpvArgs: List<Pair<String, String>>,
+        internalData: String
+    ) : this(videoUrl, videoTitle, resolution, bitrate, headers, preferred,
+        subtitleTracks, audioTracks, timestamps, internalData, false, "")
+
+    @Suppress("UNUSED_PARAMETER")
+    constructor(
+        url: String,
+        quality: String,
+        videoUrl: String?,
+        uri: android.net.Uri? = null,
+        headers: okhttp3.Headers? = null
+    ) : this(url, quality, videoUrl, headers)
+
+    // Compatibility with earlier AnimeStream beta shims; these arguments
+    // have no equivalent in the pinned Anikku API.
+    val mpvArgs: List<Pair<String, String>> get() = emptyList()
+    val ffmpegStreamArgs: List<Pair<String, String>> get() = emptyList()
+    val ffmpegVideoArgs: List<Pair<String, String>> get() = emptyList()
+    val memo: kotlinx.serialization.json.JsonObject
+        get() = kotlinx.serialization.json.JsonObject(emptyMap())
+
+    constructor(
+        videoUrl: String, videoTitle: String, resolution: Int?, bitrate: Int?,
+        headers: okhttp3.Headers?, preferred: Boolean,
+        subtitleTracks: List<Track>, audioTracks: List<Track>,
+        timestamps: List<TimeStamp>, mpvArgs: List<Pair<String, String>>,
         ffmpegStreamArgs: List<Pair<String, String>>,
         ffmpegVideoArgs: List<Pair<String, String>>,
-        internalData: String,
-        initialized: Boolean
-    ) : this(
-        videoUrl, videoTitle, resolution, bitrate, headers, preferred,
-        subtitleTracks, audioTracks, timestamps, mpvArgs, ffmpegStreamArgs,
-        ffmpegVideoArgs, internalData, initialized,
-        kotlinx.serialization.json.JsonObject(emptyMap())
-    )
+        internalData: String, initialized: Boolean
+    ) : this(videoUrl, videoTitle, resolution, bitrate, headers, preferred,
+        subtitleTracks, audioTracks, timestamps, internalData, initialized, "")
+
+    constructor(
+        videoUrl: String, videoTitle: String, resolution: Int?, bitrate: Int?,
+        headers: okhttp3.Headers?, preferred: Boolean,
+        subtitleTracks: List<Track>, audioTracks: List<Track>,
+        timestamps: List<TimeStamp>, mpvArgs: List<Pair<String, String>>,
+        ffmpegStreamArgs: List<Pair<String, String>>,
+        ffmpegVideoArgs: List<Pair<String, String>>,
+        internalData: String, initialized: Boolean,
+        memo: kotlinx.serialization.json.JsonObject
+    ) : this(videoUrl, videoTitle, resolution, bitrate, headers, preferred,
+        subtitleTracks, audioTracks, timestamps, internalData, initialized, "")
+
+    fun copy(
+        videoUrl: String = this.videoUrl,
+        videoTitle: String = this.videoTitle,
+        resolution: Int? = this.resolution,
+        bitrate: Int? = this.bitrate,
+        headers: okhttp3.Headers? = this.headers,
+        preferred: Boolean = this.preferred,
+        subtitleTracks: List<Track> = this.subtitleTracks,
+        audioTracks: List<Track> = this.audioTracks,
+        timestamps: List<TimeStamp> = this.timestamps,
+        internalData: String = this.internalData,
+        initialized: Boolean = this.initialized,
+        videoPageUrl: String = this.videoPageUrl
+    ) = Video(videoUrl, videoTitle, resolution, bitrate, headers, preferred,
+        subtitleTracks, audioTracks, timestamps, internalData, initialized, videoPageUrl)
 }
 
 open class Hoster(
     val hosterUrl: String = "",
     val hosterName: String = "",
     val videoList: List<Video>? = null,
-    val internalData: String = "",
-    val lazy: Boolean = false,
-    val memo: kotlinx.serialization.json.JsonObject =
-        kotlinx.serialization.json.JsonObject(emptyMap())
+    val internalData: String = ""
 ) {
+    @Transient @Volatile
+    var status: State = State.IDLE
+
+    enum class State { IDLE, LOADING, READY, ERROR }
+
+    val lazy: Boolean get() = false
+    val memo: kotlinx.serialization.json.JsonObject
+        get() = kotlinx.serialization.json.JsonObject(emptyMap())
+
     constructor(
-        hosterUrl: String,
-        hosterName: String,
-        videoList: List<Video>?,
-        internalData: String,
-        lazy: Boolean
-    ) : this(
-        hosterUrl, hosterName, videoList, internalData, lazy,
-        kotlinx.serialization.json.JsonObject(emptyMap())
-    )
+        hosterUrl: String, hosterName: String, videoList: List<Video>?,
+        internalData: String, lazy: Boolean
+    ) : this(hosterUrl, hosterName, videoList, internalData)
+
+    constructor(
+        hosterUrl: String, hosterName: String, videoList: List<Video>?,
+        internalData: String, lazy: Boolean, memo: kotlinx.serialization.json.JsonObject
+    ) : this(hosterUrl, hosterName, videoList, internalData)
+
+    fun copy(
+        hosterUrl: String = this.hosterUrl,
+        hosterName: String = this.hosterName,
+        videoList: List<Video>? = this.videoList,
+        internalData: String = this.internalData
+    ) = Hoster(hosterUrl, hosterName, videoList, internalData)
+
     companion object {
         const val NO_HOSTER_LIST = "no_hoster_list"
+        fun List<Video>.toHosterList(): List<Hoster> =
+            listOf(Hoster(hosterName = NO_HOSTER_LIST, videoList = this))
     }
 }

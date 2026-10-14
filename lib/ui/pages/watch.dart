@@ -145,7 +145,8 @@ class _WatchState extends State<Watch> with WidgetsBindingObserver {
     // Seek to last watched part
     await controller.seekTo(Duration(milliseconds: lastWatchDuration)); //percentage to value
 
-    if (mounted) context.read<PlayerProvider>().toggleSubs(action: dataProvider.state.currentStream.subtitle != null);
+    if (mounted) context.read<PlayerProvider>().toggleSubs(
+        action: dataProvider.availableSubtitleTracks.isNotEmpty);
 
     // Placed here for safety. placing it above might cause issues with custom controls functions
     setState(() {
@@ -697,23 +698,30 @@ class _WatchState extends State<Watch> with WidgetsBindingObserver {
                         ),
                       ),
                     ),
-                  if (playerProvider.state.showSubs && playerDataProvider.state.currentStream.subtitle != null)
-                    // ASS is rendered by native libass on Android; VTT/SRT and
-                    // non-Android platforms retain the existing SubViewer.
+                  // Use the actively selected track, not the first track
+                  // from the initial Aniyomi response. Key by URL to recreate
+                  // ASS/standard overlays when the subtitle track changes.
+                  if (playerProvider.state.showSubs &&
+                      playerDataProvider.selectedSubtitleTrack != null)
                     if (Platform.isAndroid &&
-                        (playerDataProvider.state.currentStream.subtitleFormat ?? 'ASS').toLowerCase() == 'ass')
+                        (playerDataProvider.selectedSubtitleTrack!.format.isEmpty
+                            ? 'ass'
+                            : playerDataProvider.selectedSubtitleTrack!.format)
+                            .toLowerCase() == 'ass')
                       ExternalAssOverlay(
+                        key: ValueKey(playerDataProvider.selectedSubtitleTrack!.url),
                         controller: controller,
-                        subtitleSource: playerDataProvider.state.currentStream.subtitle!,
+                        subtitleSource: playerDataProvider.selectedSubtitleTrack!.url,
                         headers: playerDataProvider.state.currentStream.customHeaders ?? const {},
                         isOffline: widget.localSource,
                       )
                     else
                       SubViewer(
+                        key: ValueKey(playerDataProvider.selectedSubtitleTrack!.url),
                         controller: controller,
                         format: SubtitleFormat.fromName(
-                            playerDataProvider.state.currentStream.subtitleFormat ?? SubtitleFormat.ASS.name),
-                        subtitleSource: playerDataProvider.state.currentStream.subtitle!,
+                            playerDataProvider.selectedSubtitleTrack!.format),
+                        subtitleSource: playerDataProvider.selectedSubtitleTrack!.url,
                         settings: playerDataProvider.subtitleSettings,
                         headers: playerDataProvider.state.currentStream.customHeaders,
                         isOffline: widget.localSource,

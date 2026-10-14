@@ -267,12 +267,7 @@ class SourceSideWidget extends StatelessWidget {
                                 },
                               ).then((result) async {
                                 if (result == null) return;
-                                provider.epSearcherror = false;
-                                provider.foundName = null;
-                                final links = await SourceManager.instance.getAnimeEpisodes(provider.selectedSource.identifier, result['alias']);
-
-                                provider.paginate(links);
-                                provider.foundName = result['name'];
+                                await provider.applyManualSearchResult(Map<String, String?>.from(result));
                               });
                             },
                             icon: Icon(
@@ -600,12 +595,7 @@ class SourceBodyWidget extends StatelessWidget {
                           },
                         ).then((result) async {
                           if (result == null) return;
-                          provider.epSearcherror = false;
-                          provider.foundName = null;
-                          final links = await SourceManager.instance.getAnimeEpisodes(provider.selectedSource.identifier, result['alias']);
-
-                          provider.paginate(links);
-                          provider.foundName = result['name'];
+                          await provider.applyManualSearchResult(Map<String, String?>.from(result));
                         });
                       },
                       icon: Icon(

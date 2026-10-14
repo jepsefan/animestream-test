@@ -25,6 +25,18 @@ class AniyomiExtensionBridge {
     return Map<String, dynamic>.from(raw ?? const {});
   }
 
+  /// Loads episode metadata for one user-selected extension search result.
+  static Future<Map<String, dynamic>> testExtensionEpisodes(
+      String packageName, String sourceUrl, String sourceTitle) async {
+    final raw = await _channel.invokeMethod<Map<dynamic, dynamic>>(
+        'testExtensionEpisodes', {
+      'packageName': packageName,
+      'sourceUrl': sourceUrl,
+      'sourceTitle': sourceTitle,
+    });
+    return Map<String, dynamic>.from(raw ?? const {});
+  }
+
   static Future<List<AniyomiExtensionInfo>> listInstalledExtensions() async {
     final raw = await _channel.invokeMethod<List<dynamic>>('listInstalledExtensions');
     return (raw ?? const <dynamic>[])

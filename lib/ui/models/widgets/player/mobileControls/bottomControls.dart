@@ -102,6 +102,9 @@ class _BottomControlsState extends State<BottomControls> {
       BuildContext context,
       PlayerDataProvider dataProvider,
       PlayerProvider playerProvider) {
+    // Format labels are populated progressively by inspecting the first bytes
+    // of each source-provided subtitle, without exposing signed URLs.
+    dataProvider.inspectRemainingSubtitleTracks();
     // The modal is a sibling route: Provider.of inside it may fail.
     showModalBottomSheet<void>(
       context: context,

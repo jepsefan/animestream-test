@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:hive/hive.dart';
 import 'package:animestream/core/anime/providers/aniyomiExtensionBridge.dart';
 import 'package:animestream/core/anime/providers/aniyomiExtensionProvider.dart';
 import 'package:animestream/core/anime/providers/anikoto.dart';
@@ -51,14 +52,74 @@ class SourceManager {
 
   final ProviderPlugin _plugin = ProviderPlugin();
   final Map<String, AniyomiExtensionProvider> _aniyomi = {};
+  static const _approvedStore = 'aniyomi_installed_source_approvals_v3';
   final Map<String, List<AniyomiExtensionSourceInfo>> _approvedSources = {};
 
+  String? _apkSignature(AniyomiExtensionInfo ext) {
+    final values = ext.signingFingerprints.map((s) => s.toLowerCase()).toList()..sort();
+    if (values.isEmpty ||
+        values.any((s) => !RegExp(r'^[a-f0-9]{64}$').hasMatch(s))) return null;
+    return values.join(':');
+  }
+
   Future<void> enableExtensionSources(AniyomiExtensionInfo ext) async {
-    final discovered = await AniyomiExtensionBridge.discoverSources(ext.packageName);
-    _approvedSources[ext.packageName] = discovered;
+    final signature = _apkSignature(ext);
+    if (signature == null) {
+      throw StateError('Cannot approve an extension without a valid APK signing key');
+    }
+    final sources = await AniyomiExtensionBridge.discoverSources(ext.packageName);
+    if (sources.isEmpty) throw StateError('No sources found in this extension');
+    final now = await AniyomiExtensionBridge.listInstalledExtensions();
+    final current = now.where((e) => e.packageName == ext.packageName).firstOrNull;
+    if (current == null || current.versionCode != ext.versionCode ||
+        _apkSignature(current) != signature) {
+      throw StateError('Extension changed during approval; refresh and retry');
+    }
+    final box = await Hive.openBox(_approvedStore);
+    await box.put(ext.packageName, {
+      'signingKey': signature,
+      'versionCode': ext.versionCode,
+      'sources': sources.map((s) => {
+        'id': s.id, 'name': s.name, 'language': s.language,
+      }).toList(),
+    });
+    _approvedSources[ext.packageName] = sources;
     await refreshAniyomiExtensions();
   }
 
+  Future<void> disableExtensionSources(String packageName) async {
+    final box = await Hive.openBox(_approvedStore);
+    await box.delete(packageName);
+    _approvedSources.remove(packageName);
+    await refreshAniyomiExtensions();
+  }
+
+  Future<void> _restoreApprovedSources(List<AniyomiExtensionInfo> installed) async {
+    final box = await Hive.openBox(_approvedStore);
+    final restored = <String, List<AniyomiExtensionSourceInfo>>{};
+    for (final ext in installed) {
+      final saved = box.get(ext.packageName);
+      final key = _apkSignature(ext);
+      if (saved is! Map || key == null || saved['signingKey'] != key ||
+          saved['versionCode'] != ext.versionCode) continue;
+      final records = saved['sources'];
+      if (records is! List) continue;
+      final infos = <AniyomiExtensionSourceInfo>[];
+      for (final record in records) {
+        if (record is! Map) continue;
+        try {
+          final info = AniyomiExtensionSourceInfo.fromMap(record);
+          if (!infos.any((s) => s.id == info.id)) infos.add(info);
+        } catch (_) {
+          // Skip corrupted local metadata, without executing extension code.
+        }
+      }
+      if (infos.isNotEmpty) restored[ext.packageName] = infos;
+    }
+    _approvedSources
+      ..clear()
+      ..addAll(restored);
+  }
 
   List<ProviderDetails> get sources => _sources;
 
@@ -87,6 +148,7 @@ class SourceManager {
     if (!Platform.isAndroid) return;
     try {
       final installed = await AniyomiExtensionBridge.listInstalledExtensions();
+      await _restoreApprovedSources(installed);
       _aniyomi.clear();
       _sources.removeWhere((e) =>
           AniyomiExtensionProvider.isExtensionId(e.identifier));

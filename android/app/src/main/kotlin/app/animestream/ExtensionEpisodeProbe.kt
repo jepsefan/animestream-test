@@ -141,7 +141,7 @@ internal class ExtensionEpisodeProbe(private val context: Context) {
                 "error" to errors.joinToString(" -> "),
                 "safeRequestSummary" to summarizeStreamRequests(
                     eu.kanade.tachiyomi.network.NetworkHelper
-                        .requireInstance().searchNetworkDiagnostics()
+                        .requireInstance().streamRequestDiagnostics()
                 )
             )
         }
@@ -198,10 +198,15 @@ internal class ExtensionEpisodeProbe(private val context: Context) {
             url = episodeUrl
             name = episodeName
         }
-        // One opt-in test. No playback, no media probing, no persistence.
-        val videos = source.fetchVideoList(episode).toBlocking().toFuture()
-            .get(35, TimeUnit.SECONDS)
-        val traces = summarizeStreamRequests(helper.searchNetworkDiagnostics())
+        // One opt-in test. Observe cache hits as well as network requests.
+        helper.beginStreamDiagnostics()
+        val videos = try {
+            source.fetchVideoList(episode).toBlocking().toFuture()
+                .get(35, TimeUnit.SECONDS)
+        } finally {
+            helper.endStreamDiagnostics()
+        }
+        val traces = summarizeStreamRequests(helper.streamRequestDiagnostics())
         val diagnosis = if (videos.isEmpty()) diagnoseEmptyStreamList(packageName, traces)
             else "streams_returned"
         return mapOf(
@@ -250,26 +255,23 @@ internal class ExtensionEpisodeProbe(private val context: Context) {
      */
     private fun summarizeStreamRequests(
         raw: List<Map<String, Any?>>
-    ): List<Map<String, Any?>> = raw.takeLast(24).map { trace ->
-        val path = trace["path"]?.toString().orEmpty()
-        val stage = when {
-            path == "/ajax/film/sv" -> "server_tabs"
-            path == "/ajax/episode/info" -> "episode_server_info"
-            path.startsWith("/hs/getSources") -> "video_source_api"
-            path.startsWith("/sbv2/getSources") -> "alternate_source_api"
-            path.startsWith("/hs/") -> "player_page"
-            path.startsWith("/sbv2/") -> "alternate_player_page"
-            path.endsWith(".m3u8", ignoreCase = true) -> "hls_playlist"
-            path.endsWith(".mpd", ignoreCase = true) -> "dash_manifest"
-            path.startsWith("/content/") -> "animeonsen_content"
-            else -> "other_request"
-        }
+    ): List<Map<String, Any?>> = raw.takeLast(35).map { trace ->
+        // NetworkHelper has already converted URL paths and response metadata
+        // to safe, nonidentifying values.
         mapOf(
-            "stage" to stage,
-            "host" to trace["host"]?.toString().orEmpty(),
-            "status" to trace["status"]?.toString().orEmpty(),
-            "contentType" to trace["contentType"]?.toString().orEmpty()
-        )
+            "stage" to trace["stage"],
+            "host" to trace["host"],
+            "status" to trace["status"],
+            "fromCache" to trace["fromCache"],
+            "contentType" to trace["contentType"],
+            "jsonObject" to trace["jsonObject"],
+            "serverTabCount" to trace["serverTabCount"],
+            "targetPresent" to trace["targetPresent"],
+            "targetIsHttp" to trace["targetIsHttp"],
+            "targetShape" to trace["targetShape"],
+            "grabberPresent" to trace["grabberPresent"],
+            "typePresent" to trace["typePresent"]
+        ).filterValues { it != null }
     }
 
     private fun diagnoseEmptyStreamList(

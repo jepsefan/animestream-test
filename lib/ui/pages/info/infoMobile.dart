@@ -513,6 +513,10 @@ class _InfoMobileState extends State<InfoMobile> {
               provider.epSearcherror = false;
               provider.foundName = null;
             });
+            if (provider.selectedSource.identifier.startsWith('aniyomi:')) {
+              await provider.saveExtensionSourceSelection(
+                  Map<String, String?>.from(result));
+            }
             final links =
                 await SourceManager.instance.getAnimeEpisodes(provider.selectedSource.identifier, result['alias']);
             if (mounted)

@@ -1,3 +1,12 @@
+## v1.4.9-beta34.11 — Source-specific search routing and alternate title labeling
+- For plain text searches only, 123Anime's /filter?keyword= is routed to its working /search?keyword=; the extension's HTML parser stays unchanged.
+- Exclude advanced-filter and unrelated extension requests from rewriting. Avoid unnecessary duplicate probes.
+- AnimeOnsen titles in Japanese/romaji are labeled possible alternate matches pending AniList verification.
+- Build and device tests pending.
+
+## v1.4.9-beta34.8 — JSON/Okio runtime (archived from release notes)
+- Added Kotlin Serialization Json-Okio runtime to support AnimeOnsen extension search.
+
 ## v1.4.9-beta34.10 — Alternate source search diagnostics
 - Show search result relevance without assuming English titles must equal romanized Japanese titles.
 - Compare /filter versus /search for installed 123Anime with a bounded extra diagnostic request; no automatic fallback or source change.

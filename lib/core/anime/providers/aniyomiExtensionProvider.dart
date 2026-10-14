@@ -22,26 +22,43 @@ class AniyomiExtensionProvider extends AnimeProvider {
 
   @override
   Future<List<Map<String, String?>>> search(String query) async {
-    final result = await AniyomiExtensionBridge.testExtensionSearch(
-        extension.packageName, query);
-    final status = (result['status'] ?? '').toString();
-    if (status != 'search_completed' &&
-        status != 'search_completed_unverified') {
-      throw StateError('Aniyomi search failed: $status');
+    final cleanQuery = query.trim();
+    final suffix = RegExp(
+      r'\s*(?:[-:–]\s*)?(?:season|part|cour)\s*\d+\s*' + r'$',
+      caseSensitive: false,
+    );
+    final baseQuery = cleanQuery.replaceAll(suffix, '').trim();
+    final plainQuery = baseQuery
+        .replaceAll(RegExp(r'[^\p{L}\p{N}\s]+', unicode: true), ' ')
+        .replaceAll(RegExp(r'\s+'), ' ').trim();
+    final variants = <String>{cleanQuery, baseQuery, plainQuery}
+        .where((variant) => variant.isNotEmpty).toList();
+    for (final variant in variants) {
+      final response = await AniyomiExtensionBridge.testExtensionSearch(
+          extension.packageName, variant);
+      final status = (response['status'] ?? '').toString();
+      if (status != 'search_completed' &&
+          status != 'search_completed_unverified') {
+        throw StateError('Aniyomi search failed: $status');
+      }
+      // A successful HTTP response can be an unrelated browse page.
+      if (response['relevance'] == 'unverified_unrelated_catalogue') continue;
+      final items = (response['results'] as List?) ?? const [];
+      final parsed = items.whereType<Map>().where((item) =>
+          (item['url']?.toString().isNotEmpty ?? false) &&
+          (item['title']?.toString().isNotEmpty ?? false)).map((item) {
+        return <String, String?>{
+          'name': item['title']?.toString(),
+          'alias': '${item['url'] ?? ''}\u001f${item['title'] ?? ''}',
+          'imageUrl': item['cover']?.toString(),
+          'image': item['cover']?.toString(),
+        };
+      }).where((item) =>
+          (item['name']?.isNotEmpty ?? false) &&
+          (item['alias']?.isNotEmpty ?? false)).toList();
+      if (parsed.isNotEmpty) return parsed;
     }
-    final items = (result['results'] as List?) ?? const [];
-    return items.whereType<Map>().where((entry) =>
-        (entry['url']?.toString().isNotEmpty ?? false) &&
-        (entry['title']?.toString().isNotEmpty ?? false)).map((entry) {
-      return <String, String?>{
-        'name': entry['title']?.toString(),
-        'alias': '${entry['url'] ?? ''}\u001f${entry['title'] ?? ''}',
-        'imageUrl': entry['cover']?.toString(),
-        'image': entry['cover']?.toString(),
-      };
-    }).where((item) =>
-        (item['name']?.isNotEmpty ?? false) &&
-        (item['alias']?.isNotEmpty ?? false)).toList();
+    return <Map<String, String?>>[];
   }
 
   @override

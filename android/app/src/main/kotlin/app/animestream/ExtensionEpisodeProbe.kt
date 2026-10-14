@@ -61,43 +61,12 @@ internal class ExtensionEpisodeProbe(private val context: Context) {
                 override val type: java.lang.reflect.Type = Json::class.java
             }, Json { ignoreUnknownKeys = true; explicitNulls = false })
         }
-        val pm = context.packageManager
-        val info = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            pm.getApplicationInfo(packageName,
-                PackageManager.ApplicationInfoFlags.of(PackageManager.GET_META_DATA.toLong()))
-        } else {
-            @Suppress("DEPRECATION")
-            pm.getApplicationInfo(packageName, PackageManager.GET_META_DATA)
-        }
-        val sourceName = info.metaData?.getString("tachiyomi.animeextension.class")
-            ?: return mapOf("status" to "no_source_class")
-        val entry = sourceName.split(';', ',').first().trim().let {
-            if (it.startsWith(".")) packageName + it else it
-        }
-        val paths = listOfNotNull(info.sourceDir) + (info.splitSourceDirs?.toList() ?: emptyList())
-        val extensionClasses = paths.flatMap { apk ->
-            val dex = DexFile(apk)
-            try {
-                val names = mutableListOf<String>()
-                val enumeration = dex.entries()
-                while (enumeration.hasMoreElements()) names.add(enumeration.nextElement())
-                names
-            } finally { dex.close() }
-        }.toSet()
-        val loader = ExtensionIsolatedClassLoader(
-            paths.joinToString(File.pathSeparator),
-            context.codeCacheDir.absolutePath,
-            info.nativeLibraryDir, context.javaClass.classLoader, extensionClasses
-        )
-        val instance = Class.forName(entry, true, loader).getDeclaredConstructor().newInstance()
-        val source = instance as? AnimeSource
-            ?: return mapOf("status" to "not_anime_source")
+        val source = ExtensionHostRuntime(context).load(packageName).source
         val anime = SAnime.create().apply {
             url = sourceUrl
             title = sourceTitle
         }
-        val episodes = source.fetchEpisodeList(anime).toBlocking().toFuture()
-            .get(25, TimeUnit.SECONDS)
+        val episodes = ExtensionSourceCalls.episodes(source, anime)
         return mapOf(
             "status" to "episode_list_completed",
             "sourceTitle" to sourceTitle,
@@ -187,37 +156,7 @@ internal class ExtensionEpisodeProbe(private val context: Context) {
                 override val type: java.lang.reflect.Type = Json::class.java
             }, Json { ignoreUnknownKeys = true; explicitNulls = false })
         }
-        val pm = context.packageManager
-        val info = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            pm.getApplicationInfo(packageName,
-                PackageManager.ApplicationInfoFlags.of(PackageManager.GET_META_DATA.toLong()))
-        } else {
-            @Suppress("DEPRECATION")
-            pm.getApplicationInfo(packageName, PackageManager.GET_META_DATA)
-        }
-        val sourceName = info.metaData?.getString("tachiyomi.animeextension.class")
-            ?: return mapOf("status" to "no_source_class")
-        val entry = sourceName.split(';', ',').first().trim().let {
-            if (it.startsWith(".")) packageName + it else it
-        }
-        val paths = listOfNotNull(info.sourceDir) + (info.splitSourceDirs?.toList() ?: emptyList())
-        val extensionClasses = paths.flatMap { apk ->
-            val dex = DexFile(apk)
-            try {
-                val names = mutableListOf<String>()
-                val enumeration = dex.entries()
-                while (enumeration.hasMoreElements()) names.add(enumeration.nextElement())
-                names
-            } finally { dex.close() }
-        }.toSet()
-        val loader = ExtensionIsolatedClassLoader(
-            paths.joinToString(File.pathSeparator),
-            context.codeCacheDir.absolutePath,
-            info.nativeLibraryDir, context.javaClass.classLoader, extensionClasses
-        )
-        val instance = Class.forName(entry, true, loader).getDeclaredConstructor().newInstance()
-        val source = instance as? AnimeSource
-            ?: return mapOf("status" to "not_anime_source")
+        val source = ExtensionHostRuntime(context).load(packageName).source
         val episode = eu.kanade.tachiyomi.animesource.model.SEpisode.create().apply {
             url = episodeUrl
             name = episodeName
@@ -225,8 +164,7 @@ internal class ExtensionEpisodeProbe(private val context: Context) {
         // One opt-in test. Observe cache hits as well as network requests.
         helper.beginStreamDiagnostics()
         val videos = try {
-            source.fetchVideoList(episode).toBlocking().toFuture()
-                .get(35, TimeUnit.SECONDS)
+            ExtensionSourceCalls.videos(source, episode)
         } finally {
             helper.endStreamDiagnostics()
         }

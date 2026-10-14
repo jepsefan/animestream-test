@@ -1,3 +1,11 @@
+## v1.4.9-beta34.13 — Aniyomi stream list diagnostic
+- Implement Video, Track and Hoster model ABI compatibility and the legacy fetchVideoList Rx request/parser flow.
+- Display a per-episode Test streams button, restricted to user-selected episodes. Return sanitized stream quality/format/host and audio/subtitle counts, not raw media URLs or auth headers.
+- No streaming player integration yet. Build and device testing required.
+
+## v1.4.9-beta34.10 — Search endpoint diagnostics (archived from release notes)
+- Confirmed that 123Anime works through its /search route rather than /filter.
+
 ## v1.4.9-beta34.12 — AniList source matching and episodes
 - Use existing AniList GraphQL client for English/romaji/native/synonym ranking of Aniyomi extension results, with confidence thresholds, AniList cover fallback, source labels, and separate seasons / Sub/Dub markers.
 - Test manual selection of a source result through fetchEpisodeList and show episode names/numbers/paths with guarded errors and 25-second wait.

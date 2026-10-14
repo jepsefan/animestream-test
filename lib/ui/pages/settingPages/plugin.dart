@@ -1,5 +1,6 @@
 import 'package:animestream/core/anime/providers/providerDetails.dart';
 import 'package:animestream/core/anime/providers/aniyomiExtensionBridge.dart';
+import 'package:animestream/core/anime/providers/extensionAniListMatcher.dart';
 import 'package:animestream/core/anime/providers/providerManager.dart';
 import 'package:animestream/core/app/runtimeDatas.dart';
 import 'package:flutter/material.dart';
@@ -25,6 +26,9 @@ class _PluginPageState extends State<PluginPage> {
   final Map<String, String> _searchDiagnostics = {};
   final Map<String, TextEditingController> _searchControllers = {};
   final Set<String> _searchingExtensions = {};
+  final Map<String, List<Map<String, dynamic>>> _rankedResults = {};
+  final Map<String, String> _episodeDiagnostics = {};
+  final Set<String> _loadingEpisodes = {};
 
   @override
   void initState() {
@@ -187,6 +191,8 @@ class _PluginPageState extends State<PluginPage> {
     setState(() {
       _searchingExtensions.add(ext.packageName);
       _searchDiagnostics[ext.packageName] = 'Searching...';
+      _rankedResults.remove(ext.packageName);
+      _episodeDiagnostics.remove(ext.packageName);
     });
     try {
       final data = await AniyomiExtensionBridge.testExtensionSearch(
@@ -223,19 +229,131 @@ class _PluginPageState extends State<PluginPage> {
           '123Anime /search endpoint test: ${data['alternateEndpoint']}',
         if (networkDiagnostics.isNotEmpty)
           'Network diagnostics (no secrets):\n$networkLines',
-        for (final item in results)
-          if (item is Map)
-            '${item['title'] ?? '(untitled)'}\n'
-            'URL: ${item['url'] ?? ''}\n'
-            'Cover: ${item['cover'] ?? ''}',
+        if (results.isNotEmpty)
+          'Select a result below to test episode loading. AniList matches are suggestions, not automatic source links.',
       ].join('\n\n');
       setState(() => _searchDiagnostics[ext.packageName] = summary);
+      if (results.isNotEmpty) {
+        try {
+          final ranked = await ExtensionAniListMatcher.rank(query, results);
+          if (!mounted) return;
+          setState(() => _rankedResults[ext.packageName] = ranked);
+        } catch (e) {
+          if (!mounted) return;
+          setState(() {
+            _rankedResults[ext.packageName] = results.whereType<Map>()
+                .map((item) => <String, dynamic>{
+                  'title': (item['title'] ?? '').toString(),
+                  'url': (item['url'] ?? '').toString(),
+                  'sourceCover': (item['cover'] ?? '').toString(),
+                  'matchStatus': 'manual_selection_required',
+                  'score': 0,
+                }).toList();
+            _searchDiagnostics[ext.packageName] =
+                '$summary\n\nAniList matching unavailable: $e. '
+                'Source results remain available for manual selection.';
+          });
+        }
+      }
     } catch (error) {
       if (mounted) setState(() =>
           _searchDiagnostics[ext.packageName] = 'Search failed: $error');
     } finally {
       if (mounted) setState(() => _searchingExtensions.remove(ext.packageName));
     }
+  }
+
+  Future<void> _testEpisodes(
+      AniyomiExtensionInfo ext, Map<String, dynamic> selected) async {
+    final url = (selected['url'] ?? '').toString();
+    final title = (selected['title'] ?? '').toString();
+    if (url.isEmpty || title.isEmpty) return;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Test episode list?'),
+        content: Text('Load episodes from ${ext.name} for:\n$title'
+            '\n\nThis executes the installed extension and makes network calls.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('Test episodes'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    setState(() {
+      _loadingEpisodes.add(ext.packageName);
+      _episodeDiagnostics[ext.packageName] = 'Loading episodes for $title...';
+    });
+    try {
+      final response = await AniyomiExtensionBridge.testExtensionEpisodes(
+          ext.packageName, url, title);
+      final items = response['episodes'] as List? ?? const [];
+      final text = <String>[
+        'Source: $title',
+        'Status: ${response['status'] ?? 'unknown'}',
+        if (response['error'] != null) 'Error: ${response['error']}',
+        'Episodes: ${response['episodeCount'] ?? items.length}',
+        if (response['truncated'] == true) 'Showing first 100 episodes',
+        for (final entry in items)
+          if (entry is Map)
+            '${entry['name'] ?? 'Untitled'} '
+            '(episode ${entry['number'] ?? '?'}) — ${entry['url'] ?? ''}',
+      ].join('\n');
+      if (mounted) setState(() => _episodeDiagnostics[ext.packageName] = text);
+    } catch (e) {
+      if (mounted) setState(() =>
+          _episodeDiagnostics[ext.packageName] = 'Episode test failed: $e');
+    } finally {
+      if (mounted) setState(() => _loadingEpisodes.remove(ext.packageName));
+    }
+  }
+
+  Widget _extensionResultTile(
+      AniyomiExtensionInfo ext, Map<String, dynamic> item) {
+    final score = item['score'] is int ? item['score'] as int : 0;
+    final url = (item['anilistCover'] ?? item['sourceCover'] ?? '').toString();
+    final matched = item['anilistId'] != null;
+    final title = (item['title'] ?? '').toString();
+    final isDub = RegExp(r'\b(?:dub|dubbed)\b', caseSensitive: false)
+        .hasMatch(title);
+    final season = RegExp(r'\b\d+(?:st|nd|rd|th)?\s+season\b',
+        caseSensitive: false).firstMatch(title)?.group(0);
+    return ListTile(
+      contentPadding: const EdgeInsets.symmetric(vertical: 6),
+      leading: url.startsWith('http')
+          ? Image.network(url, width: 54, height: 78,
+              fit: BoxFit.cover,
+              errorBuilder: (_, _, _) => const Icon(Icons.movie))
+          : const Icon(Icons.movie),
+      title: Text(title),
+      subtitle: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Source: ${ext.name} (external)'
+              '${season == null ? '' : ' • $season'}'
+              ' • ${isDub ? 'Dub' : 'Sub/unknown'}'),
+          if (matched)
+            Text('AniList: ${item['anilistTitle']} '
+                 '(ID ${item['anilistId']}, score $score)'),
+          if (!matched)
+            const Text('AniList match unconfirmed — select manually'),
+          Text('URL: ${item['url']}', maxLines: 2,
+              overflow: TextOverflow.ellipsis),
+        ],
+      ),
+      trailing: TextButton(
+        onPressed: _loadingEpisodes.contains(ext.packageName)
+            ? null : () => _testEpisodes(ext, item),
+        child: const Text('Test episodes'),
+      ),
+    );
   }
 
   @override
@@ -376,6 +494,25 @@ class _PluginPageState extends State<PluginPage> {
                             Align(
                               alignment: Alignment.centerLeft,
                               child: SelectableText(_searchDiagnostics[ext.packageName]!),
+                            ),
+                          if (_rankedResults[ext.packageName] != null) ...[
+                            const Divider(),
+                            const Align(
+                              alignment: Alignment.centerLeft,
+                              child: Text('Extension results — AniList ranking',
+                                  style: TextStyle(fontWeight: FontWeight.bold)),
+                            ),
+                            for (final result in _rankedResults[ext.packageName]!)
+                              _extensionResultTile(ext, result),
+                          ],
+                          if (_episodeDiagnostics[ext.packageName] != null)
+                            ExpansionTile(
+                              initiallyExpanded: true,
+                              title: const Text('Episode test results'),
+                              children: [
+                                SelectableText(
+                                    _episodeDiagnostics[ext.packageName]!),
+                              ],
                             ),
                           Wrap(
                             alignment: WrapAlignment.end,

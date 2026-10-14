@@ -1,3 +1,10 @@
+## v1.4.9-beta34.19 — Select all Aniyomi subtitle tracks
+- Playback bridge carries every subtitle track, rather than only the first, with source-provided language/label and detected format.
+- VideoStream supports optional multiple tracks without breaking single-subtitle providers.
+- Subtitle button offers a track list and Off; long press still opens subtitle settings.
+- Existing Android libass overlay handles selected ASS/SSA tracks; normal subtitle renderer handles VTT/SRT. Language preference follows the current playback session when switching episodes or video streams.
+- APK compilation and device testing remain pending.
+
 ## v1.4.9-beta34.18 — Aniyomi source and DASH playback fixes
 - Attempt up to seven distinct AniList title aliases for external extension searches without auto-selecting ambiguous results.
 - Treat .mpd and .dash as MPEG-DASH manifests before performing HTTP HEAD detection; do not parse DASH as HLS or prematurely apply HLS quality tracks.

@@ -1,3 +1,9 @@
+## v1.4.9-beta34.20 — Fix grey subtitle selection and Aniyomi season searches
+- Eliminate Provider lookup in a separate subtitle modal route; use the player notifiers captured in the watch page, with an explicit bottom-sheet height, scrollable track list and theme text colors.
+- Retry the base title when a season-specific extension search returns no results (including Manual Search); don't automatically select unrelated seasons.
+- Keep existing AnimeOnsen DASH playback and all subtitle support unchanged.
+- Device build/test pending.
+
 ## v1.4.9-beta34.19 — Select all Aniyomi subtitle tracks
 - Playback bridge carries every subtitle track, rather than only the first, with source-provided language/label and detected format.
 - VideoStream supports optional multiple tracks without breaking single-subtitle providers.

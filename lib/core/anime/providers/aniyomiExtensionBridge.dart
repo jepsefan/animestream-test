@@ -5,6 +5,12 @@ class AniyomiExtensionBridge {
   static const MethodChannel _channel =
       MethodChannel('animestream.app/aniyomi_extensions');
 
+  /// Inspect local host API only; does not execute any installed extensions.
+  static Future<Map<String, dynamic>> inspectHostAbi() async {
+    final raw = await _channel.invokeMethod<Map<dynamic, dynamic>>('inspectHostAbi');
+    return Map<String, dynamic>.from(raw ?? const {});
+  }
+
   static Future<Map<String, dynamic>> inspectExtensionClass(String packageName) async {
     final raw = await _channel.invokeMethod<Map<dynamic, dynamic>>(
       'inspectExtensionClass', {'packageName': packageName});

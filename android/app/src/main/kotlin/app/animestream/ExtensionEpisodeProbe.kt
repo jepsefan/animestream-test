@@ -236,13 +236,33 @@ internal class ExtensionEpisodeProbe(private val context: Context) {
                 val uri = try { android.net.Uri.parse(url) } catch (_: Exception) { null }
                 if (uri == null || uri.scheme?.lowercase() !in setOf("http", "https") ||
                     uri.host.isNullOrBlank()) return@mapNotNull null
-                val subtitle = video.subtitleTracks.firstOrNull()?.url
-                val subtitleFormat = when {
-                    subtitle?.substringBefore('?')?.endsWith(".ass", true) == true -> "ass"
-                    subtitle?.substringBefore('?')?.endsWith(".srt", true) == true -> "srt"
-                    subtitle?.substringBefore('?')?.endsWith(".vtt", true) == true -> "vtt"
-                    else -> ""
+                // Keep every external track and its language/format. These are
+                // playback-only values: never add URLs to diagnostic summaries.
+                val subtitles = video.subtitleTracks.mapNotNull { track ->
+                    val raw = track.url.trim()
+                    val address = try { android.net.Uri.parse(raw) } catch (_: Exception) { null }
+                    if (address == null ||
+                        address.scheme?.lowercase() !in setOf("http", "https") ||
+                        address.host.isNullOrBlank()) return@mapNotNull null
+                    val path = address.path?.lowercase() ?: ""
+                    val language = track.lang.trim().ifBlank { "Unknown" }
+                    val hint = language.lowercase()
+                    val format = when {
+                        path.endsWith(".ass") || path.endsWith(".ssa") ||
+                            hint.contains(".ass") || hint.contains("[ass]") ||
+                            hint.contains("[ssa]") -> "ass"
+                        path.endsWith(".vtt") || hint.contains("[vtt]") -> "vtt"
+                        path.endsWith(".srt") || hint.contains("[srt]") -> "srt"
+                        else -> ""
+                    }
+                    mapOf(
+                        "url" to raw,
+                        "language" to language,
+                        "format" to format,
+                        "label" to language
+                    )
                 }
+                val initialSubtitle = subtitles.firstOrNull()
                 mapOf(
                     "url" to url,
                     "quality" to video.videoTitle.ifBlank { "Auto" },
@@ -250,8 +270,9 @@ internal class ExtensionEpisodeProbe(private val context: Context) {
                     "headers" to (video.headers?.toMultimap()?.mapValues {
                         it.value.joinToString("; ")
                     } ?: emptyMap<String, String>()),
-                    "subtitle" to (subtitle ?: ""),
-                    "subtitleFormat" to subtitleFormat,
+                    "subtitle" to (initialSubtitle?.get("url") ?: ""),
+                    "subtitleFormat" to (initialSubtitle?.get("format") ?: ""),
+                    "subtitleTracks" to subtitles,
                     "audioTrackCount" to video.audioTracks.size,
                     "subtitleTrackCount" to video.subtitleTracks.size
                 )

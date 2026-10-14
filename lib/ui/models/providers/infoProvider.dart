@@ -407,10 +407,33 @@ class InfoProvider extends ChangeNotifier {
       final exact = results.where((item) =>
           aliases.contains(ExtensionAniListMatcher.normalize(
               item['name'] ?? ''))).toList();
-      if (exact.length != 1) {
-        throw StateError('Select the correct Aniyomi title using Manual Search');
+      if (exact.length == 1) {
+        selected = exact.single;
+      } else {
+        // An English AniList title may differ completely from an extension's
+        // Japanese/romaji title. Only accept an unambiguous score >= 95 which
+        // independently resolves to this exact AniList media ID.
+        final ranked = await ExtensionAniListMatcher.rank(
+            query, results.map((item) => <String, dynamic>{
+              'title': item['name'] ?? '',
+              'url': item['alias'] ?? '',
+              'cover': item['imageUrl'] ?? '',
+            }).toList());
+        final confirmed = ranked.where((item) =>
+            item['anilistId'] == id &&
+            (item['score'] as int? ?? 0) >= 95).toList();
+        if (confirmed.length != 1) {
+          throw StateError(
+              'Aniyomi title is ambiguous; select it using Manual Search');
+        }
+        final alias = confirmed.single['url']?.toString();
+        selected = results.firstWhere(
+            (item) => item['alias'] == alias,
+            orElse: () => <String, String?>{});
+        if (selected.isEmpty) {
+          throw StateError('Select the Aniyomi title using Manual Search');
+        }
       }
-      selected = exact.single;
     } else {
       final exact = results.where((item) => item['name'] == query).toList();
       selected = exact.isNotEmpty ? exact.first : results.first;

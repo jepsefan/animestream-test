@@ -25,7 +25,21 @@ Future<BetterPlayerDataSource> dataSourceConfig(String url, {Map<String, String>
 }
 
 Future<BetterPlayerVideoFormat> _getFormat(String url, Map<String, String>? headers) async {
-  final mime = (await getMediaMimeType(url, headers))?.toLowerCase();
+  // Select manifest formats by path before sending HEAD: some CDN-backed DASH
+  // endpoints reject HEAD although ExoPlayer can fetch the manifest via GET.
+  final path = Uri.tryParse(url)?.path.toLowerCase() ?? '';
+  if (path.endsWith('.mpd') || path.endsWith('.dash')) {
+    return BetterPlayerVideoFormat.dash;
+  }
+  if (path.endsWith('.m3u8') || path.endsWith('.m3u')) {
+    return BetterPlayerVideoFormat.hls;
+  }
+  String? mime;
+  try {
+    mime = (await getMediaMimeType(url, headers))?.toLowerCase();
+  } catch (_) {
+    // Unsupported HEAD requests must not block player initialization.
+  }
 
   // lets assume stuff if something goes wrong
   if (mime == null || mime.contains("octet-stream")) {

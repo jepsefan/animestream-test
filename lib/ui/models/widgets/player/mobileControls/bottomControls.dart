@@ -159,13 +159,26 @@ class _BottomControlsState extends State<BottomControls> {
                                   ? track.label : track.language,
                                   style: TextStyle(color: appTheme.textMainColor)),
                               subtitle: Text(
-                                '${track.language} • ${track.format.isEmpty ? "Unknown format" : track.format.toUpperCase()}',
+                                '${track.language} • ${dataProvider.subtitleFormatLabel(track)}',
                                 style: TextStyle(color:
                                     appTheme.textMainColor.withOpacity(0.7)),
                               ),
-                              onTap: () {
-                                dataProvider.selectSubtitleTrack(track);
-                                playerProvider.toggleSubs(action: true);
+                              onTap: () async {
+                                // Probe subtitle content before switching the
+                                // renderer; source filenames may be opaque.
+                                await dataProvider.selectSubtitleTrack(track);
+                                if (!sheetContext.mounted) return;
+                                if (dataProvider.subtitleFormatFor(track).isNotEmpty) {
+                                  playerProvider.toggleSubs(action: true);
+                                } else {
+                                  playerProvider.toggleSubs(action: false);
+                                  ScaffoldMessenger.of(sheetContext).showSnackBar(
+                                    const SnackBar(content: Text(
+                                      'Subtitle format is not recognized. '
+                                      'This track cannot be rendered yet.',
+                                    )),
+                                  );
+                                }
                                 Navigator.of(sheetContext).pop();
                               },
                             ),

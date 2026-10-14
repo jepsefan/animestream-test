@@ -194,7 +194,10 @@ class MainActivity: FlutterActivity() {
                 "name" to pm.getApplicationLabel(info).toString(),
                 "version" to (pkg.versionName ?: ""),
                 "versionCode" to (if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P)
-                    pkg.longVersionCode else @Suppress("DEPRECATION") pkg.versionCode.toLong()),
+                    pkg.longVersionCode else {
+                    @Suppress("DEPRECATION")
+                    pkg.versionCode.toLong()
+                }),
                 "signingFingerprints" to signerDigests,
                 "sourceClass" to sourceClass,
                 "sourceFactory" to sourceFactory,

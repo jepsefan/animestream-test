@@ -1,6 +1,13 @@
 # AnimeStream — latest three beta releases
 
-Only the three most recent beta versions are kept here. Older notes are archived in [CHANGELOG.md](CHANGELOG.md).
+Only the three most recent beta versions are kept here. Older entries are in [CHANGELOG.md](CHANGELOG.md).
+
+## v1.4.9-beta34.14 — Stream extraction diagnostics (unverified)
+- Distinguish empty stream responses from successful resolution: stream_list_empty instead of stream_list_completed when zero videos are found.
+- Add sanitized, stage-based network request summaries for the 123Anime extraction flow to identify server-tab, video-info, player and playlist failures.
+- Show an explicit diagnosis and HTTP-stage information in Test streams. Do not display full video URLs, signed paths, credentials or tokens.
+- Preserve AnimeOnsen's working stream test and leave video playback unchanged.
+- Build/device validation required.
 
 ## v1.4.9-beta34.13 — Manual extension stream diagnostics (unverified)
 - Add Aniyomi legacy Video and Track models, plus Hoster compatibility constructors.
@@ -16,10 +23,3 @@ Only the three most recent beta versions are kept here. Older notes are archived
 - Show individual extension results with source label, Sub/Dub indication and detected season.
 - Add an opt-in Test episodes action per selected result, backed by Android Host API fetchEpisodeList(). Display names, numbers and source paths; does not fetch video URLs or add playable sources yet.
 - AniList is still primary for metadata. No automatic binding of uncertain results to AniList IDs. Requires build and phone verification.
-
-## v1.4.9-beta34.11 — 123Anime search routing and alternate titles (unverified)
-- Route only plain text searches in the installed 123Anime extension to /search instead of /filter when the original source request uses the broken browse-list endpoint.
-- Preserve the extension's original search parser and its existing result titles, URLs and cover addresses. Advanced filtered searches and other sources are not redirected.
-- Mark AnimeOnsen's Japanese/romaji search hits as possible alternate titles, not automatically unrelated. AniList remains authoritative for matching.
-- Avoid redundant 123Anime endpoint probes when the actual request already uses /search.
-- Build and phone tests are still required. This does not implement episode or stream loading.

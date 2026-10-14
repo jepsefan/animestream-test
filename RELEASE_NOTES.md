@@ -2,6 +2,15 @@
 
 Only the three latest beta versions are kept here. Older entries are archived in [CHANGELOG.md](CHANGELOG.md).
 
+## v1.4.9-beta34.16 — Aniyomi extensions on series pages (build/device testing pending)
+- Register installed Android Aniyomi APK sources directly in AnimeStream's normal source dropdown, identified by [Ext].
+- Use original extension search, episode list and stream resolution through a Flutter/Android bridge.
+- Auto-select an external source only for an unambiguous exact English/romaji/native AniList title; otherwise use Manual Search.
+- Persist manual source selections per AniList series and per installed extension without overwriting other sources.
+- Show available source-provided episode thumbnails and pass video URL, quality, selected subtitle and request headers to the existing player workflow.
+- Downloads through external extensions are disabled; unchanged native sources remain available.
+- No playback for Android TV or any particular extension has been verified. Beta API support still varies by extension. Multiple audio/subtitle tracks and advanced hoster APIs are not yet integrated.
+
 ## v1.4.9-beta34.15 — Cache-aware stream stage inspection (unverified)
 - For Test streams, use an application-level OkHttp interceptor so cached requests are recorded as well as network responses.
 - For 123Anime, report server-tab count and safe presence/shape of episode-info target fields, without logging embed URLs, tokens, cookies, request query strings or media URLs.
@@ -14,11 +23,3 @@ Only the three latest beta versions are kept here. Older entries are archived in
 - Show an explicit diagnosis and HTTP-stage information in Test streams. Do not display full video URLs, signed paths, credentials or tokens.
 - Preserve AnimeOnsen's working stream test and leave video playback unchanged.
 - Build/device validation required.
-
-## v1.4.9-beta34.13 — Manual extension stream diagnostics (unverified)
-- Add Aniyomi legacy Video and Track models, plus Hoster compatibility constructors.
-- Implement AnimeHttpSource.fetchVideoList() with extension-defined request and parser methods.
-- Add opt-in Test streams for a selected episode after Test episodes in Manage Providers.
-- Show video quality, format, stream host, track counts and status without exposing signed stream URLs, tokens, cookies or authorization headers.
-- Does not start playback, download video, or connect extensions to AnimeStream's normal series pages.
-- Both 123Anime and AnimeOnsen previously passed episode-list tests in beta34.12. Stream resolution remains unverified and may require more Host API components.

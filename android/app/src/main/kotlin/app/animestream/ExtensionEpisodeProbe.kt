@@ -248,6 +248,13 @@ internal class ExtensionEpisodeProbe(private val context: Context) {
                     val language = track.lang.trim().ifBlank { "Unknown" }
                     val hint = language.lowercase()
                     val format = when {
+                        // The built-in AnimeOnsen provider documents this
+                        // exact subtitles API as ASS. It is language-neutral:
+                        // /v4/subtitles/{contentId}/{locale}/{episode}.
+                        packageName ==
+                            "eu.kanade.tachiyomi.animeextension.all.animeonsen" &&
+                            address.host.equals("api.animeonsen.xyz", ignoreCase = true) &&
+                            path.startsWith("/v4/subtitles/") -> "ass"
                         path.endsWith(".ass") || path.endsWith(".ssa") ||
                             hint.contains(".ass") || hint.contains("[ass]") ||
                             hint.contains("[ssa]") || hint.contains("(ass)") ||
@@ -280,10 +287,20 @@ internal class ExtensionEpisodeProbe(private val context: Context) {
                     "subtitleTrackCount" to video.subtitleTracks.size
                 )
             }
+            val emptyTrace = if (playable.isEmpty()) {
+                summarizeStreamRequests(helper.streamRequestDiagnostics())
+            } else emptyList()
             return mapOf(
                 "status" to if (playable.isEmpty()) "stream_list_empty" else "stream_list_completed",
                 "videos" to playable,
-                "videoCount" to playable.size
+                "videoCount" to playable.size,
+                "diagnosis" to if (playable.isEmpty()) {
+                    if (videos.isNotEmpty()) "no_playable_http_video" else
+                        diagnoseEmptyStreamList(packageName, emptyTrace)
+                } else "streams_returned",
+                // Only structural stage/status flags, never media URLs, cookies,
+                // authorization tokens or request bodies.
+                "safeRequestSummary" to emptyTrace
             )
         }
         val traces = summarizeStreamRequests(helper.streamRequestDiagnostics())
@@ -368,7 +385,21 @@ internal class ExtensionEpisodeProbe(private val context: Context) {
         if (failures) return "upstream_http_error"
         if (!is123Anime) return "extension_returned_no_video"
         val stages = entries.mapNotNull { it["stage"] as? String }.toSet()
+        val tabs = entries.filter { it["stage"] == "server_tabs" }
+        val tabCounts = tabs.mapNotNull { (it["serverTabCount"] as? Number)?.toInt() }
+        val serverInfos = entries.filter { it["stage"] == "episode_server_info" }
         return when {
+            tabCounts.isNotEmpty() && tabCounts.all { it == 0 } ->
+                "server_tab_list_empty"
+            serverInfos.isNotEmpty() &&
+                serverInfos.all { it["targetPresent"] == false } ->
+                "episode_player_target_empty"
+            serverInfos.isNotEmpty() &&
+                serverInfos.all { it["targetIsHttp"] == false } ->
+                "episode_player_target_nonabsolute"
+            serverInfos.isNotEmpty() &&
+                serverInfos.all { it["jsonObject"] == false } ->
+                "episode_player_info_not_json"
             "server_tabs" in stages && "episode_server_info" !in stages ->
                 "server_tabs_available_but_no_server_info_requests"
             "episode_server_info" in stages &&

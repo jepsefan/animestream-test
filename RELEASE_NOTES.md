@@ -1,6 +1,13 @@
 # AnimeStream — latest three beta releases
 
-Only the three most recent beta versions are kept here. When a new beta is added, the oldest entry moves to [CHANGELOG.md](CHANGELOG.md).
+Only the three most recent beta versions are kept here. Older beta notes are archived in [CHANGELOG.md](CHANGELOG.md).
+
+## v1.4.9-beta34.11 — 123Anime search routing and alternate titles (unverified)
+- Route only plain text searches in the installed 123Anime extension to /search instead of /filter when the original source request uses the broken browse-list endpoint.
+- Preserve the extension's original search parser and its existing result titles, URLs and cover addresses. Advanced filtered searches and other sources are not redirected.
+- Mark AnimeOnsen's Japanese/romaji search hits as possible alternate titles, not automatically unrelated. AniList remains authoritative for matching.
+- Avoid redundant 123Anime endpoint probes when the actual request already uses /search.
+- Build and phone tests are still required. This does not implement episode or stream loading.
 
 ## v1.4.9-beta34.10 — Search endpoint diagnostics and alternate titles (unverified)
 - Device testing confirmed 123Anime sends the exact keyword and receives HTTP 200 but may return unrelated catalogue entries for longer English searches.
@@ -14,10 +21,3 @@ Only the three most recent beta versions are kept here. When a new beta is added
 - Detect results that don't contain the requested phrase among displayed titles; show a warning instead of treating unrelated catalog results as verified search matches.
 - AnimeOnsen may require a search token from its home page; HTTP 403 is not automatically an application or authentication error. Diagnostic-only; no Cloudflare bypass added.
 - Keep existing extension runtime, ordinary sources, and all player behavior unchanged. Build/device verification required.
-
-## v1.4.9-beta34.8 — Aniyomi JSON-Okio runtime (unverified)
-- Add kotlinx-serialization-json-okio 1.9.0 and align kotlinx-serialization-json to 1.9.0, matching Aniyomi's JSON serialization version.
-- Probe OkioStreamsKt before calling extensions to identify missing runtime dependency.
-- Beta 34.7 device test confirmed 123Anime returns 28 results for Naruto; AnimeOnsen advanced past the Okio ABI error but now needs the serialization Okio bridge.
-- Build/device verification still required; no episode loading or playback support yet.
-

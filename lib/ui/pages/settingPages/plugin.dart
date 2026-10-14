@@ -1,10 +1,16 @@
+import 'dart:io';
+
 import 'package:animestream/ui/models/sources.dart';
 import 'package:animestream/core/anime/providers/providerDetails.dart';
 import 'package:animestream/core/anime/providers/aniyomiExtensionBridge.dart';
 import 'package:animestream/core/anime/providers/extensionAniListMatcher.dart';
+import 'package:animestream/core/anime/providers/aniyomiRepository.dart';
+import 'package:animestream/core/anime/providers/aniyomiRepositoryPreferences.dart';
 import 'package:animestream/core/anime/providers/providerManager.dart';
 import 'package:animestream/core/app/runtimeDatas.dart';
 import 'package:flutter/material.dart';
+import 'package:open_file/open_file.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 /// Experimental catalog and local source storage. Execution is not supported yet.
 class PluginPage extends StatefulWidget {
@@ -16,11 +22,17 @@ class PluginPage extends StatefulWidget {
 
 class _PluginPageState extends State<PluginPage> {
   final ProviderManager _manager = ProviderManager();
+  final AniyomiRepositoryPreferences _repositoryPreferences =
+      AniyomiRepositoryPreferences();
   List<ProviderDetails> _installed = [];
   List<AniyomiExtensionInfo> _apkExtensions = [];
   List<ProviderDetails> _available = [];
+  List<AniyomiRepositoryExtension> _aniyomiAvailable = [];
+  String? _repositoryUrl;
   bool _loading = true;
   String? _error;
+  String? _aniyomiError;
+  String? _dartError;
   String? _busyId;
   final Map<String, String> _classDiagnostics = {};
   final Set<String> _testingExtensions = {};
@@ -33,6 +45,7 @@ class _PluginPageState extends State<PluginPage> {
   final Map<String, List<Map<String, dynamic>>> _episodeSelections = {};
   final Map<String, String> _streamDiagnostics = {};
   final Set<String> _loadingStreams = {};
+  String _extensionRepoQuery = '';
 
   @override
   void initState() {
@@ -41,7 +54,12 @@ class _PluginPageState extends State<PluginPage> {
   }
 
   Future<void> _refresh() async {
-    setState(() { _loading = true; _error = null; });
+    setState(() {
+      _loading = true;
+      _error = null;
+      _aniyomiError = null;
+      _dartError = null;
+    });
     try {
       final installed = await _manager.getSavedProviders();
       List<AniyomiExtensionInfo> apkExtensions = [];
@@ -53,11 +71,25 @@ class _PluginPageState extends State<PluginPage> {
         apkError = 'Could not scan installed Android extensions: $e';
       }
       List<ProviderDetails> available = [];
-      String? error;
+      String? dartError;
       try {
         available = await _manager.fetchProvidersRepo();
       } catch (e) {
-        error = 'Could not load the Provins catalog: $e';
+        dartError = 'Could not load the Dart provider catalog: $e';
+      }
+      List<AniyomiRepositoryExtension> aniyomiAvailable = [];
+      String? aniyomiError;
+      String? repositoryUrl;
+      try {
+        repositoryUrl = await _repositoryPreferences.getIndexUrl();
+        if (repositoryUrl == null) {
+          aniyomiError = 'No AniYomi repository configured. Add its index URL.';
+        } else {
+          aniyomiAvailable = await AniyomiRepository(indexUrl: repositoryUrl)
+              .fetchExtensions();
+        }
+      } catch (e) {
+        aniyomiError = 'Could not load the AniYomi extension catalog: $e';
       }
       if (!mounted) return;
       final ids = installed.map((e) => e.identifier).toSet();
@@ -65,8 +97,12 @@ class _PluginPageState extends State<PluginPage> {
         _installed = installed;
         _apkExtensions = apkExtensions;
         _available = available.where((e) => !ids.contains(e.identifier)).toList();
-        _error = [if (apkError != null) apkError, if (error != null) error].join('\n');
-        if (_error!.isEmpty) _error = null;
+        _aniyomiAvailable = aniyomiAvailable;
+        _repositoryUrl = repositoryUrl;
+        _error = apkError;
+        _aniyomiError = aniyomiError;
+        _dartError = dartError;
+        if (_error?.isEmpty ?? false) _error = null;
       });
     } catch (e) {
       if (mounted) setState(() => _error = 'Could not load saved providers: $e');
@@ -480,6 +516,153 @@ class _PluginPageState extends State<PluginPage> {
     }
   }
 
+  Future<void> _installAniyomiExtension(
+      AniyomiRepositoryExtension extension) async {
+    setState(() => _busyId = extension.packageName);
+    try {
+      if (!Platform.isAndroid) {
+        throw UnsupportedError('AniYomi APK installation is available on Android only');
+      }
+      final repositoryUrl = _repositoryUrl;
+      if (repositoryUrl == null) {
+        throw StateError('Set an AniYomi repository URL first');
+      }
+      final apk = await AniyomiRepository(indexUrl: repositoryUrl)
+          .downloadApk(extension);
+      var result = await OpenFile.open(apk.path,
+          type: 'application/vnd.android.package-archive');
+      if (result.type == ResultType.permissionDenied) {
+        final permission = await Permission.requestInstallPackages.request();
+        if (permission.isGranted) {
+          result = await OpenFile.open(apk.path,
+              type: 'application/vnd.android.package-archive');
+        }
+      }
+      if (!mounted) return;
+      if (result.type == ResultType.done) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Installer opened for ${extension.name}. '
+              'Return here and refresh to use it in Extensions.'),
+        ));
+      } else {
+        throw Exception(result.message.isNotEmpty
+            ? result.message
+            : 'Android did not open the package installer');
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Could not install extension: $e')));
+      }
+    } finally {
+      if (mounted) setState(() => _busyId = null);
+    }
+  }
+
+  Future<void> _editRepository() async {
+    final controller = TextEditingController(text: _repositoryUrl ?? '');
+    final value = await showDialog<String?>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('AniYomi repository'),
+        content: TextField(
+          controller: controller,
+          keyboardType: TextInputType.url,
+          autofocus: true,
+          decoration: const InputDecoration(
+            labelText: 'Repository index URL',
+            hintText: 'https://example.org/repo/index.min.json',
+            helperText: 'Paste an HTTPS JSON index or an aniyomi://add-repo link.',
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: const Text('Cancel'),
+          ),
+          if (_repositoryUrl != null)
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(''),
+              child: const Text('Remove'),
+            ),
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(controller.text.trim()),
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+    controller.dispose();
+    if (value == null || !mounted) return;
+    try {
+      if (value.isEmpty) {
+        await _repositoryPreferences.clearIndexUrl();
+      } else {
+        await _repositoryPreferences.saveIndexUrl(value);
+      }
+      await _refresh();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Repository URL was not saved: $e')));
+      }
+    }
+  }
+
+  Widget _aniyomiItems() {
+    final query = _extensionRepoQuery.trim().toLowerCase();
+    final matches = _aniyomiAvailable.where((extension) {
+      if (query.isEmpty) return true;
+      return extension.name.toLowerCase().contains(query) ||
+          extension.packageName.toLowerCase().contains(query) ||
+          extension.languageLabel.toLowerCase().contains(query) ||
+          extension.sourceLabel.toLowerCase().contains(query);
+    }).toList(growable: false);
+    if (matches.isEmpty) {
+      final message = _repositoryUrl == null
+          ? 'Add a repository URL with the link icon above.'
+          : _aniyomiError != null
+              ? 'Could not load the AniYomi repository'
+              : query.isEmpty
+                  ? 'No extensions found in the AniYomi repository'
+                  : 'No extensions match “$_extensionRepoQuery”';
+      return Center(
+        child: Text(message),
+      );
+    }
+    final installedPackages = _apkExtensions.map((item) => item.packageName).toSet();
+    return ListView.builder(
+      itemCount: matches.length,
+      itemBuilder: (context, index) {
+        final item = matches[index];
+        final isInstalled = installedPackages.contains(item.packageName);
+        final sourceLabel = item.sourceLabel;
+        final details = [
+          'v${item.version}',
+          item.languageLabel,
+          if (sourceLabel.isNotEmpty) sourceLabel,
+          if (item.nsfw > 0) '18+',
+        ].join(' • ');
+        return ListTile(
+          title: Text(item.name),
+          subtitle: Text('$details\n${item.packageName}'),
+          isThreeLine: true,
+          trailing: _busyId == item.packageName
+              ? const SizedBox(
+                  width: 24, height: 24, child: CircularProgressIndicator())
+              : isInstalled
+                  ? const Text('Installed')
+                  : TextButton(
+                      onPressed: _busyId != null
+                          ? null
+                          : () => _installAniyomiExtension(item),
+                      child: const Text('Install APK'),
+                    ),
+        );
+      },
+    );
+  }
+
   Widget _items(List<ProviderDetails> items, {required bool installed}) {
     if (items.isEmpty) return const Center(child: Text('No providers found'));
     return ListView.builder(
@@ -504,26 +687,32 @@ class _PluginPageState extends State<PluginPage> {
   @override
   Widget build(BuildContext context) {
     return DefaultTabController(
-      length: 2,
+      length: 3,
       child: Scaffold(
         backgroundColor: appTheme.backgroundColor,
         appBar: AppBar(
-          title: const Text('Manage Providers [Beta]'),
+          title: const Text('Extensions [Beta]'),
           actions: [
+            IconButton(
+              onPressed: _loading ? null : _editRepository,
+              icon: const Icon(Icons.link),
+              tooltip: 'Set AniYomi repository URL',
+            ),
             IconButton(onPressed: _loading ? null : _refresh,
               icon: const Icon(Icons.refresh), tooltip: 'Refresh catalog'),
           ],
           bottom: const TabBar(tabs: [
             Tab(text: 'Installed'),
             Tab(text: 'Available'),
+            Tab(text: 'Dart providers'),
           ]),
         ),
         body: Column(children: [
           const Padding(
             padding: EdgeInsets.all(12),
-            child: Text('Experimental: providers can be downloaded and stored, '
-              'but cannot run or appear as playable sources yet. '
-              'Only install code from sources you trust.'),
+            child: Text('Install AniYomi extensions from Available. Installed '
+              'extensions appear here and can be searched or selected for a series. '
+              'Dart providers remain experimental; only install extensions from sources you trust.'),
           ),
           if (_error != null)
             Padding(padding: const EdgeInsets.all(12),
@@ -532,7 +721,7 @@ class _PluginPageState extends State<PluginPage> {
               ? const Center(child: CircularProgressIndicator())
               : TabBarView(children: [
                   ListView(children: [
-                    const Padding(padding: EdgeInsets.all(8), child: Text('Detected Android APK extensions (not loaded)')),
+                    const Padding(padding: EdgeInsets.all(8), child: Text('Installed Aniyomi APK extensions')),
                     if (_apkExtensions.isEmpty)
                       const Padding(padding: EdgeInsets.all(8), child: Text('No installed Aniyomi APK extensions detected')),
                     for (final ext in _apkExtensions)
@@ -662,7 +851,46 @@ class _PluginPageState extends State<PluginPage> {
                               ),
                       ),
                   ]),
-                  _items(_available, installed: false),
+                  Column(children: [
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
+                      child: SelectableText(
+                          _repositoryUrl ?? 'No AniYomi repository configured'),
+                    ),
+                    if (_aniyomiError != null)
+                      Padding(
+                        padding: const EdgeInsets.all(12),
+                        child: SelectableText(_aniyomiError!,
+                            style: const TextStyle(color: Colors.orange)),
+                      ),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
+                      child: TextField(
+                        decoration: const InputDecoration(
+                          labelText: 'Search extensions',
+                          hintText: 'Name, source, or language',
+                          prefixIcon: Icon(Icons.search),
+                          border: OutlineInputBorder(),
+                        ),
+                        onChanged: (value) =>
+                            setState(() => _extensionRepoQuery = value),
+                      ),
+                    ),
+                    Expanded(child: _aniyomiItems()),
+                  ]),
+                  Column(children: [
+                    const Padding(
+                      padding: EdgeInsets.all(8),
+                      child: Text('Experimental Dart providers; execution is disabled.'),
+                    ),
+                    if (_dartError != null)
+                      Padding(
+                        padding: const EdgeInsets.all(12),
+                        child: SelectableText(_dartError!,
+                            style: const TextStyle(color: Colors.orange)),
+                      ),
+                    Expanded(child: _items(_available, installed: false)),
+                  ]),
                 ])),
         ]),
       ),

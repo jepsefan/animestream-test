@@ -145,8 +145,8 @@ class _GeneralSettingState extends State<GeneralSetting> {
                       onTap: () {
                         Navigator.of(context).push(MaterialPageRoute(builder: (context) => PluginPage()));
                       },
-                      label: "Manage Providers",
-                      description: "Add or remove providers",
+                      label: "Extensions",
+                      description: "Install and manage anime extensions",
                       suffixIcon: Icon(Icons.navigate_next_rounded),
                     ),
                     ClickableItem(

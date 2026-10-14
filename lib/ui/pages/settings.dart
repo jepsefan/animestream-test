@@ -54,8 +54,8 @@ class _SettingsPageState extends State<SettingsPage> {
         navigateTo: DownloaderSettings()),
     SettingItem(
         icon: Icons.extension_rounded,
-        label: "Manage Providers [Beta]",
-        description: "Experimental provider catalog",
+        label: "Extensions [Beta]",
+        description: "Install and manage anime extensions",
         navigateTo: PluginPage()),
     SettingItem(
         icon: Icons.tune_rounded,

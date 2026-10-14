@@ -37,6 +37,19 @@ class AniyomiExtensionBridge {
     return Map<String, dynamic>.from(raw ?? const {});
   }
 
+  /// Opt-in stream resolution for a selected episode. Returns sanitized metadata.
+  /// No media URL, signed query parameters or authorization headers are exposed.
+  static Future<Map<String, dynamic>> testExtensionStreams(
+      String packageName, String episodeUrl, String episodeName) async {
+    final raw = await _channel.invokeMethod<Map<dynamic, dynamic>>(
+        'testExtensionStreams', {
+      'packageName': packageName,
+      'episodeUrl': episodeUrl,
+      'episodeName': episodeName,
+    });
+    return Map<String, dynamic>.from(raw ?? const {});
+  }
+
   static Future<List<AniyomiExtensionInfo>> listInstalledExtensions() async {
     final raw = await _channel.invokeMethod<List<dynamic>>('listInstalledExtensions');
     return (raw ?? const <dynamic>[])

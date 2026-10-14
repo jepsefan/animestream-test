@@ -173,18 +173,25 @@ internal class ExtensionSearchProbe(private val context: Context) {
             normalizeTitle(it["title"] as? String ?: "")
         }.filter { it.isNotBlank() }.distinct().size
         val noDirectMatch = normalizedQuery.isNotBlank() && animes.isNotEmpty() && matches == 0
+        val isAnimeOnsen = packageName ==
+            "eu.kanade.tachiyomi.animeextension.all.animeonsen"
         val relevance = when {
             !noDirectMatch -> "direct_title_match_or_empty"
+            // AnimeOnsen is confirmed to return romaji titles for English
+            // searches. Do not report them as unrelated solely by string test.
+            isAnimeOnsen -> "possible_alternate_titles"
             distinctTitles <= 2 && results.size >= 2 -> "possible_alternate_titles"
             else -> "unverified_unrelated_catalogue"
         }
 
-        // Independent diagnosis of the website's second search endpoint:
-        // the installed 123Anime extension uses /filter?keyword=, while the
-        // website also exposes /search?keyword=. Does NOT replace extension
-        // results, rewrite requests, or affect normal anime providers.
+        // Only compare endpoints when the legacy /filter endpoint was
+        // actually called. Plain text 123Anime requests are routed to /search
+        // by AnimeHttpSource, and an additional probe would be redundant.
+        val networkPaths = networkHelper.searchNetworkDiagnostics()
+            .mapNotNull { it["path"] as? String }
         val alternateProbe = if (noDirectMatch &&
-            packageName == "eu.kanade.tachiyomi.animeextension.en.onetwothreeanime"
+            packageName == "eu.kanade.tachiyomi.animeextension.en.onetwothreeanime" &&
+            "/filter" in networkPaths
         ) probe123AnimeAlternateSearch(query, networkHelper) else null
 
         return mapOf(

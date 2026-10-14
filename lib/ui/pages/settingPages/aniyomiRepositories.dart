@@ -33,17 +33,45 @@ class _AniyomiRepositoriesPageState extends State<AniyomiRepositoriesPage> {
     if (_busy) return;
     setState(() => _busy = true);
     try {
-      await _manager.add(_url.text);
+      final candidate = await _manager.inspectRepository(_url.text);
+      if (!mounted) return;
+      final approved = await showDialog<bool>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          title: const Text('Trust extension repository?'),
+          content: SelectableText('Repository: ${candidate.name}\n'
+              'URL: ${candidate.indexUrl}\n\n'
+              'Signing certificate SHA-256:\n${candidate.fingerprint}\n\n'
+              'Installing an extension runs third-party code. '
+              'Verify the fingerprint using an independent trusted source. '
+              'Trust this repository only if you recognize its publisher.'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, false),
+              child: const Text('Cancel')),
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, true),
+              child: const Text('Trust and save')),
+          ],
+        ),
+      );
+      if (approved != true) return;
+      await _manager.trustRepository(candidate);
       _url.clear();
       await _reload();
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Repository saved on this device')));
+        const SnackBar(content: Text('Repository key trusted on this device')));
     } catch (error) {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Cannot add repository: $error')));
     } finally {
       if (mounted) setState(() => _busy = false);
     }
+  }
+
+  Future<void> _trustLegacy(Uri repo) async {
+    _url.text = repo.toString();
+    await _add();
   }
 
   Future<void> _load(Uri repo) async {
@@ -107,14 +135,23 @@ class _AniyomiRepositoriesPageState extends State<AniyomiRepositoriesPage> {
         if (_repos.isEmpty)
           const ListTile(title: Text('No repositories added')),
         for (final repo in _repos)
-          ExpansionTile(
+          FutureBuilder<String?>(
+            future: _manager.trustedFingerprint(repo),
+            builder: (context, snapshot) => ExpansionTile(
             key: ValueKey(repo.toString()),
             title: Text(repo.host),
-            subtitle: Text(repo.toString()),
+            subtitle: Text(repo.toString() +
+                (snapshot.data == null ? ' • Untrusted (reapprove)' : ' • Trusted')),
             children: [
               Wrap(spacing: 8, children: [
+                if (snapshot.data == null)
+                  TextButton.icon(
+                    onPressed: _busy ? null : () => _trustLegacy(repo),
+                    icon: const Icon(Icons.verified_user_outlined),
+                    label: const Text('Review signing key'),
+                  ),
                 TextButton.icon(
-                  onPressed: _busy ? null : () => _load(repo),
+                  onPressed: _busy || snapshot.data == null ? null : () => _load(repo),
                   icon: const Icon(Icons.refresh),
                   label: const Text('Browse catalog'),
                 ),
@@ -142,9 +179,11 @@ class _AniyomiRepositoriesPageState extends State<AniyomiRepositoriesPage> {
                   ),
                 ),
             ],
-          ),
+          )),
         const SizedBox(height: 12),
-        const Text('This screen browses catalog metadata only. '
+        const Text('The signing fingerprint is pinned locally after confirmation. '
+          'Older saved repositories must be reapproved. '
+          'This screen browses catalog metadata only. '
           'APK installation, signature verification, updates and full '
           'extension execution compatibility are not implemented here.'),
       ]),

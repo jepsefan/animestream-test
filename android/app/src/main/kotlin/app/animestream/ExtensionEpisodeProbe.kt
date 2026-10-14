@@ -139,8 +139,10 @@ internal class ExtensionEpisodeProbe(private val context: Context) {
                 "status" to "stream_list_failed",
                 "errorTypes" to errors,
                 "error" to errors.joinToString(" -> "),
-                "networkDiagnostics" to eu.kanade.tachiyomi.network.NetworkHelper
-                    .requireInstance().searchNetworkDiagnostics()
+                "safeRequestSummary" to summarizeStreamRequests(
+                    eu.kanade.tachiyomi.network.NetworkHelper
+                        .requireInstance().searchNetworkDiagnostics()
+                )
             )
         }
     }

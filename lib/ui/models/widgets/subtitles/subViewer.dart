@@ -69,13 +69,13 @@ class _SubViewerState extends State<SubViewer> {
             .parseSubsFromUrl(widget.subtitleSource, widget.format, headers: widget.headers ?? {});
       }
 
-      print("Loaded subs from: ${widget.subtitleSource}");
+      print("[SUBVIEWER]: Subtitle track loaded");
       _loadedSubsUrl = widget.subtitleSource; // for changing subs when episode changes
       setState(() {
         areSubsLoading = false;
       });
     } catch (err) {
-      Logs.player.log(err.toString());
+      Logs.player.log("Subtitle load failed: ${err.runtimeType}");
       SchedulerBinding.instance.addPostFrameCallback((dur) {
         floatingSnackBar("Couldnt load the subtitles!");
       });

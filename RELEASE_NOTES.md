@@ -1,6 +1,14 @@
 # AnimeStream — latest three beta releases
 
-Only the three most recent beta versions are kept here. Previous versions are archived in [CHANGELOG.md](CHANGELOG.md).
+Only the three most recent beta versions are kept here. Older notes are archived in [CHANGELOG.md](CHANGELOG.md).
+
+## v1.4.9-beta34.13 — Manual extension stream diagnostics (unverified)
+- Add Aniyomi legacy Video and Track models, plus Hoster compatibility constructors.
+- Implement AnimeHttpSource.fetchVideoList() with extension-defined request and parser methods.
+- Add opt-in Test streams for a selected episode after Test episodes in Manage Providers.
+- Show video quality, format, stream host, track counts and status without exposing signed stream URLs, tokens, cookies or authorization headers.
+- Does not start playback, download video, or connect extensions to AnimeStream's normal series pages.
+- Both 123Anime and AnimeOnsen previously passed episode-list tests in beta34.12. Stream resolution remains unverified and may require more Host API components.
 
 ## v1.4.9-beta34.12 — AniList matching and manual episode diagnostics (unverified)
 - Use AnimeStream's existing AniList API to rank extension search results against AniList English, romaji, native and synonym titles.
@@ -15,10 +23,3 @@ Only the three most recent beta versions are kept here. Previous versions are ar
 - Mark AnimeOnsen's Japanese/romaji search hits as possible alternate titles, not automatically unrelated. AniList remains authoritative for matching.
 - Avoid redundant 123Anime endpoint probes when the actual request already uses /search.
 - Build and phone tests are still required. This does not implement episode or stream loading.
-
-## v1.4.9-beta34.10 — Search endpoint diagnostics and alternate titles (unverified)
-- Device testing confirmed 123Anime sends the exact keyword and receives HTTP 200 but may return unrelated catalogue entries for longer English searches.
-- Device testing confirmed AnimeOnsen search receives HTTP 200 with Bearer authorization and returns four Japanese/romaji entries for Ascendance of a Bookworm.
-- Do not classify these as incorrect solely because their Romanized titles do not contain the English search phrase.
-- Show title relevance warnings without removing results. For 123Anime only, run a diagnostic comparison against /search?keyword= if no literal title matches are shown.
-- This is a diagnostic-only probe; no permanent rewrite of installed extension requests, no automatic AniList matching, episodes or playback yet. Build/device testing required.

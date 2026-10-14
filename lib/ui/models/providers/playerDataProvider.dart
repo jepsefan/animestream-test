@@ -1,3 +1,7 @@
+import 'dart:async';
+import 'dart:convert';
+import 'dart:io';
+
 import 'package:animestream/core/anime/providers/types.dart';
 import 'package:animestream/core/app/logging.dart';
 import 'package:animestream/core/app/runtimeDatas.dart';
@@ -61,6 +65,96 @@ class PlayerDataProvider extends ChangeNotifier {
   String? _selectedSubtitleUrl;
   String? _selectedSubtitleStreamUrl;
 
+  // Subtitle URLs in some Aniyomi sources have opaque IDs or no extension.
+  // Identify format from the actual bytes, never infer ASS from an empty hint.
+  final Map<String, String> _detectedSubtitleFormats = {};
+  final Set<String> _probingSubtitleUrls = {};
+
+  String subtitleFormatFor(ExternalSubtitleTrack track) =>
+      track.format.isNotEmpty
+          ? track.format.toLowerCase()
+          : (_detectedSubtitleFormats[track.url] ?? '');
+
+  String subtitleFormatLabel(ExternalSubtitleTrack track) {
+    final value = subtitleFormatFor(track);
+    return value.isEmpty ? 'Detecting / unknown' : value.toUpperCase();
+  }
+
+  static String identifySubtitleContent(String sample) {
+    final content = sample.trimLeft().replaceFirst('\uFEFF', '');
+    if (content.startsWith('WEBVTT')) return 'vtt';
+    if (RegExp(r'^\[Script Info\]', caseSensitive: false, multiLine: true)
+        .hasMatch(content) ||
+        (content.contains('[Events]') && content.contains('Dialogue:'))) {
+      return 'ass';
+    }
+    if (RegExp(r'^\s*\d+\s*\r?\n\s*\d{2}:\d{2}:\d{2}[,.]\d{3}\s*-->',
+            multiLine: true).hasMatch(content) ||
+        RegExp(r'\d{2}:\d{2}:\d{2},\d{3}\s*-->').hasMatch(content)) {
+      return 'srt';
+    }
+    return '';
+  }
+
+  Future<void> inspectSubtitleTrack(ExternalSubtitleTrack track) async {
+    if (track.format.isNotEmpty ||
+        _detectedSubtitleFormats.containsKey(track.url) ||
+        !_probingSubtitleUrls.add(track.url)) return;
+    final uri = Uri.tryParse(track.url);
+    if (uri == null || !['http', 'https'].contains(uri.scheme) ||
+        uri.host.isEmpty) {
+      _probingSubtitleUrls.remove(track.url);
+      return;
+    }
+    final client = HttpClient()..connectionTimeout = const Duration(seconds: 8);
+    try {
+      final request = await client.getUrl(uri).timeout(const Duration(seconds: 10));
+      request.headers.set(HttpHeaders.rangeHeader, 'bytes=0-8191');
+      for (final entry in (_state.currentStream.customHeaders ?? {}).entries) {
+        // Request-specific headers may be necessary for extension subtitles.
+        if (entry.key.toLowerCase() != 'range') {
+          request.headers.set(entry.key, entry.value);
+        }
+      }
+      final response = await request.close().timeout(const Duration(seconds: 10));
+      if (response.statusCode != 200 && response.statusCode != 206) {
+        throw HttpException('Subtitle HTTP status ${response.statusCode}');
+      }
+      final bytes = <int>[];
+      await for (final chunk in response.timeout(const Duration(seconds: 10))) {
+        final remaining = 8192 - bytes.length;
+        if (remaining <= 0) break;
+        bytes.addAll(chunk.take(remaining));
+        if (bytes.length >= 8192) break;
+      }
+      final format = identifySubtitleContent(
+          utf8.decode(bytes, allowMalformed: true));
+      if (format.isNotEmpty) {
+        _detectedSubtitleFormats[track.url] = format;
+      } else {
+        _detectedSubtitleFormats[track.url] = '';
+      }
+      notifyListeners();
+    } catch (error) {
+      // Signed subtitle URLs and request headers must never be logged.
+      Logs.player.log('Subtitle format inspection failed: ${error.runtimeType}');
+      _detectedSubtitleFormats[track.url] = '';
+      notifyListeners();
+    } finally {
+      client.close(force: true);
+      _probingSubtitleUrls.remove(track.url);
+    }
+  }
+
+  Future<void> inspectAvailableSubtitleTracks() async {
+    // The selected subtitle needs its format promptly for the renderer.
+    final selected = selectedSubtitleTrack;
+    if (selected != null) await inspectSubtitleTrack(selected);
+    // Do not issue 9 concurrent HTTP requests just to populate a menu.
+    // Remaining formats are discovered when the user selects those tracks.
+  }
+
+
   List<ExternalSubtitleTrack> get availableSubtitleTracks {
     final stream = _state.currentStream;
     if (stream.subtitleTracks.isNotEmpty) return stream.subtitleTracks;
@@ -94,12 +188,13 @@ class PlayerDataProvider extends ChangeNotifier {
     return tracks.first;
   }
 
-  void selectSubtitleTrack(ExternalSubtitleTrack track) {
+  Future<void> selectSubtitleTrack(ExternalSubtitleTrack track) async {
     if (!availableSubtitleTracks.any((item) => item.url == track.url)) return;
     _selectedSubtitleStreamUrl = _state.currentStream.url;
     _selectedSubtitleUrl = track.url;
     _preferredSubtitleLanguage = track.language;
     notifyListeners();
+    await inspectSubtitleTrack(track);
   }
 
   PlayerDataProviderState get state => _state;

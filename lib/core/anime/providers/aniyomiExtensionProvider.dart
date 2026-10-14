@@ -33,7 +33,7 @@ class AniyomiExtensionProvider extends AnimeProvider {
     return items.whereType<Map>().map((entry) {
       return <String, String?>{
         'name': entry['title']?.toString(),
-        'alias': entry['url']?.toString(),
+        'alias': '${entry['url'] ?? ''}\u001f${entry['title'] ?? ''}',
         'imageUrl': entry['cover']?.toString(),
         'image': entry['cover']?.toString(),
       };

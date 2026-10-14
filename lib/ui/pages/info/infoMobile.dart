@@ -509,21 +509,12 @@ class _InfoMobileState extends State<InfoMobile> {
             ),
           ).then((result) async {
             if (result == null) return;
-            setState(() {
-              provider.epSearcherror = false;
-              provider.foundName = null;
-            });
-            if (provider.selectedSource.identifier.startsWith('aniyomi:')) {
-              await provider.saveExtensionSourceSelection(
-                  Map<String, String?>.from(result));
+            try {
+              await provider.applyManualSearchResult(Map<String, String?>.from(result));
+            } catch (error) {
+              if (mounted) ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('Could not load episodes: ${error.runtimeType}')));
             }
-            final links =
-                await SourceManager.instance.getAnimeEpisodes(provider.selectedSource.identifier, result['alias']);
-            if (mounted)
-              setState(() {
-                provider.paginate(links);
-                provider.foundName = result['name'];
-              });
           });
         },
         child: Text(

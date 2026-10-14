@@ -105,6 +105,20 @@ class _PluginPageState extends State<PluginPage> {
     }
   }
 
+  Future<void> _disableSources(AniyomiExtensionInfo ext) async {
+    setState(() => _busyId = ext.packageName);
+    try {
+      await SourceManager.instance.disableExtensionSources(ext.packageName);
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Disabled sources from ${ext.name}')));
+    } catch (error) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Cannot disable sources: ${error.runtimeType}')));
+    } finally {
+      if (mounted) setState(() => _busyId = null);
+    }
+  }
+
   Future<void> _inspectClass(AniyomiExtensionInfo ext) async {
     setState(() => _classDiagnostics[ext.packageName] = 'Checking class...');
     try {
@@ -665,7 +679,12 @@ class _PluginPageState extends State<PluginPage> {
                               TextButton.icon(
                                 onPressed: _busyId != null ? null : () => _enableSources(ext),
                                 icon: const Icon(Icons.playlist_add_check),
-                                label: const Text('Enable extension sources'),
+                                label: const Text('Enable / refresh sources'),
+                              ),
+                              TextButton.icon(
+                                onPressed: _busyId != null ? null : () => _disableSources(ext),
+                                icon: const Icon(Icons.block_outlined),
+                                label: const Text('Disable sources'),
                               ),
                             ],
                           ),

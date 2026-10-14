@@ -2,6 +2,7 @@ package app.animestream
 
 import android.content.Context
 import android.content.Intent
+import android.content.ActivityNotFoundException
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
@@ -69,6 +70,12 @@ internal class VerifiedExtensionInstaller(private val context: Context) {
 
         val directory = File(context.cacheDir, "extension_installs")
         require(directory.isDirectory || directory.mkdirs()) { "Cannot create download folder" }
+        // Retain recent files while the installer may still be reading them.
+        directory.listFiles()?.filter { candidate ->
+            candidate.isFile && candidate.name.startsWith("verified_") &&
+                candidate.name.endsWith(".apk") &&
+                System.currentTimeMillis() - candidate.lastModified() > 24L * 60L * 60L * 1000L
+        }?.forEach { old -> old.delete() }
         val file = File.createTempFile("verified_", ".apk", directory)
         var handedOff = false
         try {
@@ -174,8 +181,13 @@ internal class VerifiedExtensionInstaller(private val context: Context) {
             val install = Intent(Intent.ACTION_VIEW)
                 .setDataAndType(uri, "application/vnd.android.package-archive")
                 .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK)
-            require(install.resolveActivity(pm) != null) { "No system installer available" }
-            context.startActivity(install)
+            try {
+                // resolveActivity() may report null due to Android 11+
+                // package visibility although the installer is available.
+                context.startActivity(install)
+            } catch (missing: ActivityNotFoundException) {
+                throw IllegalStateException("No Android APK installer available", missing)
+            }
             handedOff = true
             return mapOf("status" to "installer_opened", "packageName" to packageName)
         } finally {

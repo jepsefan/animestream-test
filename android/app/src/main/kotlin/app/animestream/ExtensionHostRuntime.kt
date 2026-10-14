@@ -7,6 +7,7 @@ import android.os.Build
 import dalvik.system.DexFile
 import eu.kanade.tachiyomi.animesource.AnimeSource
 import eu.kanade.tachiyomi.animesource.AnimeSourceFactory
+import eu.kanade.tachiyomi.animesource.AnimeCatalogueSource
 import eu.kanade.tachiyomi.network.NetworkHelper
 import java.io.File
 import kotlinx.serialization.json.Json
@@ -19,8 +20,38 @@ import uy.kohesive.injekt.api.TypeReference
  */
 internal class ExtensionHostRuntime(private val context: Context) {
     data class Loaded(val source: AnimeSource, val sourceCount: Int)
+    data class SourceInfo(
+        val id: Long,
+        val name: String,
+        val language: String,
+        val supportsLatest: Boolean
+    ) {
+        fun toMap(): Map<String, Any?> = mapOf(
+            "id" to id, "name" to name, "language" to language,
+            "supportsLatest" to supportsLatest
+        )
+    }
+
+    /** Explicit user-triggered discovery. Loading a source executes extension code. */
+    fun discover(packageName: String): List<SourceInfo> =
+        loadAll(packageName).map { source ->
+            SourceInfo(
+                source.id,
+                source.name,
+                source.lang,
+                (source as? AnimeCatalogueSource)?.supportsLatest ?: false
+            )
+        }
 
     fun load(packageName: String, sourceId: Long? = null): Loaded {
+        val sources = loadAll(packageName)
+        val selected = if (sourceId == null) sources.first() else
+            sources.firstOrNull { it.id == sourceId }
+                ?: error("Selected source ID is not available in extension")
+        return Loaded(selected, sources.size)
+    }
+
+    private fun loadAll(packageName: String): List<AnimeSource> {
         val app = context.applicationContext as? Application
             ?: error("Android application is unavailable")
         val helper = NetworkHelper.initialize(app)
@@ -77,9 +108,6 @@ internal class ExtensionHostRuntime(private val context: Context) {
             }
         }.distinctBy { it.id }
         require(sources.isNotEmpty()) { "Extension created no anime sources" }
-        val chosen = if (sourceId == null) sources.first() else
-            sources.firstOrNull { it.id == sourceId }
-                ?: error("Selected source ID is not available in extension")
-        return Loaded(chosen, sources.size)
+        return sources
     }
 }

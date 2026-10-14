@@ -11,7 +11,7 @@ class AniyomiRepositoriesPage extends StatefulWidget {
       _AniyomiRepositoriesPageState();
 }
 
-class _AniyomiRepositoriesPageState extends State<AniyomiRepositoriesPage> {
+class _AniyomiRepositoriesPageState extends State<AniyomiRepositoriesPage> with WidgetsBindingObserver {
   final _manager = AniyomiRepositoryManager();
   final _url = TextEditingController();
   List<Uri> _repos = [];
@@ -23,8 +23,18 @@ class _AniyomiRepositoriesPageState extends State<AniyomiRepositoriesPage> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _reload();
     _refreshInstalled();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      // Android installation is completed/cancelled outside Flutter. Ask the
+      // package manager again; never treat opening the installer as success.
+      _refreshInstalled();
+    }
   }
 
   Future<void> _refreshInstalled() async {
@@ -38,6 +48,7 @@ class _AniyomiRepositoriesPageState extends State<AniyomiRepositoriesPage> {
 
   Future<void> _install(AniyomiCatalogEntry entry, Uri repo) async {
     if (_busy) return;
+    await _refreshInstalled();
     final fingerprint = await _manager.trustedFingerprint(repo);
     if (fingerprint == null) {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(
@@ -83,7 +94,9 @@ class _AniyomiRepositoriesPageState extends State<AniyomiRepositoriesPage> {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(response['status'] == 'permission_required'
           ? 'Allow APK installation in Android settings, then try again'
-          : 'Android installer opened. Confirm installation there.')));
+          : response['status'] == 'installer_opened'
+              ? 'Android installer opened. Confirm there; status refreshes on return.'
+              : 'Installer returned: ${response['status'] ?? 'unknown'}')));
     } catch (e) {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Verified APK installation blocked: $e')));
@@ -167,6 +180,7 @@ class _AniyomiRepositoriesPageState extends State<AniyomiRepositoriesPage> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _url.dispose();
     super.dispose();
   }
@@ -174,7 +188,16 @@ class _AniyomiRepositoriesPageState extends State<AniyomiRepositoriesPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Extension repositories')),
+      appBar: AppBar(
+        title: const Text('Extension repositories'),
+        actions: [
+          IconButton(
+            tooltip: 'Refresh installed extensions',
+            onPressed: _busy ? null : _refreshInstalled,
+            icon: const Icon(Icons.refresh),
+          ),
+        ],
+      ),
       body: ListView(padding: const EdgeInsets.all(16), children: [
         const Text('Add an Aniyomi-compatible index.min.json address, or '
           'paste an aniyomi://add-repo link. Addresses are stored locally. '

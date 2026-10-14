@@ -1,0 +1,85 @@
+package app.animestream
+
+import android.app.Application
+import android.content.Context
+import android.content.pm.PackageManager
+import android.os.Build
+import dalvik.system.DexFile
+import eu.kanade.tachiyomi.animesource.AnimeSource
+import eu.kanade.tachiyomi.animesource.AnimeSourceFactory
+import eu.kanade.tachiyomi.network.NetworkHelper
+import java.io.File
+import kotlinx.serialization.json.Json
+import uy.kohesive.injekt.Injekt
+import uy.kohesive.injekt.api.TypeReference
+
+/**
+ * One shared, source-independent entry point for installed extension APKs.
+ * Only call after explicit user action: constructing a source runs third-party code.
+ */
+internal class ExtensionHostRuntime(private val context: Context) {
+    data class Loaded(val source: AnimeSource, val sourceCount: Int)
+
+    fun load(packageName: String, sourceId: Long? = null): Loaded {
+        val app = context.applicationContext as? Application
+            ?: error("Android application is unavailable")
+        val helper = NetworkHelper.initialize(app)
+        synchronized(ExtensionHostRuntime::class.java) {
+            Injekt.addSingleton(object : TypeReference<Application> {
+                override val type: java.lang.reflect.Type = Application::class.java
+            }, app)
+            Injekt.addSingleton(object : TypeReference<NetworkHelper> {
+                override val type: java.lang.reflect.Type = NetworkHelper::class.java
+            }, helper)
+            Injekt.addSingleton(object : TypeReference<Json> {
+                override val type: java.lang.reflect.Type = Json::class.java
+            }, Json { ignoreUnknownKeys = true; explicitNulls = false })
+        }
+        val manager = context.packageManager
+        val info = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            manager.getApplicationInfo(
+                packageName, PackageManager.ApplicationInfoFlags.of(PackageManager.GET_META_DATA.toLong())
+            )
+        } else {
+            @Suppress("DEPRECATION")
+            manager.getApplicationInfo(packageName, PackageManager.GET_META_DATA)
+        }
+        val entryPoints = info.metaData?.getString("tachiyomi.animeextension.class")
+            ?.split(';', ',')?.map { it.trim() }?.filter { it.isNotBlank() }
+            ?: error("Extension does not declare source classes")
+        val apkPaths = listOfNotNull(info.sourceDir) + (info.splitSourceDirs?.toList() ?: emptyList())
+        require(apkPaths.isNotEmpty()) { "No APK paths for extension" }
+        val extensionClasses = mutableSetOf<String>()
+        for (apk in apkPaths) {
+            val dex = DexFile(apk)
+            try {
+                val entries = dex.entries()
+                while (entries.hasMoreElements()) extensionClasses.add(entries.nextElement())
+            } finally {
+                dex.close()
+            }
+        }
+        val loader = ExtensionIsolatedClassLoader(
+            apkPaths.joinToString(File.pathSeparator),
+            context.codeCacheDir.absolutePath,
+            info.nativeLibraryDir,
+            context.javaClass.classLoader,
+            extensionClasses
+        )
+        val sources = entryPoints.flatMap { entry ->
+            val name = if (entry.startsWith(".")) packageName + entry else entry
+            val instance = Class.forName(name, true, loader)
+                .getDeclaredConstructor().newInstance()
+            when (instance) {
+                is AnimeSourceFactory -> instance.createSources()
+                is AnimeSource -> listOf(instance)
+                else -> error("Extension entry point does not implement AnimeSource/AnimeSourceFactory: $name")
+            }
+        }.distinctBy { it.id }
+        require(sources.isNotEmpty()) { "Extension created no anime sources" }
+        val chosen = if (sourceId == null) sources.first() else
+            sources.firstOrNull { it.id == sourceId }
+                ?: error("Selected source ID is not available in extension")
+        return Loaded(chosen, sources.size)
+    }
+}

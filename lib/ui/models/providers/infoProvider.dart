@@ -460,13 +460,51 @@ class InfoProvider extends ChangeNotifier {
   Future<void> getEpisodes() async {
     _foundName = null;
     _epSearcherror = false;
-    // Do not leave the previous provider's episodes visible after switching.
+    // Never display episodes from the previous provider while a new source loads.
     paginate([]);
     notifyListeners();
+
+    if (AniyomiExtensionProvider.isExtensionId(selectedSource.identifier)) {
+      // Extensions commonly index by Japanese/romaji titles rather than the
+      // English AniList title. Try a bounded set of known names, but only
+      // accept a unique, verified match. Never choose the first result.
+      final titles = <String?>[
+        data.title['english'],
+        data.title['romaji'],
+        data.title['native'],
+        ...data.synonyms.whereType<String>(),
+      ];
+      final tried = <String>{};
+      var attempts = 0;
+      for (final candidate in titles) {
+        final title = candidate?.trim() ?? '';
+        final normalized = ExtensionAniListMatcher.normalize(title);
+        if (normalized.isEmpty || !tried.add(normalized)) continue;
+        if (attempts++ >= 7) break;
+        try {
+          await _search(title);
+          if (_epLinks.isNotEmpty) {
+            notifyListeners();
+            return;
+          }
+        } catch (error) {
+          // Only error types are logged. Source URLs may contain signed tokens.
+          Logs.app.log(
+              'Aniyomi source search attempt $attempts did not match: ${error.runtimeType}');
+        }
+      }
+      // A missing catalog entry is not a network/decoder failure. The user
+      // can still choose a result explicitly via the Manual Search sheet.
+      _epSearcherror = true;
+      Logs.app.log(
+          'No verified AniList match for ${selectedSource.name} after $attempts title variants. Use Manual Search.');
+      notifyListeners();
+      return;
+    }
+
     try {
       String searchTitle = data.title['english'] ?? data.title['romaji'] ?? '';
-      if (_manualSearchQuery != null &&
-          !AniyomiExtensionProvider.isExtensionId(selectedSource.identifier)) {
+      if (_manualSearchQuery != null) {
         searchTitle = _manualSearchQuery!;
       }
       await _search(searchTitle);
@@ -474,14 +512,9 @@ class InfoProvider extends ChangeNotifier {
     } catch (err) {
       Logs.app.log(err.toString());
 
-      // try again with romaji title if english title failed
-
       final hasEnglishTitle = data.title['english'] != null;
-      final didUseManualQuery = _manualSearchQuery != null &&
-          !AniyomiExtensionProvider.isExtensionId(selectedSource.identifier);
-
+      final didUseManualQuery = _manualSearchQuery != null;
       if (hasEnglishTitle && !didUseManualQuery) {
-        // try once more with romaji title if english title failed
         try {
           await _search(data.title['romaji'] ?? '');
           notifyListeners();
@@ -493,7 +526,7 @@ class InfoProvider extends ChangeNotifier {
 
       _epSearcherror = true;
       notifyListeners();
-      if (currentUserSettings!.showErrors != null && currentUserSettings!.showErrors!) {
+      if (currentUserSettings?.showErrors == true) {
         floatingSnackBar(err.toString());
       }
     }

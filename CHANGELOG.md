@@ -1,3 +1,11 @@
+## v1.4.9-beta34.16 — Aniyomi integration into AnimeStream
+- Installed Aniyomi APK sources are registered in AnimeStream's normal source selector as [Ext].
+- Flutter provider adapter reuses Aniyomi search, episode-list and on-demand stream resolution APIs; passes URL, headers, quality and one subtitle track to the existing player.
+- Exact-title/unique AniList alias matches can load automatically; uncertain matches require manual selection, saved per anime and extension.
+- Source episode preview thumbnails are exposed where available, native sources remain unchanged and external-source downloads stay disabled.
+- Diagnostic secrets must remain redacted; player-only stream URLs are passed to Flutter without logging.
+- Build and device validation still pending; advanced hoster and multi-track playback compatibility not assured.
+
 ## v1.4.9-beta34.15 — Cache-aware source response diagnostics
 - Add application-interceptor tracing of stream-stage requests including responses from OkHttp cache.
 - Parse only known 123Anime JSON responses to report server-tab count, episode target presence/shape, grabber presence and status; never expose URLs or auth tokens.

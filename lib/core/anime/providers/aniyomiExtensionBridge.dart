@@ -17,22 +17,30 @@ class AniyomiExtensionBridge {
     return Map<String, dynamic>.from(raw ?? const {});
   }
 
+  static Future<List<AniyomiExtensionSourceInfo>> discoverSources(String packageName) async {
+    final raw = await _channel.invokeMethod<Map<dynamic, dynamic>>(
+      'discoverExtensionSources', {'packageName': packageName});
+    if (raw?['status'] != 'ok') throw StateError('Source discovery failed');
+    return ((raw?['sources'] as List?) ?? const []).whereType<Map>()
+        .map((item) => AniyomiExtensionSourceInfo.fromMap(item)).toList();
+  }
   /// Runs an installed extension's search code only after explicit user consent.
   static Future<Map<String, dynamic>> testExtensionSearch(
-      String packageName, String query) async {
+      String packageName, String query, {int? sourceId}) async {
     final raw = await _channel.invokeMethod<Map<dynamic, dynamic>>(
-      'testExtensionSearch', {'packageName': packageName, 'query': query});
+      'testExtensionSearch', {'packageName': packageName, 'query': query, 'sourceId': sourceId});
     return Map<String, dynamic>.from(raw ?? const {});
   }
 
   /// Loads episode metadata for one user-selected extension search result.
   static Future<Map<String, dynamic>> testExtensionEpisodes(
-      String packageName, String sourceUrl, String sourceTitle) async {
+      String packageName, String sourceUrl, String sourceTitle, {int? sourceId}) async {
     final raw = await _channel.invokeMethod<Map<dynamic, dynamic>>(
         'testExtensionEpisodes', {
       'packageName': packageName,
       'sourceUrl': sourceUrl,
       'sourceTitle': sourceTitle,
+      'sourceId': sourceId,
     });
     return Map<String, dynamic>.from(raw ?? const {});
   }
@@ -40,12 +48,13 @@ class AniyomiExtensionBridge {
   /// Opt-in stream resolution for a selected episode. Returns sanitized metadata.
   /// No media URL, signed query parameters or authorization headers are exposed.
   static Future<Map<String, dynamic>> testExtensionStreams(
-      String packageName, String episodeUrl, String episodeName) async {
+      String packageName, String episodeUrl, String episodeName, {int? sourceId}) async {
     final raw = await _channel.invokeMethod<Map<dynamic, dynamic>>(
         'testExtensionStreams', {
       'packageName': packageName,
       'episodeUrl': episodeUrl,
       'episodeName': episodeName,
+      'sourceId': sourceId,
     });
     return Map<String, dynamic>.from(raw ?? const {});
   }
@@ -53,12 +62,13 @@ class AniyomiExtensionBridge {
   /// Return the streams for an explicitly selected episode to the player.
   /// The response can contain credentials in media URLs and headers. Never log it.
   static Future<Map<String, dynamic>> resolveExtensionStreams(
-      String packageName, String episodeUrl, String episodeName) async {
+      String packageName, String episodeUrl, String episodeName, {int? sourceId}) async {
     final raw = await _channel.invokeMethod<Map<dynamic, dynamic>>(
         'resolveExtensionStreams', {
       'packageName': packageName,
       'episodeUrl': episodeUrl,
       'episodeName': episodeName,
+      'sourceId': sourceId,
     });
     return Map<String, dynamic>.from(raw ?? const {});
   }
@@ -94,4 +104,15 @@ class AniyomiExtensionInfo {
         sourceClass: map['sourceClass'] as String?,
         sourceFactory: map['sourceFactory'] as String?,
       );
+}
+
+class AniyomiExtensionSourceInfo {
+  final int id;
+  final String name;
+  final String language;
+  const AniyomiExtensionSourceInfo(this.id, this.name, this.language);
+  factory AniyomiExtensionSourceInfo.fromMap(Map<dynamic, dynamic> map) =>
+    AniyomiExtensionSourceInfo((map['id'] as num).toInt(),
+      map['name']?.toString() ?? 'Unnamed',
+      map['language']?.toString() ?? '');
 }

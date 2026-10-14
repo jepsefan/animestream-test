@@ -205,6 +205,10 @@ class MainActivity: FlutterActivity() {
                 "packageName" to pkg.packageName,
                 "name" to pm.getApplicationLabel(info).toString(),
                 "version" to (pkg.versionName ?: ""),
+                "versionCode" to (if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) pkg.longVersionCode else {
+                    @Suppress("DEPRECATION")
+                    pkg.versionCode.toLong()
+                }),
                 "sourceClass" to sourceClass,
                 "sourceFactory" to sourceFactory,
                 "hasExtensionFeature" to hasExtensionFeature,

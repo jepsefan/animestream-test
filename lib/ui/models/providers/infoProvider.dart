@@ -468,22 +468,23 @@ class InfoProvider extends ChangeNotifier {
       // Extensions commonly index by Japanese/romaji titles rather than the
       // English AniList title. Try a bounded set of known names, but only
       // accept a unique, verified match. Never choose the first result.
-      final titles = <String?>[
+      final titleVariants = <String?>[
         data.title['english'],
         data.title['romaji'],
         data.title['native'],
         ...data.synonyms.whereType<String>(),
-        // Some extensions index all seasons under a base-title query.
-        // Results still require independent AniList validation.
-        for (final name in [
-          data.title['english'],
-          data.title['romaji'],
-          data.title['native'],
-          ...data.synonyms.whereType<String>(),
-        ])
+      ];
+      final titles = <String?>[
+        ...titleVariants,
+        // Search without season markers when the source indexes a franchise
+        // by its base title. Still never auto-pick an ambiguous season.
+        for (final name in titleVariants)
           if (name != null)
-            name.replaceAll(RegExp(
-                r'(?i)\s*(?:[\s:–-]+)?(?:season|part|cour)\s*\d+\s*
+            name.replaceAll(
+              RegExp(r'\s*(?:season|part|cour)\s*\d+\s*' + r'$', caseSensitive: false),
+              '',
+            ).trim(),
+      ];
       final tried = <String>{};
       var attempts = 0;
       for (final candidate in titles) {

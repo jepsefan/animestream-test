@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:animestream/core/anime/downloader/downloadManager.dart';
 import 'package:animestream/core/anime/providers/types.dart';
+import 'package:animestream/core/anime/providers/aniyomiExtensionProvider.dart';
 import 'package:animestream/core/app/logging.dart';
 import 'package:animestream/core/app/runtimeDatas.dart';
 import 'package:animestream/core/commons/extractQuality.dart';
@@ -131,10 +132,18 @@ class ServerSelectionBottomSheetState extends State<ServerSelectionBottomSheet> 
           });
       });
       } catch (error) {
-        Logs.app.log('Failed to resolve selected stream: ${error.runtimeType}');
+        if (error is AniyomiStreamResolutionException) {
+          // Only safe, predefined native diagnostic categories.
+          Logs.app.log('Aniyomi stream: ${error.status}, diagnosis: ${error.diagnosis}');
+        } else {
+          Logs.app.log('Failed to resolve selected stream: ${error.runtimeType}');
+        }
         if (mounted) {
           setState(() => _isLoading = false);
-          floatingSnackBar('No playable streams are available for this episode.');
+          floatingSnackBar(error is AniyomiStreamResolutionException
+              ? 'No streams from this extension (diagnosis: ${error.diagnosis}). '
+                  'Run Test streams in Manage Providers for request stages.'
+              : 'No playable streams are available for this episode.');
         }
       }
     }

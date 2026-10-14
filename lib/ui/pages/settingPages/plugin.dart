@@ -583,6 +583,32 @@ class _PluginPageState extends State<PluginPage> {
                                     _episodeDiagnostics[ext.packageName]!),
                               ],
                             ),
+                          if (_episodeSelections[ext.packageName]?.isNotEmpty == true)
+                            ExpansionTile(
+                              initiallyExpanded: true,
+                              title: const Text('Select episode for stream test'),
+                              children: [
+                                for (final episode in _episodeSelections[ext.packageName]!)
+                                  ListTile(
+                                    dense: true,
+                                    title: Text(episode['name']?.toString() ?? 'Episode'),
+                                    subtitle: Text('Episode ${episode['number'] ?? '?'}'),
+                                    trailing: TextButton(
+                                      onPressed: _loadingStreams.contains(ext.packageName)
+                                          ? null : () => _testStreams(ext, episode),
+                                      child: const Text('Test streams'),
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          if (_streamDiagnostics[ext.packageName] != null)
+                            ExpansionTile(
+                              initiallyExpanded: true,
+                              title: const Text('Stream test results'),
+                              children: [
+                                SelectableText(_streamDiagnostics[ext.packageName]!),
+                              ],
+                            ),
                           Wrap(
                             alignment: WrapAlignment.end,
                             spacing: 8,

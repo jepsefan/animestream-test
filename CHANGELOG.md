@@ -1,3 +1,9 @@
+## v1.4.9-beta34.17 — Remove retired AniDB sources
+- Removed AniDB V1/V2/V3 from the built-in provider list and internal source registry, including the legacy V3 alias.
+- Deleted the retired AniDB HTML scraper and stream extraction implementation (lib/core/anime/providers/anidb.dart).
+- Preserved AniList metadata handling, other native providers and installed Aniyomi extensions.
+- Older historical entries retained for reference. Build and device tests pending.
+
 ## v1.4.9-beta34.16 — Aniyomi integration into AnimeStream
 - Installed Aniyomi APK sources are registered in AnimeStream's normal source selector as [Ext].
 - Flutter provider adapter reuses Aniyomi search, episode-list and on-demand stream resolution APIs; passes URL, headers, quality and one subtitle track to the existing player.

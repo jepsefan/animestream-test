@@ -1,6 +1,12 @@
 # AnimeStream — latest three beta releases
 
-Only the three most recent beta versions are kept here. Older entries are in [CHANGELOG.md](CHANGELOG.md).
+Only the three latest beta versions are kept here. Older entries are archived in [CHANGELOG.md](CHANGELOG.md).
+
+## v1.4.9-beta34.15 — Cache-aware stream stage inspection (unverified)
+- For Test streams, use an application-level OkHttp interceptor so cached requests are recorded as well as network responses.
+- For 123Anime, report server-tab count and safe presence/shape of episode-info target fields, without logging embed URLs, tokens, cookies, request query strings or media URLs.
+- Show HTTP status, stage, cache flag and structural JSON information in stream diagnostics to distinguish empty metadata from unreachable player requests.
+- No changes to stream routing, playback, or the successful AnimeOnsen extraction flow; build and device validation required.
 
 ## v1.4.9-beta34.14 — Stream extraction diagnostics (unverified)
 - Distinguish empty stream responses from successful resolution: stream_list_empty instead of stream_list_completed when zero videos are found.
@@ -16,10 +22,3 @@ Only the three most recent beta versions are kept here. Older entries are in [CH
 - Show video quality, format, stream host, track counts and status without exposing signed stream URLs, tokens, cookies or authorization headers.
 - Does not start playback, download video, or connect extensions to AnimeStream's normal series pages.
 - Both 123Anime and AnimeOnsen previously passed episode-list tests in beta34.12. Stream resolution remains unverified and may require more Host API components.
-
-## v1.4.9-beta34.12 — AniList matching and manual episode diagnostics (unverified)
-- Use AnimeStream's existing AniList API to rank extension search results against AniList English, romaji, native and synonym titles.
-- Prioritize stronger potential matches, display AniList title and AniList cover when the match is sufficiently strong, preserve source title/URL, and flag uncertain matches for manual selection.
-- Show individual extension results with source label, Sub/Dub indication and detected season.
-- Add an opt-in Test episodes action per selected result, backed by Android Host API fetchEpisodeList(). Display names, numbers and source paths; does not fetch video URLs or add playable sources yet.
-- AniList is still primary for metadata. No automatic binding of uncertain results to AniList IDs. Requires build and phone verification.

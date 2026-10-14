@@ -457,7 +457,43 @@ class InfoProvider extends ChangeNotifier {
             extensionSelections: {sourceId: alias}));
   }
 
+  int _episodeRequestGeneration = 0;
+
+  Future<void> applyManualSearchResult(Map<String, String?> result) async {
+    final alias = result['alias'];
+    if (alias == null || alias.isEmpty) return;
+    // Invalidate any older automatic search, including a request still in flight.
+    final generation = ++_episodeRequestGeneration;
+    final sourceId = selectedSource.identifier;
+    _epSearcherror = false;
+    _foundName = null;
+    paginate([]);
+    notifyListeners();
+    try {
+      final links = await sourceManager.getAnimeEpisodes(sourceId, alias);
+      if (generation != _episodeRequestGeneration ||
+          selectedSource.identifier != sourceId) return;
+      if (links.isEmpty) throw StateError('No episodes returned by selected extension');
+      if (AniyomiExtensionProvider.isExtensionId(sourceId)) {
+        await saveExtensionSourceSelection(result);
+      }
+      if (generation != _episodeRequestGeneration ||
+          selectedSource.identifier != sourceId) return;
+      paginate(links);
+      _foundName = result['name'];
+      notifyListeners();
+    } catch (_) {
+      if (generation != _episodeRequestGeneration ||
+          selectedSource.identifier != sourceId) return;
+      _epSearcherror = true;
+      notifyListeners();
+      rethrow;
+    }
+  }
+
   Future<void> getEpisodes() async {
+    final generation = ++_episodeRequestGeneration;
+    final requestedSource = selectedSource.identifier;
     _foundName = null;
     _epSearcherror = false;
     // Never display episodes from the previous provider while a new source loads.
@@ -511,6 +547,8 @@ class InfoProvider extends ChangeNotifier {
         if (attempts++ >= 16) break;
         try {
           await _search(title);
+          if (generation != _episodeRequestGeneration ||
+              requestedSource != selectedSource.identifier) return;
           if (_epLinks.isNotEmpty) {
             notifyListeners();
             return;
@@ -522,6 +560,8 @@ class InfoProvider extends ChangeNotifier {
       }
       // A missing catalog entry is not a network/decoder failure. The user
       // can still choose a result explicitly via the Manual Search sheet.
+      if (generation != _episodeRequestGeneration ||
+          requestedSource != selectedSource.identifier) return;
       _epSearcherror = true;
       Logs.app.log(
           'No verified AniList match for ${selectedSource.name} after $attempts title variants. Use Manual Search.');
@@ -535,6 +575,8 @@ class InfoProvider extends ChangeNotifier {
         searchTitle = _manualSearchQuery!;
       }
       await _search(searchTitle);
+      if (generation != _episodeRequestGeneration ||
+          requestedSource != selectedSource.identifier) return;
       notifyListeners();
     } catch (err) {
       Logs.app.log(err.toString());
@@ -544,6 +586,8 @@ class InfoProvider extends ChangeNotifier {
       if (hasEnglishTitle && !didUseManualQuery) {
         try {
           await _search(data.title['romaji'] ?? '');
+          if (generation != _episodeRequestGeneration ||
+              requestedSource != selectedSource.identifier) return;
           notifyListeners();
           return;
         } catch (e) {

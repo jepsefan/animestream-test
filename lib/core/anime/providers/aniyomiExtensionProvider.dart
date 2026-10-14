@@ -7,9 +7,14 @@ import 'package:animestream/core/anime/providers/types.dart';
 class AniyomiExtensionProvider extends AnimeProvider {
   final AniyomiExtensionInfo extension;
 
-  AniyomiExtensionProvider(this.extension);
+  final AniyomiExtensionSourceInfo? selectedSource;
+
+  AniyomiExtensionProvider(this.extension, {this.selectedSource});
 
   static const identifierPrefix = 'aniyomi:';
+
+  static String identifier(String packageName, int sourceId) =>
+      '$identifierPrefix$packageName#$sourceId';
 
   static bool isExtensionId(String identifier) =>
       identifier.startsWith(identifierPrefix);
@@ -18,7 +23,7 @@ class AniyomiExtensionProvider extends AnimeProvider {
       identifier.substring(identifierPrefix.length);
 
   @override
-  String get providerName => '${extension.name} [Ext]';
+  String get providerName => '${selectedSource?.name ?? extension.name} [Ext]';
 
   @override
   Future<List<Map<String, String?>>> search(String query) async {
@@ -35,7 +40,7 @@ class AniyomiExtensionProvider extends AnimeProvider {
         .where((variant) => variant.isNotEmpty).toList();
     for (final variant in variants) {
       final response = await AniyomiExtensionBridge.testExtensionSearch(
-          extension.packageName, variant);
+          extension.packageName, variant, sourceId: selectedSource?.id);
       final status = (response['status'] ?? '').toString();
       if (status != 'search_completed' &&
           status != 'search_completed_unverified') {
@@ -70,7 +75,7 @@ class AniyomiExtensionProvider extends AnimeProvider {
     final sourceUrl = parts.first;
     final sourceTitle = parts.length > 1 ? parts.sublist(1).join('\u001f') : sourceUrl;
     final response = await AniyomiExtensionBridge.testExtensionEpisodes(
-        extension.packageName, sourceUrl, sourceTitle);
+        extension.packageName, sourceUrl, sourceTitle, sourceId: selectedSource?.id);
     if (response['status'] != 'episode_list_completed') {
       throw StateError('Aniyomi episodes: ${response['status']}');
     }
@@ -107,7 +112,7 @@ class AniyomiExtensionProvider extends AnimeProvider {
       String episodeId, void Function(List<VideoStream>, bool) update,
       {bool dub = false, String? metadata}) async {
     final response = await AniyomiExtensionBridge.resolveExtensionStreams(
-        extension.packageName, episodeId, metadata ?? 'Episode');
+        extension.packageName, episodeId, metadata ?? 'Episode', sourceId: selectedSource?.id);
     if (response['status'] != 'stream_list_completed') {
       throw StateError('Aniyomi streams: ${response['status']}');
     }
@@ -129,7 +134,7 @@ class AniyomiExtensionProvider extends AnimeProvider {
       streams.add(VideoStream(
         quality: item['quality']?.toString() ?? 'Auto',
         url: url,
-        server: '${extension.name} [Ext]',
+        server: providerName,
         backup: false,
         subtitle: subtitle?.isNotEmpty == true ? subtitle : null,
         subtitleTracks: subtitles,

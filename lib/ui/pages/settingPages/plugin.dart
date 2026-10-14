@@ -75,6 +75,36 @@ class _PluginPageState extends State<PluginPage> {
     }
   }
 
+  Future<void> _enableSources(AniyomiExtensionInfo ext) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialog) => AlertDialog(
+        title: const Text('Enable extension sources?'),
+        content: Text('This executes code from ${ext.name} to discover its '
+          'sources and makes the sources selectable in AnimeStream. '
+          'Only proceed for an extension you trust.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(dialog, false),
+            child: const Text('Cancel')),
+          TextButton(onPressed: () => Navigator.pop(dialog, true),
+            child: const Text('Enable sources')),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    setState(() => _busyId = ext.packageName);
+    try {
+      await SourceManager.instance.enableExtensionSources(ext);
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Sources from ${ext.name} are now in the source list')));
+    } catch (error) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Source discovery failed: ${error.runtimeType}')));
+    } finally {
+      if (mounted) setState(() => _busyId = null);
+    }
+  }
+
   Future<void> _inspectClass(AniyomiExtensionInfo ext) async {
     setState(() => _classDiagnostics[ext.packageName] = 'Checking class...');
     try {
@@ -628,6 +658,17 @@ class _PluginPageState extends State<PluginPage> {
                                 SelectableText(_streamDiagnostics[ext.packageName]!),
                               ],
                             ),
+                          Wrap(
+                            alignment: WrapAlignment.end,
+                            spacing: 8,
+                            children: [
+                              TextButton.icon(
+                                onPressed: _busyId != null ? null : () => _enableSources(ext),
+                                icon: const Icon(Icons.playlist_add_check),
+                                label: const Text('Enable extension sources'),
+                              ),
+                            ],
+                          ),
                           Wrap(
                             alignment: WrapAlignment.end,
                             spacing: 8,

@@ -109,7 +109,90 @@ class AniyomiExtensionProvider extends AnimeProvider {
     final response = await AniyomiExtensionBridge.resolveExtensionStreams(
         extension.packageName, episodeId, metadata ?? 'Episode');
     if (response['status'] != 'stream_list_completed') {
-      throw StateError('Aniyomi streams: ${response['status']}');
+      // Only expose status/diagnostic enum values from the native bridge.
+      // No URL, access token, HTTP header or cookie enters the UI/logs.
+      final status = (response['status'] ?? 'stream_list_failed').toString();
+      final diagnosis = (response['diagnosis'] ?? 'unavailable').toString();
+      throw AniyomiStreamResolutionException(
+        RegExp(r'^[a-z_]+
+    final streams = <VideoStream>[];
+    for (final item in ((response['videos'] as List?) ?? const []).whereType<Map>()) {
+      final url = item['url']?.toString() ?? '';
+      if (!(url.startsWith('https://') || url.startsWith('http://'))) continue;
+      final rawHeaders = item['headers'];
+      final headers = rawHeaders is Map
+          ? rawHeaders.map<String, String>(
+              (key, value) => MapEntry(key.toString(), value.toString()))
+          : <String, String>{};
+      final subtitle = item['subtitle']?.toString();
+      final rawTracks = item['subtitleTracks'] as List? ?? const [];
+      final subtitles = rawTracks.whereType<Map>().map(
+          (entry) => ExternalSubtitleTrack.fromMap(entry)).where(
+          (track) => track.url.startsWith('https://') ||
+              track.url.startsWith('http://')).toList();
+      streams.add(VideoStream(
+        quality: item['quality']?.toString() ?? 'Auto',
+        url: url,
+        server: '${extension.name} [Ext]',
+        backup: false,
+        subtitle: subtitle?.isNotEmpty == true ? subtitle : null,
+        subtitleTracks: subtitles,
+        subtitleFormat: (item['subtitleFormat'] ?? '').toString(),
+        customHeaders: headers,
+      ));
+    }
+    if (streams.isEmpty) throw StateError('Aniyomi: no playable streams returned');
+    update(streams, true);
+  }
+
+  @override
+  Future<void> getDownloadSources(
+      String episodeUrl, void Function(List<VideoStream>, bool) update,
+      {bool dub = false, String? metadata}) async {
+    throw UnimplementedError('Aniyomi extension downloads are not enabled');
+  }
+}
+).hasMatch(status) ? status : 'stream_list_failed',
+        RegExp(r'^[a-z_]+
+    final streams = <VideoStream>[];
+    for (final item in ((response['videos'] as List?) ?? const []).whereType<Map>()) {
+      final url = item['url']?.toString() ?? '';
+      if (!(url.startsWith('https://') || url.startsWith('http://'))) continue;
+      final rawHeaders = item['headers'];
+      final headers = rawHeaders is Map
+          ? rawHeaders.map<String, String>(
+              (key, value) => MapEntry(key.toString(), value.toString()))
+          : <String, String>{};
+      final subtitle = item['subtitle']?.toString();
+      final rawTracks = item['subtitleTracks'] as List? ?? const [];
+      final subtitles = rawTracks.whereType<Map>().map(
+          (entry) => ExternalSubtitleTrack.fromMap(entry)).where(
+          (track) => track.url.startsWith('https://') ||
+              track.url.startsWith('http://')).toList();
+      streams.add(VideoStream(
+        quality: item['quality']?.toString() ?? 'Auto',
+        url: url,
+        server: '${extension.name} [Ext]',
+        backup: false,
+        subtitle: subtitle?.isNotEmpty == true ? subtitle : null,
+        subtitleTracks: subtitles,
+        subtitleFormat: (item['subtitleFormat'] ?? '').toString(),
+        customHeaders: headers,
+      ));
+    }
+    if (streams.isEmpty) throw StateError('Aniyomi: no playable streams returned');
+    update(streams, true);
+  }
+
+  @override
+  Future<void> getDownloadSources(
+      String episodeUrl, void Function(List<VideoStream>, bool) update,
+      {bool dub = false, String? metadata}) async {
+    throw UnimplementedError('Aniyomi extension downloads are not enabled');
+  }
+}
+).hasMatch(diagnosis) ? diagnosis : 'unavailable',
+      );
     }
     final streams = <VideoStream>[];
     for (final item in ((response['videos'] as List?) ?? const []).whereType<Map>()) {
@@ -147,4 +230,15 @@ class AniyomiExtensionProvider extends AnimeProvider {
       {bool dub = false, String? metadata}) async {
     throw UnimplementedError('Aniyomi extension downloads are not enabled');
   }
+}
+
+/// Safe classification for external source errors. Never store signed media
+/// URLs, access tokens, auth headers or exception causes here.
+class AniyomiStreamResolutionException implements Exception {
+  final String status;
+  final String diagnosis;
+  const AniyomiStreamResolutionException(this.status, this.diagnosis);
+
+  @override
+  String toString() => 'Aniyomi stream unavailable: $status ($diagnosis)';
 }

@@ -31,6 +31,31 @@ class MainActivity: FlutterActivity() {
         extensionChannel = MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "animestream.app/aniyomi_extensions")
         extensionChannel.setMethodCallHandler { call, result ->
             when (call.method) {
+                "installVerifiedExtension" -> {
+                    val index = call.argument<String>("indexUrl")
+                    val apk = call.argument<String>("apkUrl")
+                    val pkg = call.argument<String>("packageName")
+                    val sha = call.argument<String>("fingerprint")
+                    val code = call.argument<Number>("versionCode")?.toLong()
+                    val version = call.argument<String>("version")
+                    if (index == null || apk == null || pkg == null || sha == null ||
+                        code == null || version == null) {
+                        result.error("INVALID_INSTALL", "Missing install parameters", null)
+                    } else {
+                        Thread {
+                            try {
+                                val response = VerifiedExtensionInstaller(this)
+                                    .prepare(index, apk, pkg, sha, code, version)
+                                runOnUiThread { result.success(response) }
+                            } catch (error: Throwable) {
+                                runOnUiThread {
+                                    result.error("VERIFIED_INSTALL_FAILED",
+                                        error.javaClass.simpleName + ": " + error.message, null)
+                                }
+                            }
+                        }.start()
+                    }
+                }
                 "inspectHostAbi" -> {
                     // Checks only the local host interfaces. Never executes third-party code.
                     try {

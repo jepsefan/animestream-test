@@ -199,8 +199,13 @@ internal class ExtensionEpisodeProbe(private val context: Context) {
         // One opt-in test. No playback, no media probing, no persistence.
         val videos = source.fetchVideoList(episode).toBlocking().toFuture()
             .get(35, TimeUnit.SECONDS)
+        val traces = summarizeStreamRequests(helper.searchNetworkDiagnostics())
+        val diagnosis = if (videos.isEmpty()) diagnoseEmptyStreamList(packageName, traces)
+            else "streams_returned"
         return mapOf(
-            "status" to "stream_list_completed",
+            "status" to (if (videos.isEmpty()) "stream_list_empty" else "stream_list_completed"),
+            "diagnosis" to diagnosis,
+            "safeRequestSummary" to traces,
             "episodeName" to episodeName,
             "videoCount" to videos.size,
             "videos" to videos.take(40).map { video ->
@@ -232,8 +237,63 @@ internal class ExtensionEpisodeProbe(private val context: Context) {
                 )
             },
             "truncated" to (videos.size > 40),
-            "networkDiagnostics" to helper.searchNetworkDiagnostics()
+            "networkDiagnostics" to emptyList<Map<String, Any?>>()
         )
+    }
+
+    /**
+     * Stream paths can embed authentication tokens; never send those paths,
+     * full URLs, query strings, cookies or headers to the Flutter UI.
+     * Classify only known safe endpoint shapes.
+     */
+    private fun summarizeStreamRequests(
+        raw: List<Map<String, Any?>>
+    ): List<Map<String, Any?>> = raw.takeLast(24).map { trace ->
+        val path = trace["path"]?.toString().orEmpty()
+        val stage = when {
+            path == "/ajax/film/sv" -> "server_tabs"
+            path == "/ajax/episode/info" -> "episode_server_info"
+            path.startsWith("/hs/getSources") -> "video_source_api"
+            path.startsWith("/sbv2/getSources") -> "alternate_source_api"
+            path.startsWith("/hs/") -> "player_page"
+            path.startsWith("/sbv2/") -> "alternate_player_page"
+            path.endsWith(".m3u8", ignoreCase = true) -> "hls_playlist"
+            path.endsWith(".mpd", ignoreCase = true) -> "dash_manifest"
+            path.startsWith("/content/") -> "animeonsen_content"
+            else -> "other_request"
+        }
+        mapOf(
+            "stage" to stage,
+            "host" to trace["host"]?.toString().orEmpty(),
+            "status" to trace["status"]?.toString().orEmpty(),
+            "contentType" to trace["contentType"]?.toString().orEmpty()
+        )
+    }
+
+    private fun diagnoseEmptyStreamList(
+        packageName: String,
+        entries: List<Map<String, Any?>>
+    ): String {
+        if (entries.isEmpty()) return "no_requests_observed"
+        val is123Anime = packageName ==
+            "eu.kanade.tachiyomi.animeextension.en.onetwothreeanime"
+        val failures = entries.any {
+            val status = (it["status"] as? String)?.toIntOrNull()
+            status != null && status >= 400
+        }
+        if (failures) return "upstream_http_error"
+        if (!is123Anime) return "extension_returned_no_video"
+        val stages = entries.mapNotNull { it["stage"] as? String }.toSet()
+        return when {
+            "server_tabs" in stages && "episode_server_info" !in stages ->
+                "server_tabs_available_but_no_server_info_requests"
+            "episode_server_info" in stages &&
+                "player_page" !in stages && "alternate_player_page" !in stages ->
+                "no_embedded_player_requests"
+            "player_page" in stages || "alternate_player_page" in stages ->
+                "player_contacted_but_no_usable_playlist_returned"
+            else -> "extractor_returned_no_video"
+        }
     }
 
 }

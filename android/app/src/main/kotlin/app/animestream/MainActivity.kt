@@ -31,6 +31,14 @@ class MainActivity: FlutterActivity() {
         extensionChannel = MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "animestream.app/aniyomi_extensions")
         extensionChannel.setMethodCallHandler { call, result ->
             when (call.method) {
+                "inspectHostAbi" -> {
+                    // Checks only the local host interfaces. Never executes third-party code.
+                    try {
+                        result.success(ExtensionAbiProbe.inspect())
+                    } catch (error: Throwable) {
+                        result.error("HOST_ABI_INSPECTION_FAILED", error.javaClass.simpleName, null)
+                    }
+                }
                 "inspectExtensionClass" -> {
                     val packageName = call.argument<String>("packageName")
                     if (packageName.isNullOrBlank()) {

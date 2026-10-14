@@ -117,6 +117,56 @@ jobs:
           channel: 'stable'
           cache: true
 
+      # Flutter 3.47.1 requests NDK 28.2.13676358. Occasionally the
+      # Android SDK manager leaves a truncated ZIP and Gradle aborts while
+      # configuring :app. Install and validate it before starting Gradle.
+      - name: Install Android NDK with retry
+        shell: bash
+        run: |
+          set -euo pipefail
+          SDK_ROOT="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-/usr/local/lib/android/sdk}}"
+          NDK_VERSION="28.2.13676358"
+          NDK_DIR="$SDK_ROOT/ndk/$NDK_VERSION"
+          SDKMANAGER="$SDK_ROOT/cmdline-tools/latest/bin/sdkmanager"
+
+          if [ ! -x "$SDKMANAGER" ]; then
+            echo "::error::Android sdkmanager not found at $SDKMANAGER"
+            exit 1
+          fi
+
+          ndk_is_valid() {
+            [ -f "$NDK_DIR/source.properties" ] &&
+            grep -Fq "Pkg.Revision = $NDK_VERSION" "$NDK_DIR/source.properties" &&
+            [ -x "$NDK_DIR/toolchains/llvm/prebuilt/linux-x86_64/bin/clang" ]
+          }
+
+          if ndk_is_valid; then
+            echo "Android NDK $NDK_VERSION already installed and verified"
+            exit 0
+          fi
+
+          for attempt in 1 2 3; do
+            echo "::notice::Installing Android NDK $NDK_VERSION (attempt $attempt of 3)"
+            # Discard partial installation and temporary SDK ZIP archives before
+            # retrying so sdkmanager cannot reuse the corrupt download.
+            rm -rf "$NDK_DIR" "$SDK_ROOT/.temp" "$HOME/.android/cache"
+            if timeout 900 "$SDKMANAGER" --sdk_root="$SDK_ROOT" --install "ndk;$NDK_VERSION"; then
+              if ndk_is_valid; then
+                echo "Android NDK $NDK_VERSION installed and verified"
+                exit 0
+              fi
+              echo "::warning::sdkmanager succeeded but NDK installation is incomplete"
+            else
+              echo "::warning::NDK download/extraction failed on attempt $attempt"
+            fi
+            if [ "$attempt" -lt 3 ]; then
+              sleep $((attempt * 20))
+            fi
+          done
+
+          echo "::error::Could not install a valid Android NDK $NDK_VERSION after 3 attempts"
+          exit 1
+
       - name: Get dependencies
         run: flutter pub get
 

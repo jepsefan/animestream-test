@@ -377,7 +377,12 @@ class _PluginPageState extends State<PluginPage> {
             if (stage is Map)
               '${stage['stage'] ?? 'unknown'}: '
               '${stage['host'] ?? ''} • HTTP ${stage['status'] ?? '?'}'
-              ' • ${stage['contentType'] ?? ''}',
+              ' • ${stage['contentType'] ?? ''}'
+              ' • cached: ${stage['fromCache'] ?? '?'}'
+              ' • tabs: ${stage['serverTabCount'] ?? '-'}'
+              ' • target: ${stage['targetShape'] ?? '-'}'
+              ' • grabber present: ${stage['grabberPresent'] ?? '-'}'
+              ' • parsed JSON: ${stage['jsonObject'] ?? '-'}',
         if (data['truncated'] == true) 'Showing first 40 streams',
         for (final video in videos)
           if (video is Map)

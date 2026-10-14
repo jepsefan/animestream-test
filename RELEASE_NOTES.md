@@ -2,6 +2,13 @@
 
 Only the three latest beta versions are kept here. Older entries are archived in [CHANGELOG.md](CHANGELOG.md).
 
+## v1.4.9-beta34.18 — Aniyomi search and DASH player fixes (device testing pending)
+- Retry source searches against AniList's English, romaji, native and alternate titles (up to seven distinct queries). Never accept an unrelated catalog result; manual search remains available.
+- Bypass HLS playlist extraction and HEAD/MIME probes for DASH .mpd manifests. Pass DASH directly to Better Player/ExoPlayer without premature HLS track selection.
+- Present a visible player initialization error and Back to episodes action instead of hiding thrown errors on an empty player screen.
+- Existing AniDB removal retained. Working conventional sources remain unchanged.
+- Changes are unverified on Android; further troubleshooting may be needed for white video output and 123Anime matching.
+
 ## v1.4.9-beta34.17 — Remove retired AniDB sources (build validation pending)
 - Remove built-in AniDB V1, V2 and V3 from the source selector.
 - Delete the obsolete AniDB web scraping and video extraction implementation.
@@ -18,9 +25,3 @@ Only the three latest beta versions are kept here. Older entries are archived in
 - Show available source-provided episode thumbnails and pass video URL, quality, selected subtitle and request headers to the existing player workflow.
 - Downloads through external extensions are disabled; unchanged native sources remain available.
 - No playback for Android TV or any particular extension has been verified. Beta API support still varies by extension. Multiple audio/subtitle tracks and advanced hoster APIs are not yet integrated.
-
-## v1.4.9-beta34.15 — Cache-aware stream stage inspection (unverified)
-- For Test streams, use an application-level OkHttp interceptor so cached requests are recorded as well as network responses.
-- For 123Anime, report server-tab count and safe presence/shape of episode-info target fields, without logging embed URLs, tokens, cookies, request query strings or media URLs.
-- Show HTTP status, stage, cache flag and structural JSON information in stream diagnostics to distinguish empty metadata from unreachable player requests.
-- No changes to stream routing, playback, or the successful AnimeOnsen extraction flow; build and device validation required.

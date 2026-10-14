@@ -30,7 +30,9 @@ class AniyomiExtensionProvider extends AnimeProvider {
       throw StateError('Aniyomi search failed: $status');
     }
     final items = (result['results'] as List?) ?? const [];
-    return items.whereType<Map>().map((entry) {
+    return items.whereType<Map>().where((entry) =>
+        (entry['url']?.toString().isNotEmpty ?? false) &&
+        (entry['title']?.toString().isNotEmpty ?? false)).map((entry) {
       return <String, String?>{
         'name': entry['title']?.toString(),
         'alias': '${entry['url'] ?? ''}\u001f${entry['title'] ?? ''}',
@@ -77,7 +79,7 @@ class AniyomiExtensionProvider extends AnimeProvider {
         'metadata': (item['name'] ?? 'Episode $ordinal').toString(),
       });
     }
-    // Aniyomi returns newest episodes first; AnimeStream tracks progress oldest first.
+    // Many extensions return newest first; AnimeStream tracks oldest first.
     result.sort((a, b) => (a['episodeNumber'] as int)
         .compareTo(b['episodeNumber'] as int));
     return result;

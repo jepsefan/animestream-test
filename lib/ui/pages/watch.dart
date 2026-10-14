@@ -145,8 +145,13 @@ class _WatchState extends State<Watch> with WidgetsBindingObserver {
     // Seek to last watched part
     await controller.seekTo(Duration(milliseconds: lastWatchDuration)); //percentage to value
 
+    // Resolve the selected track's real format before creating an overlay.
+    // Previously an empty format was always treated as ASS.
+    await dataProvider.inspectAvailableSubtitleTracks();
     if (mounted) context.read<PlayerProvider>().toggleSubs(
-        action: dataProvider.availableSubtitleTracks.isNotEmpty);
+        action: dataProvider.selectedSubtitleTrack != null &&
+            dataProvider.subtitleFormatFor(
+                dataProvider.selectedSubtitleTrack!).isNotEmpty);
 
     // Placed here for safety. placing it above might cause issues with custom controls functions
     setState(() {
@@ -698,16 +703,15 @@ class _WatchState extends State<Watch> with WidgetsBindingObserver {
                         ),
                       ),
                     ),
-                  // Use the actively selected track, not the first track
-                  // from the initial Aniyomi response. Key by URL to recreate
-                  // ASS/standard overlays when the subtitle track changes.
+                  // Use content-verified subtitle format, not a guessed ASS
+                  // default. Selected tracks are re-keyed when changing URLs.
                   if (playerProvider.state.showSubs &&
-                      playerDataProvider.selectedSubtitleTrack != null)
+                      playerDataProvider.selectedSubtitleTrack != null &&
+                      playerDataProvider.subtitleFormatFor(
+                        playerDataProvider.selectedSubtitleTrack!).isNotEmpty)
                     if (Platform.isAndroid &&
-                        (playerDataProvider.selectedSubtitleTrack!.format.isEmpty
-                            ? 'ass'
-                            : playerDataProvider.selectedSubtitleTrack!.format)
-                            .toLowerCase() == 'ass')
+                        playerDataProvider.subtitleFormatFor(
+                            playerDataProvider.selectedSubtitleTrack!) == 'ass')
                       ExternalAssOverlay(
                         key: ValueKey(playerDataProvider.selectedSubtitleTrack!.url),
                         controller: controller,
@@ -720,7 +724,8 @@ class _WatchState extends State<Watch> with WidgetsBindingObserver {
                         key: ValueKey(playerDataProvider.selectedSubtitleTrack!.url),
                         controller: controller,
                         format: SubtitleFormat.fromName(
-                            playerDataProvider.selectedSubtitleTrack!.format),
+                            playerDataProvider.subtitleFormatFor(
+                                playerDataProvider.selectedSubtitleTrack!)),
                         subtitleSource: playerDataProvider.selectedSubtitleTrack!.url,
                         settings: playerDataProvider.subtitleSettings,
                         headers: playerDataProvider.state.currentStream.customHeaders,

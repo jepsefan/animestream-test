@@ -91,7 +91,10 @@ class _WatchState extends State<Watch> with WidgetsBindingObserver {
     ]);
   }
 
+  String? _playerStartError;
+
   void _initialize() async {
+    try {
     /// Set black title bar
     context.read<AppProvider>().setTitlebarColor(appTheme.backgroundColor);
 
@@ -166,6 +169,17 @@ class _WatchState extends State<Watch> with WidgetsBindingObserver {
     } else if (Platform.isWindows || Platform.isLinux) {
       await dataProvider.startRPC();
       await dataProvider.updatePresence();
+    }
+    } catch (error) {
+      // Source URLs and request headers are intentionally not logged.
+      Logs.player.log(
+          'Player initialization failed: ${error.runtimeType}');
+      if (mounted) {
+        setState(() {
+          _playerStartError = 'The selected stream could not be started. '
+              'Try another source or quality. Error type: ${error.runtimeType}';
+        });
+      }
     }
   }
 
@@ -652,6 +666,31 @@ class _WatchState extends State<Watch> with WidgetsBindingObserver {
               child: Stack(
                 children: [
                   Player(controller),
+                  if (_playerStartError != null)
+                    Positioned.fill(
+                      child: ColoredBox(
+                        color: Colors.black,
+                        child: Center(
+                          child: Padding(
+                            padding: const EdgeInsets.all(24),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(Icons.error_outline, color: Colors.white, size: 40),
+                                const SizedBox(height: 12),
+                                Text(_playerStartError!, textAlign: TextAlign.center,
+                                    style: const TextStyle(color: Colors.white)),
+                                const SizedBox(height: 16),
+                                TextButton(
+                                  onPressed: () => Navigator.of(context).pop(),
+                                  child: const Text('Back to episodes'),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
                   if (playerProvider.state.showSubs && playerDataProvider.state.currentStream.subtitle != null)
                     // ASS is rendered by native libass on Android; VTT/SRT and
                     // non-Android platforms retain the existing SubViewer.

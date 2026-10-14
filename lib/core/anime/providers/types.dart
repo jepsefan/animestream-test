@@ -1,6 +1,33 @@
 // ignore_for_file: public_member_api_docs, sort_constructors_first
 import 'dart:convert';
 
+/// An external subtitle track exposed by an Aniyomi video source.
+class ExternalSubtitleTrack {
+  final String url;
+  final String language;
+  final String label;
+  final String format;
+
+  const ExternalSubtitleTrack({
+    required this.url,
+    required this.language,
+    required this.label,
+    required this.format,
+  });
+
+  Map<String, dynamic> toMap() => {
+    'url': url, 'language': language, 'label': label, 'format': format,
+  };
+
+  factory ExternalSubtitleTrack.fromMap(Map<dynamic, dynamic> map) =>
+      ExternalSubtitleTrack(
+        url: map['url']?.toString() ?? '',
+        language: map['language']?.toString() ?? 'Unknown',
+        label: map['label']?.toString() ?? 'Unknown',
+        format: map['format']?.toString() ?? '',
+      );
+}
+
 class VideoStream {
   /// The quality of the video stream.
   ///
@@ -20,6 +47,10 @@ class VideoStream {
   /// The format of the subtitle file, if available
   final String? subtitleFormat;
 
+  /// All available external subtitle tracks. Ordinary sources can continue
+  /// using subtitle/subtitleFormat without providing this list.
+  final List<ExternalSubtitleTrack> subtitleTracks;
+
   /// The server name or identifier
   final String server;
 
@@ -36,6 +67,7 @@ class VideoStream {
     required this.backup,
     this.subtitleFormat = null,
     this.subtitle = null,
+    this.subtitleTracks = const [],
     this.customHeaders = null,
   });
 
@@ -53,6 +85,7 @@ class VideoStream {
       'url': url,
       'subtitle': subtitle,
       'subtitleFormat': subtitleFormat,
+      'subtitleTracks': subtitleTracks.map((track) => track.toMap()).toList(),
       'server': server,
       'backup': backup,
       'customHeaders': customHeaders,
@@ -65,6 +98,10 @@ class VideoStream {
       url: map['url'] as String,
       subtitle: map['subtitle'] != null ? map['subtitle'] as String : null,
       subtitleFormat: map['subtitleFormat'] != null ? map['subtitleFormat'] : null,
+      subtitleTracks: (map['subtitleTracks'] as List?)
+          ?.whereType<Map>()
+          .map((track) => ExternalSubtitleTrack.fromMap(track))
+          .toList() ?? const [],
       server: map['server'] as String,
       backup: map['backup'] as bool,
       customHeaders:

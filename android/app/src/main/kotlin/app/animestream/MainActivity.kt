@@ -67,6 +67,19 @@ class MainActivity: FlutterActivity() {
                         }.start()
                     }
                 }
+                "resolveExtensionStreams" -> {
+                    val pkg = call.argument<String>("packageName")
+                    val url = call.argument<String>("episodeUrl")
+                    val name = call.argument<String>("episodeName")
+                    if (pkg.isNullOrBlank() || url.isNullOrBlank() || name.isNullOrBlank()) {
+                        result.error("INVALID_EPISODE", "Missing package, episode URL or name", null)
+                    } else {
+                        Thread {
+                            val data = ExtensionEpisodeProbe(this).resolvePlaybackStreams(pkg, url, name)
+                            runOnUiThread { result.success(data) }
+                        }.start()
+                    }
+                }
                 "testExtensionStreams" -> {
                     val pkg = call.argument<String>("packageName")
                     val url = call.argument<String>("episodeUrl")

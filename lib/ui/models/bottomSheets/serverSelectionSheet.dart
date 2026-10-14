@@ -85,7 +85,8 @@ class ServerSelectionBottomSheetState extends State<ServerSelectionBottomSheet> 
         }
       }
     } else {
-      await src.getStreams(
+      try {
+        await src.getStreams(
           widget.provider.selectedSource.identifier, widget.provider.epLinks[widget.episodeIndex].episodeLink,
           dub: provider.preferDubs, metadata: provider.epLinks[widget.episodeIndex].metadata, (list, finished) {
         if (mounted)
@@ -129,6 +130,13 @@ class ServerSelectionBottomSheetState extends State<ServerSelectionBottomSheet> 
             }
           });
       });
+      } catch (error) {
+        Logs.app.log('Failed to resolve selected stream: ${error.runtimeType}');
+        if (mounted) {
+          setState(() => _isLoading = false);
+          floatingSnackBar('No playable streams are available for this episode.');
+        }
+      }
     }
   }
 

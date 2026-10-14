@@ -1,3 +1,12 @@
+## v1.4.9-beta34.15 — Cache-aware source response diagnostics
+- Add application-interceptor tracing of stream-stage requests including responses from OkHttp cache.
+- Parse only known 123Anime JSON responses to report server-tab count, episode target presence/shape, grabber presence and status; never expose URLs or auth tokens.
+- Diagnose zero-stream extraction without modifying source playback behavior.
+- Requires build and device verification.
+
+## v1.4.9-beta34.12 — AniList and episode probe (archived from release notes)
+- Ranked AniList matches and added manually selected episode list probing.
+
 ## v1.4.9-beta34.14 — Stream extraction diagnostics
 - Report stream_list_empty when no videos resolve and classify network stage failures without showing signed URLs.
 - Improve 123Anime stream-resolution diagnostics while retaining AnimeOnsen stream support.

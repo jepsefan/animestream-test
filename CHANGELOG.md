@@ -1,3 +1,11 @@
+## v1.4.9-beta34.12 — AniList source matching and episodes
+- Use existing AniList GraphQL client for English/romaji/native/synonym ranking of Aniyomi extension results, with confidence thresholds, AniList cover fallback, source labels, and separate seasons / Sub/Dub markers.
+- Test manual selection of a source result through fetchEpisodeList and show episode names/numbers/paths with guarded errors and 25-second wait.
+- No streams or player integration yet; build/device validation pending.
+
+## v1.4.9-beta34.9 — Search diagnostics (archived from release notes)
+- Source requests traced without leaking tokens, with relevance warnings.
+
 ## v1.4.9-beta34.11 — Source-specific search routing and alternate title labeling
 - For plain text searches only, 123Anime's /filter?keyword= is routed to its working /search?keyword=; the extension's HTML parser stays unchanged.
 - Exclude advanced-filter and unrelated extension requests from rewriting. Avoid unnecessary duplicate probes.

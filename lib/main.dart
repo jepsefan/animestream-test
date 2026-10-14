@@ -79,9 +79,8 @@ void main(List<String> args) async {
     /// Load sources. we adding inbuilt sources till migrated
     final sm = SourceManager.instance;
 
-    sm
-      ..addSources(sm.inbuiltSources)
-      ..loadProviders(clearBeforeLoading: false);
+    sm.addSources(sm.inbuiltSources);
+    await sm.loadProviders(clearBeforeLoading: false);
 
     HttpOverrides.global = _HttpOverrides();
 

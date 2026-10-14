@@ -169,7 +169,7 @@ List<DropdownMenuEntry> getSourceDropdownList() {
     widget.add(
       DropdownMenuEntry(
         value: source,
-        label: "${source.name}${source.version == "0.0.0.0" ? "" : " [Plugin]"}",
+        label: "${source.name}${AniyomiExtensionProvider.isExtensionId(source.identifier) ? "" : source.version == "0.0.0.0" ? "" : " [Plugin]"}",
         trailingIcon:
             source.identifier == currentUserSettings?.preferredProvider ? Icon(Icons.star_border_rounded) : null,
         style: ButtonStyle(

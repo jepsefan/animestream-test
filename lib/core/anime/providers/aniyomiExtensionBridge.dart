@@ -5,6 +5,26 @@ class AniyomiExtensionBridge {
   static const MethodChannel _channel =
       MethodChannel('animestream.app/aniyomi_extensions');
 
+  static Future<Map<String, dynamic>> installVerifiedExtension({
+    required Uri indexUrl,
+    required Uri apkUrl,
+    required String packageName,
+    required String fingerprint,
+    required int versionCode,
+    required String version,
+  }) async {
+    final raw = await _channel.invokeMethod<Map<dynamic, dynamic>>(
+      'installVerifiedExtension', {
+        'indexUrl': indexUrl.toString(),
+        'apkUrl': apkUrl.toString(),
+        'packageName': packageName,
+        'fingerprint': fingerprint,
+        'versionCode': versionCode,
+        'version': version,
+      });
+    return Map<String, dynamic>.from(raw ?? const {});
+  }
+
   /// Inspect local host API only; does not execute any installed extensions.
   static Future<Map<String, dynamic>> inspectHostAbi() async {
     final raw = await _channel.invokeMethod<Map<dynamic, dynamic>>('inspectHostAbi');
@@ -91,6 +111,7 @@ class AniyomiExtensionInfo {
   final String packageName;
   final String name;
   final String version;
+  final int versionCode;
   final String? sourceClass;
   final String? sourceFactory;
 
@@ -98,6 +119,7 @@ class AniyomiExtensionInfo {
     required this.packageName,
     required this.name,
     required this.version,
+    this.versionCode = 0,
     this.sourceClass,
     this.sourceFactory,
   });
@@ -107,6 +129,7 @@ class AniyomiExtensionInfo {
         packageName: map['packageName'] as String,
         name: map['name'] as String,
         version: map['version'] as String,
+        versionCode: (map['versionCode'] as num?)?.toInt() ?? 0,
         sourceClass: map['sourceClass'] as String?,
         sourceFactory: map['sourceFactory'] as String?,
       );

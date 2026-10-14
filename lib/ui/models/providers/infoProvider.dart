@@ -474,24 +474,41 @@ class InfoProvider extends ChangeNotifier {
         data.title['native'],
         ...data.synonyms.whereType<String>(),
       ];
-      final titles = <String?>[
-        ...titleVariants,
-        // Search without season markers when the source indexes a franchise
-        // by its base title. Still never auto-pick an ambiguous season.
-        for (final name in titleVariants)
-          if (name != null)
-            name.replaceAll(
-              RegExp(r'\s*(?:season|part|cour)\s*\d+\s*' + r'$', caseSensitive: false),
-              '',
-            ).trim(),
-      ];
-      final tried = <String>{};
+      final titles = <String>[];
+      final seenQueries = <String>{};
+      void addQuery(String raw) {
+        final cleaned = raw.trim();
+        // Punctuation is significant for some source search APIs; keep both
+        // the original title and a punctuation-free variant.
+        if (cleaned.isNotEmpty && seenQueries.add(cleaned.toLowerCase())) {
+          titles.add(cleaned);
+        }
+      }
+      final seasonSuffix = RegExp(
+        r'\s*(?:[-:–]\s*)?(?:season|part|cour)\s*\d+\s*' + r'$',
+        caseSensitive: false,
+      );
+      final ordinalSeason = RegExp(
+        r'\s*(?:2nd|3rd|4th|5th|6th)\s+season\s*' + r'$',
+        caseSensitive: false,
+      );
+      for (final value in titleVariants) {
+        if (value == null) continue;
+        addQuery(value);
+        final base = value
+            .replaceAll(seasonSuffix, '')
+            .replaceAll(ordinalSeason, '')
+            .trim();
+        addQuery(base);
+        addQuery(base.replaceAll(
+          RegExp(r'[^\p{L}\p{N}\s]+', unicode: true), ' ')
+          .replaceAll(RegExp(r'\s+'), ' ').trim());
+      }
+      // Keep this bounded. A source may return unfiltered listings for some
+      // searches; the _search method still verifies AniList identity/season.
       var attempts = 0;
-      for (final candidate in titles) {
-        final title = candidate?.trim() ?? '';
-        final normalized = ExtensionAniListMatcher.normalize(title);
-        if (normalized.isEmpty || !tried.add(normalized)) continue;
-        if (attempts++ >= 10) break;
+      for (final title in titles) {
+        if (attempts++ >= 16) break;
         try {
           await _search(title);
           if (_epLinks.isNotEmpty) {
@@ -499,9 +516,8 @@ class InfoProvider extends ChangeNotifier {
             return;
           }
         } catch (error) {
-          // Only error types are logged. Source URLs may contain signed tokens.
           Logs.app.log(
-              'Aniyomi source search attempt $attempts did not match: ${error.runtimeType}');
+              'Aniyomi source search attempt $attempts failed: ${error.runtimeType}');
         }
       }
       // A missing catalog entry is not a network/decoder failure. The user

@@ -5,7 +5,7 @@ Only the three latest beta versions are kept here. Older entries are archived in
 ## v1.4.9-beta34.16 — Aniyomi extensions on series pages (build/device testing pending)
 - Register installed Android Aniyomi APK sources directly in AnimeStream's normal source dropdown, identified by [Ext].
 - Use original extension search, episode list and stream resolution through a Flutter/Android bridge.
-- Auto-select an external source only for an unambiguous exact English/romaji/native AniList title; otherwise use Manual Search.
+- Auto-select only an unambiguous exact title or a high-confidence alternate title verified against the exact AniList series ID; otherwise use Manual Search.
 - Persist manual source selections per AniList series and per installed extension without overwriting other sources.
 - Show available source-provided episode thumbnails and pass video URL, quality, selected subtitle and request headers to the existing player workflow.
 - Downloads through external extensions are disabled; unchanged native sources remain available.

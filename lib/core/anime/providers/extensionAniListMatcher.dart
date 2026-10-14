@@ -7,13 +7,13 @@ import 'package:animestream/core/database/anilist/anilist.dart';
 /// title/URL only identify an explicitly selected playback source.
 class ExtensionAniListMatcher {
   static String normalize(String value) => value.toLowerCase()
-      .replaceAll(RegExp(r'[^\\p{L}\\p{N}]+', unicode: true), ' ')
+      .replaceAll(RegExp(r'[^\p{L}\p{N}]+', unicode: true), ' ')
       .trim()
-      .replaceAll(RegExp(r'\\s+'), ' ');
+      .replaceAll(RegExp(r'\s+'), ' ');
 
   static String baseTitle(String value) => normalize(value)
-      .replaceAll(RegExp(r'\\b(?:season|part|cour)\\s*\\d+\\b'), '')
-      .replaceAll(RegExp(r'\\b(?:[2-9](?:nd|rd|th) season|dub|sub|ova|recap)\\b'), '')
+      .replaceAll(RegExp(r'\b(?:season|part|cour)\s*\d+\b'), '')
+      .replaceAll(RegExp(r'\b(?:[2-9](?:nd|rd|th) season|dub|sub|ova|recap)\b'), '')
       .trim();
 
   static int score(String source, List<String> aliases) {

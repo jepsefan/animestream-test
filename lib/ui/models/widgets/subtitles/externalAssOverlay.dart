@@ -141,7 +141,7 @@ class _ExternalAssOverlayState extends State<ExternalAssOverlay>
       }
       if (!mounted || generation != _generation) return;
       _inspectCueTimes(bytes);
-      debugPrint('[ASSRENDER] Loading ${bytes.length} bytes from ${widget.subtitleSource}');
+      debugPrint('[ASSRENDER] Loading ${bytes.length} subtitle bytes');
       final textureId = await _channel.invokeMethod<int>('loadTexture', {
         'script': bytes,
         'width': 1280,
@@ -157,7 +157,7 @@ class _ExternalAssOverlayState extends State<ExternalAssOverlay>
       _frameTicker.start();
       _render();
     } catch (error) {
-      debugPrint('[ASSRENDER] Native overlay unavailable: $error');
+      debugPrint('[ASSRENDER] Native overlay unavailable: ${error.runtimeType}');
     }
   }
 

@@ -120,14 +120,14 @@ class AniyomiCatalogEntry {
     String field(String name) => (json[name] ?? '').toString().trim();
     final pkg = field('pkg');
     final apk = field('apk');
-    if (!RegExp(r'^[a-zA-Z0-9_]+(?:\\.[a-zA-Z0-9_]+)+$').hasMatch(pkg) ||
-        !RegExp(r'^[a-zA-Z0-9_.-]+\\.apk$').hasMatch(apk)) {
+    if (!RegExp(r'^[a-zA-Z0-9_]+(?:\.[a-zA-Z0-9_]+)+$').hasMatch(pkg) ||
+        !RegExp(r'^[a-zA-Z0-9_.-]+\.apk$').hasMatch(apk)) {
       throw const FormatException('Invalid extension package or APK filename');
     }
     final baseUrl = indexUrl.resolve('.');
     final sourceObjects = json['sources'];
     return AniyomiCatalogEntry(
-      name: field('name').replaceFirst(RegExp(r'^Aniyomi:\\s*'), ''),
+      name: field('name').replaceFirst(RegExp(r'^Aniyomi:\s*'), ''),
       packageName: pkg,
       version: field('version'),
       versionCode: int.tryParse(field('code')) ?? 0,

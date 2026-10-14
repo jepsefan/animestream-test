@@ -51,6 +51,14 @@ class SourceManager {
 
   final ProviderPlugin _plugin = ProviderPlugin();
   final Map<String, AniyomiExtensionProvider> _aniyomi = {};
+  final Map<String, List<AniyomiExtensionSourceInfo>> _approvedSources = {};
+
+  Future<void> enableExtensionSources(AniyomiExtensionInfo ext) async {
+    final discovered = await AniyomiExtensionBridge.discoverSources(ext.packageName);
+    _approvedSources[ext.packageName] = discovered;
+    await refreshAniyomiExtensions();
+  }
+
 
   List<ProviderDetails> get sources => _sources;
 
@@ -83,15 +91,21 @@ class SourceManager {
       _sources.removeWhere((e) =>
           AniyomiExtensionProvider.isExtensionId(e.identifier));
       for (final ext in installed) {
-        final provider = AniyomiExtensionProvider(ext);
-        final identifier = '${AniyomiExtensionProvider.identifierPrefix}${ext.packageName}';
-        _aniyomi[identifier] = provider;
-        _sources.add(ProviderDetails(
-          name: '${ext.name} [Ext]',
-          identifier: identifier,
-          version: ext.version,
-          supportDownloads: false,
-        ));
+        // Only user-approved packages are enabled for execution here.
+        // Discover source IDs when the user explicitly opts in, rather than
+        // auto-executing all installed APK constructors during startup.
+        final selected = _approvedSources[ext.packageName] ?? const <AniyomiExtensionSourceInfo>[];
+        for (final source in selected) {
+          final provider = AniyomiExtensionProvider(ext, selectedSource: source);
+          final identifier = AniyomiExtensionProvider.identifier(ext.packageName, source.id);
+          _aniyomi[identifier] = provider;
+          _sources.add(ProviderDetails(
+            name: '${source.name} [Ext] (${source.language})',
+            identifier: identifier,
+            version: ext.version,
+            supportDownloads: false,
+          ));
+        }
       }
     } catch (_) {
       // Installed-extension discovery is optional: retain normal providers.

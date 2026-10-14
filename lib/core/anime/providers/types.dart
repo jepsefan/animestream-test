@@ -41,7 +41,10 @@ class VideoStream {
 
   @override
   String toString() {
-    return 'VideoStream(quality: $quality, url: $url, subtitle: $subtitle, subtitleFormat: $subtitleFormat, server: $server, backup: $backup, customHeaders: $customHeaders)';
+    // Stream URLs can embed signed tokens and custom headers may carry auth.
+    // Never include them in logs or debug-print interpolation.
+    return 'VideoStream(quality: $quality, server: $server, backup: $backup, '
+        'hasSubtitle: ${subtitle != null}, hasCustomHeaders: ${customHeaders?.isNotEmpty ?? false})';
   }
 
   Map<String, dynamic> toMap() {

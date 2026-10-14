@@ -29,6 +29,9 @@ class _PluginPageState extends State<PluginPage> {
   final Map<String, List<Map<String, dynamic>>> _rankedResults = {};
   final Map<String, String> _episodeDiagnostics = {};
   final Set<String> _loadingEpisodes = {};
+  final Map<String, List<Map<String, dynamic>>> _episodeSelections = {};
+  final Map<String, String> _streamDiagnostics = {};
+  final Set<String> _loadingStreams = {};
 
   @override
   void initState() {
@@ -193,6 +196,8 @@ class _PluginPageState extends State<PluginPage> {
       _searchDiagnostics[ext.packageName] = 'Searching...';
       _rankedResults.remove(ext.packageName);
       _episodeDiagnostics.remove(ext.packageName);
+      _episodeSelections.remove(ext.packageName);
+      _streamDiagnostics.remove(ext.packageName);
     });
     try {
       final data = await AniyomiExtensionBridge.testExtensionSearch(
@@ -290,6 +295,8 @@ class _PluginPageState extends State<PluginPage> {
     setState(() {
       _loadingEpisodes.add(ext.packageName);
       _episodeDiagnostics[ext.packageName] = 'Loading episodes for $title...';
+      _episodeSelections.remove(ext.packageName);
+      _streamDiagnostics.remove(ext.packageName);
     });
     try {
       final response = await AniyomiExtensionBridge.testExtensionEpisodes(
@@ -306,12 +313,74 @@ class _PluginPageState extends State<PluginPage> {
             '${entry['name'] ?? 'Untitled'} '
             '(episode ${entry['number'] ?? '?'}) — ${entry['url'] ?? ''}',
       ].join('\n');
-      if (mounted) setState(() => _episodeDiagnostics[ext.packageName] = text);
+      if (mounted) setState(() {
+        _episodeDiagnostics[ext.packageName] = text;
+        _episodeSelections[ext.packageName] = items.whereType<Map>()
+            .map((e) => <String, dynamic>{
+              'name': (e['name'] ?? '').toString(),
+              'url': (e['url'] ?? '').toString(),
+              'number': e['number'],
+            }).where((e) => (e['url'] as String).isNotEmpty).toList();
+      });
     } catch (e) {
       if (mounted) setState(() =>
           _episodeDiagnostics[ext.packageName] = 'Episode test failed: $e');
     } finally {
       if (mounted) setState(() => _loadingEpisodes.remove(ext.packageName));
+    }
+  }
+
+  Future<void> _testStreams(
+      AniyomiExtensionInfo ext, Map<String, dynamic> episode) async {
+    final name = (episode['name'] ?? '').toString();
+    final url = (episode['url'] ?? '').toString();
+    if (name.isEmpty || url.isEmpty) return;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Test streams?'),
+        content: Text('Resolve video streams for $name using ${ext.name}?'
+            '\n\nThis executes installed extension code and makes network '
+            'requests. No playback will start. Stream URLs and credentials '
+            'will not be displayed.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(dialogContext, false),
+              child: const Text('Cancel')),
+          TextButton(onPressed: () => Navigator.pop(dialogContext, true),
+              child: const Text('Test streams')),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    setState(() {
+      _loadingStreams.add(ext.packageName);
+      _streamDiagnostics[ext.packageName] = 'Resolving streams for $name...';
+    });
+    try {
+      final data = await AniyomiExtensionBridge.testExtensionStreams(
+          ext.packageName, url, name);
+      if (!mounted) return;
+      final videos = (data['videos'] as List?) ?? const [];
+      final lines = <String>[
+        'Episode: $name',
+        'Status: ${data['status'] ?? 'unknown'}',
+        if (data['error'] != null) 'Error: ${data['error']}',
+        'Videos found: ${data['videoCount'] ?? videos.length}',
+        if (data['truncated'] == true) 'Showing first 40 streams',
+        for (final video in videos)
+          if (video is Map)
+            '${video['quality'] ?? 'Unknown'} • ${video['format'] ?? 'unknown'}'
+            ' • ${video['host'] ?? 'unknown host'}'
+            ' • subtitles ${video['subtitleCount'] ?? 0}'
+            ' • audio ${video['audioCount'] ?? 0}',
+        'URLs, tokens, cookies and request headers are not displayed.',
+      ];
+      setState(() => _streamDiagnostics[ext.packageName] = lines.join('\n'));
+    } catch (e) {
+      if (mounted) setState(() =>
+          _streamDiagnostics[ext.packageName] = 'Stream test failed: $e');
+    } finally {
+      if (mounted) setState(() => _loadingStreams.remove(ext.packageName));
     }
   }
 

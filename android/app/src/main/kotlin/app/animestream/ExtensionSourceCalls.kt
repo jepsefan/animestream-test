@@ -6,6 +6,7 @@ import eu.kanade.tachiyomi.animesource.model.*
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.ExecutionException
 
 /**
  * Version-neutral calls: modern suspend API first, legacy RxJava as fallback.
@@ -15,7 +16,11 @@ internal object ExtensionSourceCalls {
     private const val WAIT_MS = 35000L
 
     private fun unsupported(error: Throwable): Boolean {
-        val cause = (error as? java.lang.reflect.InvocationTargetException)?.targetException ?: error
+        val cause = when (error) {
+            is java.lang.reflect.InvocationTargetException -> error.targetException ?: error
+            is ExecutionException -> error.cause ?: error
+            else -> error
+        }
         return cause is AbstractMethodError || cause is NoSuchMethodError ||
             cause is UnsupportedOperationException ||
             cause is java.lang.IncompatibleClassChangeError ||

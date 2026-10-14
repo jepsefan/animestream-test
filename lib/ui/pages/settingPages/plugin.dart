@@ -1,3 +1,4 @@
+import 'package:animestream/ui/models/sources.dart';
 import 'package:animestream/core/anime/providers/providerDetails.dart';
 import 'package:animestream/core/anime/providers/aniyomiExtensionBridge.dart';
 import 'package:animestream/core/anime/providers/extensionAniListMatcher.dart';
@@ -47,6 +48,7 @@ class _PluginPageState extends State<PluginPage> {
       String? apkError;
       try {
         apkExtensions = await AniyomiExtensionBridge.listInstalledExtensions();
+        await SourceManager.instance.refreshAniyomiExtensions();
       } catch (e) {
         apkError = 'Could not scan installed Android extensions: $e';
       }
@@ -542,7 +544,7 @@ class _PluginPageState extends State<PluginPage> {
                           Align(
                             alignment: Alignment.centerLeft,
                             child: SelectableText(
-                              'Extension detected — playback not yet supported'
+                              'Extension detected — select this [Ext] source on a series page to watch (experimental)'
                               '\nSource class: ${ext.sourceClass ?? "unknown"}'
                               '${ext.sourceFactory != null ? "\nSource factory: ${ext.sourceFactory}" : ""}',
                             ),

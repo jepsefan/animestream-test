@@ -1,3 +1,4 @@
+import 'package:animestream/core/anime/providers/aniyomiExtensionProvider.dart';
 import 'package:animestream/core/app/runtimeDatas.dart';
 import 'package:animestream/core/data/animeSpecificPreference.dart';
 import 'package:animestream/core/data/types.dart';
@@ -38,8 +39,12 @@ class _ManualSearchSheetState extends State<ManualSearchSheet> {
       for (final item in res) {
         searchResults.add(
           GestureDetector(
-            onTap: () {
-              saveAnimeSpecificPreference(widget.anilistId, AnimeSpecificPreference(manualSearchQuery: item['name'] ?? searchTerm));
+            onTap: () async {
+              if (!AniyomiExtensionProvider.isExtensionId(widget.source)) {
+                await saveAnimeSpecificPreference(widget.anilistId,
+                    AnimeSpecificPreference(manualSearchQuery: item['name'] ?? searchTerm));
+              }
+              if (!mounted) return;
               Navigator.of(context).pop(item);
             },
             child: Container(

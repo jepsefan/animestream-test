@@ -2,6 +2,13 @@
 
 Only the three latest beta versions are kept here. Older entries are archived in [CHANGELOG.md](CHANGELOG.md).
 
+## v1.4.9-beta34.21 — Subtitle format identification and Aniyomi searches (not yet built)
+- Identify extension subtitle format (ASS/SSA, WebVTT or SRT) using a bounded sample of actual subtitle content when the URL/label does not reveal its format.
+- Show detected format progressively next to each language in the subtitle picker. Never assume an unknown format is ASS, and do not route unknown formats to the libass overlay.
+- Keep the working AnimeOnsen DASH playback path unchanged.
+- Retry extension searches with base title and punctuation-free variants (such as removing "Season 2"), but do not automatically bind unrelated or ambiguous seasons.
+- Build and on-device tests are pending; 123Anime may still require manual source selection or a source-side fix.
+
 ## v1.4.9-beta34.20 — Subtitle selector and search fallback (build testing pending)
 - Fix blank/grey subtitle track dialog by using the existing player and data notifiers across Navigator routes, with a constrained scrollable sheet and explicit colors.
 - Preserve multi-language tracks, the Off option, libass ASS support, and long-press subtitle settings.
@@ -17,10 +24,3 @@ Only the three latest beta versions are kept here. Older entries are archived in
 - Keep the chosen language when switching episode, source stream or quality if the new video has a matching track.
 - Ordinary providers with only a single subtitle URL retain their previous toggle behavior; no change to video decoding.
 - Builds and real-device subtitle selection/rendering have not yet been verified.
-
-## v1.4.9-beta34.18 — Aniyomi search and DASH player fixes (device testing pending)
-- Retry source searches against AniList's English, romaji, native and alternate titles (up to seven distinct queries). Never accept an unrelated catalog result; manual search remains available.
-- Bypass HLS playlist extraction and HEAD/MIME probes for DASH .mpd manifests. Pass DASH directly to Better Player/ExoPlayer without premature HLS track selection.
-- Present a visible player initialization error and Back to episodes action instead of hiding thrown errors on an empty player screen.
-- Existing AniDB removal retained. Working conventional sources remain unchanged.
-- Changes are unverified on Android; further troubleshooting may be needed for white video output and 123Anime matching.

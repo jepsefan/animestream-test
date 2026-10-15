@@ -170,9 +170,9 @@ class MainActivity: FlutterActivity() {
                                 result.error("NOT_EXTENSION", "Package is not a detected anime extension", null)
                             } else {
                                 val intent = android.content.Intent(
-                                    android.content.Intent.ACTION_DELETE,
+                                    android.content.Intent.ACTION_UNINSTALL_PACKAGE,
                                     android.net.Uri.parse("package:" + pkg)
-                                ).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+                                ).putExtra(android.content.Intent.EXTRA_RETURN_RESULT, false)
                                 startActivity(intent)
                                 result.success(mapOf("status" to "uninstaller_opened"))
                             }

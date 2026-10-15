@@ -156,6 +156,14 @@ abstract class AnimeHttpSource : AnimeCatalogueSource {
     protected open fun List<Video>.sortVideos(): List<Video> = this
     protected open fun List<Video>.sort(): List<Video> = this
 
+    /**
+     * Anikku extensions-lib 1.6 resolver hook. A hoster may provide videos
+     * that are resolved lazily (e.g. the playable URL is obtained later).
+     * The default is deliberately a no-op, matching upstream semantics and
+     * preserving already-playable videos from legacy extensions.
+     */
+    open suspend fun resolveVideo(video: Video): Video? = video
+
     // Legacy Rx API used by the tested Aniyomi extension APKs.
     protected open fun videoListRequest(episode: SEpisode): Request =
         Request.Builder().url(baseUrl + episode.url).headers(headers).build()

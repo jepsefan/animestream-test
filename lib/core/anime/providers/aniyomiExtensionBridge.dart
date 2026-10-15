@@ -46,7 +46,15 @@ class AniyomiExtensionBridge {
   static Future<List<AniyomiExtensionSourceInfo>> discoverSources(String packageName) async {
     final raw = await _channel.invokeMethod<Map<dynamic, dynamic>>(
       'discoverExtensionSources', {'packageName': packageName});
-    if (raw?['status'] != 'ok') throw StateError('Source discovery failed');
+    if (raw?['status'] != 'ok') {
+      final stage = raw?['failureStage']?.toString() ?? 'unknown';
+      final category = raw?['failureCategory']?.toString() ?? 'unknown';
+      final missing = (raw?['missingClasses'] as List?)?.join(', ') ?? '';
+      final types = (raw?['errorTypes'] as List?)?.join(' -> ') ?? '';
+      throw StateError('Discovery failed at $stage [$category]; '
+          'missing: ${missing.isEmpty ? "none detected" : missing}; '
+          'errors: $types');
+    }
     return ((raw?['sources'] as List?) ?? const []).whereType<Map>()
         .map((item) => AniyomiExtensionSourceInfo.fromMap(item)).toList();
   }

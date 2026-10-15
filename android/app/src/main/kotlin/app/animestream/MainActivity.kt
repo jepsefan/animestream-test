@@ -24,6 +24,36 @@ class MainActivity: FlutterActivity() {
     private lateinit var assRenderChannel: MethodChannel
     private val externalAssRenderer = ExternalAssRenderer()
 
+    private val extensionUninstallRequestCode = 48621
+    private var pendingExtensionUninstall: MethodChannel.Result? = null
+    private var pendingExtensionPackage: String? = null
+
+    @Deprecated("Uses Android's system uninstall result for FlutterActivity compatibility")
+    override fun onActivityResult(
+        requestCode: Int,
+        resultCode: Int,
+        data: android.content.Intent?
+    ) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if (requestCode != extensionUninstallRequestCode) return
+
+        val callback = pendingExtensionUninstall ?: return
+        val target = pendingExtensionPackage
+        pendingExtensionUninstall = null
+        pendingExtensionPackage = null
+        val stillInstalled = target != null &&
+            listInstalledAnimeExtensions().any { it["packageName"] == target }
+        val status = when {
+            !stillInstalled -> "uninstalled"
+            resultCode == android.app.Activity.RESULT_OK -> "reported_success_pending_refresh"
+            else -> "not_uninstalled"
+        }
+        callback.success(mapOf(
+            "status" to status,
+            "androidResultCode" to resultCode
+        ))
+    }
+
     override fun configureFlutterEngine(@NonNull flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
         externalAssRenderer.attach(flutterEngine.renderer)
@@ -161,25 +191,50 @@ class MainActivity: FlutterActivity() {
                     if (pkg.isNullOrBlank() || pkg == packageName ||
                         !pkg.matches(Regex("^[a-zA-Z0-9_]+(\\.[a-zA-Z0-9_]+)+$"))) {
                         result.error("INVALID_EXTENSION", "Invalid extension package", null)
+                    } else if (pendingExtensionUninstall != null) {
+                        result.error("UNINSTALL_BUSY", "Another uninstall request is pending", null)
+                    } else {
+                        val isExtension = listInstalledAnimeExtensions().any {
+                            it["packageName"] == pkg
+                        }
+                        if (!isExtension) {
+                            result.error("NOT_EXTENSION", "Package is not an installed anime extension", null)
+                        } else {
+                            val intent = android.content.Intent(
+                                android.content.Intent.ACTION_UNINSTALL_PACKAGE,
+                                android.net.Uri.parse("package:" + pkg)
+                            ).putExtra(android.content.Intent.EXTRA_RETURN_RESULT, true)
+                            pendingExtensionPackage = pkg
+                            pendingExtensionUninstall = result
+                            try {
+                                @Suppress("DEPRECATION")
+                                startActivityForResult(intent, extensionUninstallRequestCode)
+                            } catch (error: Exception) {
+                                pendingExtensionPackage = null
+                                pendingExtensionUninstall = null
+                                result.error("UNINSTALL_LAUNCH_FAILED",
+                                    error.javaClass.simpleName, null)
+                            }
+                        }
+                    }
+                }
+                "openExtensionAppSettings" -> {
+                    val pkg = call.argument<String>("packageName")
+                    if (pkg.isNullOrBlank() || pkg == packageName ||
+                        !pkg.matches(Regex("^[a-zA-Z0-9_]+(\\.[a-zA-Z0-9_]+)+$")) ||
+                        listInstalledAnimeExtensions().none { it["packageName"] == pkg }) {
+                        result.error("INVALID_EXTENSION", "Package is not an installed anime extension", null)
                     } else {
                         try {
-                            val isExtension = listInstalledAnimeExtensions().any {
-                                it["packageName"] == pkg
-                            }
-                            if (!isExtension) {
-                                result.error("NOT_EXTENSION", "Package is not a detected anime extension", null)
-                            } else {
-                                val intent = android.content.Intent(
-                                    android.content.Intent.ACTION_UNINSTALL_PACKAGE,
-                                    android.net.Uri.parse("package:" + pkg)
-                                ).putExtra(android.content.Intent.EXTRA_RETURN_RESULT, false)
-                                startActivity(intent)
-                                result.success(mapOf("status" to "uninstaller_opened"))
-                            }
-                        } catch (e: android.content.ActivityNotFoundException) {
-                            result.error("UNINSTALLER_MISSING", "Android uninstall dialog unavailable", null)
-                        } catch (e: Exception) {
-                            result.error("UNINSTALL_FAILED", e.javaClass.simpleName, null)
+                            val intent = android.content.Intent(
+                                android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                                android.net.Uri.fromParts("package", pkg, null)
+                            )
+                            startActivity(intent)
+                            result.success(mapOf("status" to "app_settings_opened"))
+                        } catch (error: Exception) {
+                            result.error("APP_SETTINGS_FAILED",
+                                error.javaClass.simpleName, null)
                         }
                     }
                 }

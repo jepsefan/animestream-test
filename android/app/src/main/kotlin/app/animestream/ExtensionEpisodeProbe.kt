@@ -132,7 +132,9 @@ internal class ExtensionEpisodeProbe(private val context: Context) {
         } catch (error: Throwable) {
             mapOf(
                 "status" to "stream_list_failed",
-                "error" to (error.cause ?: error).javaClass.simpleName
+                "error" to (error.cause ?: error).javaClass.simpleName,
+                "errorTypes" to generateSequence(error as Throwable?) { it.cause }
+                    .take(5).map { it.javaClass.simpleName }.toList()
             )
         }
     }
@@ -221,7 +223,11 @@ internal class ExtensionEpisodeProbe(private val context: Context) {
             return mapOf(
                 "status" to if (playable.isEmpty()) "stream_list_empty" else "stream_list_completed",
                 "videos" to playable,
-                "videoCount" to playable.size
+                "videoCount" to playable.size,
+                "diagnosis" to if (playable.isEmpty()) "extension_returned_no_playable_http_stream"
+                    else "streams_returned",
+                "safeRequestSummary" to if (playable.isEmpty())
+                    summarizeStreamRequests(helper.streamRequestDiagnostics()) else emptyList()
             )
         }
         val traces = summarizeStreamRequests(helper.streamRequestDiagnostics())

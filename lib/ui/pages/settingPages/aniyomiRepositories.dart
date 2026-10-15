@@ -18,6 +18,9 @@ class _AniyomiRepositoriesPageState extends State<AniyomiRepositoriesPage> with 
   final Map<String, List<AniyomiCatalogEntry>> _catalogs = {};
   final Map<String, String> _errors = {};
   bool _busy = false;
+  String _search = '';
+  String _language = 'all';
+  int _section = 2;
   Map<String, AniyomiExtensionInfo> _installed = {};
 
   @override
@@ -102,6 +105,31 @@ class _AniyomiRepositoriesPageState extends State<AniyomiRepositoriesPage> with 
         SnackBar(content: Text('Verified APK installation blocked: $e')));
     } finally {
       if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _uninstall(AniyomiExtensionInfo ext) async {
+    final approved = await showDialog<bool>(
+      context: context,
+      builder: (dialog) => AlertDialog(
+        title: const Text('Uninstall extension?'),
+        content: Text('Remove ' + ext.name + ' from Android?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(dialog, false),
+            child: const Text('Cancel')),
+          FilledButton(onPressed: () => Navigator.pop(dialog, true),
+            child: const Text('Continue')),
+        ],
+      ),
+    );
+    if (approved != true || !mounted) return;
+    try {
+      await AniyomiExtensionBridge.uninstallExtension(ext.packageName);
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Confirm uninstall in Android')));
+    } catch (error) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Cannot open uninstaller: ' + error.toString())));
     }
   }
 
@@ -226,56 +254,151 @@ class _AniyomiRepositoriesPageState extends State<AniyomiRepositoriesPage> with 
         const Divider(),
         if (_repos.isEmpty)
           const ListTile(title: Text('No repositories added')),
-        for (final repo in _repos)
-          FutureBuilder<String?>(
-            future: _manager.trustedFingerprint(repo),
-            builder: (context, snapshot) => ExpansionTile(
-            key: ValueKey(repo.toString()),
-            title: Text(repo.host),
-            subtitle: Text(repo.toString() +
-                (snapshot.data == null ? ' • Untrusted (reapprove)' : ' • Trusted')),
-            children: [
-              Wrap(spacing: 8, children: [
-                if (snapshot.data == null)
-                  TextButton.icon(
-                    onPressed: _busy ? null : () => _trustLegacy(repo),
-                    icon: const Icon(Icons.verified_user_outlined),
-                    label: const Text('Review signing key'),
+        // Repository management stays local and is separate from package removal.
+        ExpansionTile(
+          title: const Text('Repository management'),
+          children: [
+            for (final repo in _repos)
+              ListTile(
+                title: Text(repo.host),
+                subtitle: Text(repo.toString(), maxLines: 2),
+                trailing: Wrap(mainAxisSize: MainAxisSize.min, children: [
+                  IconButton(
+                    tooltip: 'Load catalog',
+                    onPressed: _busy ? null : () => _load(repo),
+                    icon: const Icon(Icons.refresh),
                   ),
-                TextButton.icon(
-                  onPressed: _busy || snapshot.data == null ? null : () => _load(repo),
-                  icon: const Icon(Icons.refresh),
-                  label: const Text('Browse catalog'),
-                ),
-                TextButton.icon(
-                  onPressed: _busy ? null : () => _remove(repo),
-                  icon: const Icon(Icons.delete_outline),
-                  label: const Text('Remove'),
-                ),
-              ]),
-              if (_errors[repo.toString()] != null)
-                SelectableText(_errors[repo.toString()]!),
-              for (final entry in _catalogs[repo.toString()] ??
-                  const <AniyomiCatalogEntry>[])
+                  IconButton(
+                    tooltip: 'Remove repository',
+                    onPressed: _busy ? null : () => _remove(repo),
+                    icon: const Icon(Icons.delete_outline),
+                  ),
+                ]),
+              ),
+          ],
+        ),
+        TextField(
+          decoration: const InputDecoration(
+            hintText: 'Search extensions',
+            prefixIcon: Icon(Icons.search),
+          ),
+          onChanged: (value) => setState(() => _search = value.trim().toLowerCase()),
+        ),
+        Wrap(spacing: 6, children: [
+          for (final tab in [
+            (0, 'Installed'),
+            (1, 'Updates'),
+            (2, 'Browse')
+          ])
+            ChoiceChip(
+              label: Text(tab.$2),
+              selected: _section == tab.$1,
+              onSelected: (_) => setState(() => _section = tab.$1),
+            ),
+        ]),
+        Builder(builder: (context) {
+          final entries = <String, AniyomiCatalogEntry>{};
+          final origins = <String, Uri>{};
+          for (final repo in _repos) {
+            for (final entry in _catalogs[repo.toString()] ?? <AniyomiCatalogEntry>[]) {
+              final old = entries[entry.packageName];
+              if (old == null || old.versionCode < entry.versionCode) {
+                entries[entry.packageName] = entry;
+                origins[entry.packageName] = repo;
+              }
+            }
+          }
+          final values = entries.values.toList()
+            ..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+          final langs = <String>{'all', ...values.map((e) => e.language)};
+          if (!langs.contains(_language)) _language = 'all';
+          final matching = values.where((entry) {
+            final installed = _installed[entry.packageName];
+            if (_section == 0 && installed == null) return false;
+            if (_section == 1 &&
+                (installed == null || installed.versionCode >= entry.versionCode)) return false;
+            if (_section == 2 && installed != null) return false;
+            if (_language != 'all' && entry.language != _language) return false;
+            return (entry.name + entry.packageName + entry.language)
+                .toLowerCase().contains(_search);
+          }).toList();
+          final sections = <String, List<AniyomiCatalogEntry>>{};
+          for (final item in matching) {
+            sections.putIfAbsent(item.language, () => []).add(item);
+          }
+          final keys = sections.keys.toList()..sort();
+          final extraInstalled = _section == 0
+              ? _installed.values.where((e) => !entries.containsKey(e.packageName) &&
+                  (e.name + e.packageName).toLowerCase().contains(_search)).toList()
+              : <AniyomiExtensionInfo>[];
+          extraInstalled.sort((a, b) => a.name.compareTo(b.name));
+          return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+            DropdownButton<String>(
+              isExpanded: true,
+              value: _language,
+              items: (langs.toList()..sort()).map((code) => DropdownMenuItem(
+                value: code,
+                child: Text(code == 'all' ? 'All languages' : code.toUpperCase()),
+              )).toList(),
+              onChanged: (value) => setState(() => _language = value ?? 'all'),
+            ),
+            for (final lang in keys) ...[
+              Padding(
+                padding: const EdgeInsets.only(top: 12, bottom: 4),
+                child: Text(lang == 'all' ? 'All languages' : lang.toUpperCase(),
+                  style: Theme.of(context).textTheme.titleMedium),
+              ),
+              for (final entry in sections[lang]!)
                 ListTile(
-                  title: Text(entry.name),
+                  leading: Image.network(entry.iconUrl.toString(),
+                    width: 38, height: 38,
+                    errorBuilder: (_, __, ___) => const Icon(Icons.extension_outlined)),
+                  title: Text(entry.name, maxLines: 1, overflow: TextOverflow.ellipsis),
                   subtitle: Text(
-                    '${entry.language} • catalog v${entry.version}\n'
-                    '${_installed[entry.packageName] == null ? 'Not installed' : 'Installed v${_installed[entry.packageName]!.version}'}\n'
-                    '${entry.sources.toSet().join(", ")}',
+                    'v' + entry.version +
+                    (_installed[entry.packageName] != null
+                      ? ' • Installed v' + _installed[entry.packageName]!.version
+                      : ''),
                   ),
-                  isThreeLine: true,
-                  trailing: _installed[entry.packageName] != null &&
-                    _installed[entry.packageName]!.versionCode >= entry.versionCode
-                      ? const Icon(Icons.check_circle_outline)
-                      : TextButton(
-                          onPressed: _busy ? null : () => _install(entry, repo),
-                          child: Text(_installed.containsKey(entry.packageName)
-                            ? 'Update' : 'Install'),
-                        ),
+                  trailing: Wrap(mainAxisSize: MainAxisSize.min, children: [
+                    if (_installed[entry.packageName] == null ||
+                        _installed[entry.packageName]!.versionCode < entry.versionCode)
+                      IconButton(
+                        tooltip: _installed[entry.packageName] == null ? 'Install' : 'Update',
+                        icon: const Icon(Icons.download_outlined),
+                        onPressed: _busy ? null : () => _install(entry, origins[entry.packageName]!),
+                      ),
+                    if (_installed[entry.packageName] != null)
+                      PopupMenuButton<String>(
+                        tooltip: 'Extension options',
+                        onSelected: (value) {
+                          if (value == 'uninstall') _uninstall(_installed[entry.packageName]!);
+                        },
+                        itemBuilder: (_) => const [
+                          PopupMenuItem(value: 'uninstall', child: Text('Uninstall')),
+                        ],
+                      ),
+                  ]),
                 ),
             ],
-          )),
+            if (extraInstalled.isNotEmpty) ...[
+              const Padding(padding: EdgeInsets.only(top: 12),
+                child: Text('Installed outside catalogs')),
+              for (final ext in extraInstalled)
+                ListTile(
+                  title: Text(ext.name),
+                  subtitle: Text('Installed v' + ext.version),
+                  trailing: IconButton(
+                    icon: const Icon(Icons.delete_outline),
+                    tooltip: 'Uninstall',
+                    onPressed: () => _uninstall(ext),
+                  ),
+                ),
+            ],
+            if (matching.isEmpty && extraInstalled.isEmpty)
+              const ListTile(title: Text('No matching extensions')),
+          ]);
+        }),
         const SizedBox(height: 12),
         const Text('APK signatures are verified against the locally approved certificate before Android is asked to install. Confirm installation in Android. Full Anikku Host API support is still in progress.'),
       ]),

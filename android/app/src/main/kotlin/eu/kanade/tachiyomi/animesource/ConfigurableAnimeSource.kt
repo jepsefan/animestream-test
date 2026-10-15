@@ -1,17 +1,28 @@
 package eu.kanade.tachiyomi.animesource
 
+import android.app.Application
+import android.content.Context
 import android.content.SharedPreferences
 import androidx.preference.PreferenceScreen
+import uy.kohesive.injekt.Injekt
+import uy.kohesive.injekt.api.get
 
 /**
- * Source preferences are deliberately not wired to the original Aniyomi DI
- * container. Until a per-source preferences host is installed, callers get
- * an explicit unsupported-operation error instead of silently sharing data.
+ * Anikku-compatible source preferences host.
+ * State is scoped to the source ID in AnimeStream's private application data.
  */
 interface ConfigurableAnimeSource : AnimeSource {
     fun getSourcePreferences(): SharedPreferences =
-        throw UnsupportedOperationException("Aniyomi source preferences host not initialized")
+        Injekt.get<Application>().getSharedPreferences(preferenceKey(), Context.MODE_PRIVATE)
+
     fun setupPreferenceScreen(screen: PreferenceScreen)
 }
 
 fun ConfigurableAnimeSource.preferenceKey(): String = "source_$id"
+
+/** Keep the legacy helpers used by extensions compiled for older source-api. */
+fun ConfigurableAnimeSource.sourcePreferences(): SharedPreferences =
+    Injekt.get<Application>().getSharedPreferences(preferenceKey(), Context.MODE_PRIVATE)
+
+fun sourcePreferences(key: String): SharedPreferences =
+    Injekt.get<Application>().getSharedPreferences(key, Context.MODE_PRIVATE)

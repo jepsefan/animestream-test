@@ -99,12 +99,15 @@ class AniyomiExtensionBridge {
     return Map<String, dynamic>.from(raw ?? const {});
   }
 
-  static Future<void> uninstallExtension(String packageName) async {
+  static Future<String> uninstallExtension(String packageName) async {
     final response = await _channel.invokeMethod<Map<dynamic, dynamic>>(
       'uninstallExtension', {'packageName': packageName});
-    if (response?['status'] != 'uninstaller_opened') {
-      throw StateError('Android uninstaller did not open');
-    }
+    return response?['status']?.toString() ?? 'unknown';
+  }
+
+  static Future<void> openExtensionAppSettings(String packageName) async {
+    await _channel.invokeMethod<Map<dynamic, dynamic>>(
+      'openExtensionAppSettings', {'packageName': packageName});
   }
 
   static Future<List<AniyomiExtensionInfo>> listInstalledExtensions() async {

@@ -129,7 +129,7 @@ class MainActivity: FlutterActivity() {
                                 mapOf("status" to "ok",
                                     "sources" to ExtensionHostRuntime(this).discover(pkg).map { it.toMap() })
                             } catch (e: Throwable) {
-                                mapOf("status" to "failed", "errorType" to e.javaClass.simpleName)
+                                ExtensionLinkageDiagnostics.describeDiscovery(e)
                             }
                             runOnUiThread { result.success(response) }
                         }.start()

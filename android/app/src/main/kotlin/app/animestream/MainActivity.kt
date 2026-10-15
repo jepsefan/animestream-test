@@ -156,6 +156,33 @@ class MainActivity: FlutterActivity() {
                         }.start()
                     }
                 }
+                "uninstallExtension" -> {
+                    val pkg = call.argument<String>("packageName")
+                    if (pkg.isNullOrBlank() || pkg == packageName ||
+                        !pkg.matches(Regex("^[a-zA-Z0-9_]+(\\.[a-zA-Z0-9_]+)+$"))) {
+                        result.error("INVALID_EXTENSION", "Invalid extension package", null)
+                    } else {
+                        try {
+                            val isExtension = listInstalledAnimeExtensions().any {
+                                it["packageName"] == pkg
+                            }
+                            if (!isExtension) {
+                                result.error("NOT_EXTENSION", "Package is not a detected anime extension", null)
+                            } else {
+                                val intent = android.content.Intent(
+                                    android.content.Intent.ACTION_DELETE,
+                                    android.net.Uri.parse("package:" + pkg)
+                                ).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+                                startActivity(intent)
+                                result.success(mapOf("status" to "uninstaller_opened"))
+                            }
+                        } catch (e: android.content.ActivityNotFoundException) {
+                            result.error("UNINSTALLER_MISSING", "Android uninstall dialog unavailable", null)
+                        } catch (e: Exception) {
+                            result.error("UNINSTALL_FAILED", e.javaClass.simpleName, null)
+                        }
+                    }
+                }
                 "listInstalledExtensions" -> {
                     try {
                         result.success(listInstalledAnimeExtensions())

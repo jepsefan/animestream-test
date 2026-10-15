@@ -43,12 +43,12 @@ internal class ExtensionHostRuntime(private val context: Context) {
     /** Explicit user-triggered discovery. Loading a source executes extension code. */
     fun discover(packageName: String): List<SourceInfo> =
         loadAll(packageName).map { source ->
-            SourceInfo(
-                source.id,
-                source.name,
-                source.lang,
-                (source as? AnimeCatalogueSource)?.supportsLatest ?: false
-            )
+            try {
+                SourceInfo(source.id, source.name, source.lang,
+                    (source as? AnimeCatalogueSource)?.supportsLatest ?: false)
+            } catch (failure: Throwable) {
+                throw ExtensionDiscoveryStageFailure("read_source_metadata", failure)
+            }
         }
 
     fun load(packageName: String, sourceId: Long? = null): Loaded {
@@ -133,12 +133,24 @@ internal class ExtensionHostRuntime(private val context: Context) {
         )
         val sources = entryPoints.flatMap { entry ->
             val name = if (entry.startsWith(".")) packageName + entry else entry
-            val instance = Class.forName(name, true, loader)
-                .getDeclaredConstructor().newInstance()
-            when (instance) {
-                is AnimeSourceFactory -> instance.createSources()
-                is AnimeSource -> listOf(instance)
-                else -> error("Extension entry point does not implement AnimeSource/AnimeSourceFactory: $name")
+            val clazz = try {
+                Class.forName(name, true, loader)
+            } catch (failure: Throwable) {
+                throw ExtensionDiscoveryStageFailure("resolve_entry_point", failure)
+            }
+            val instance = try {
+                clazz.getDeclaredConstructor().newInstance()
+            } catch (failure: Throwable) {
+                throw ExtensionDiscoveryStageFailure("instantiate_extension", failure)
+            }
+            try {
+                when (instance) {
+                    is AnimeSourceFactory -> instance.createSources()
+                    is AnimeSource -> listOf(instance)
+                    else -> error("Entry point does not implement the shared source API")
+                }
+            } catch (failure: Throwable) {
+                throw ExtensionDiscoveryStageFailure("create_sources", failure)
             }
         }.distinctBy { it.id }
         require(sources.isNotEmpty()) { "Extension created no anime sources" }

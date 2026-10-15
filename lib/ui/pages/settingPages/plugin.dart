@@ -411,6 +411,16 @@ class _PluginPageState extends State<PluginPage> {
         'Episode: $name',
         'Status: ${data['status'] ?? 'unknown'}',
         if (data['error'] != null) 'Error: ${data['error']}',
+        if (data['failureStage'] != null)
+          'Failure stage: ${data['failureStage']}',
+        if (data['missingClasses'] is List &&
+            (data['missingClasses'] as List).isNotEmpty)
+          'Missing host/API classes: ${(data['missingClasses'] as List).join(', ')}',
+        if (data['errorTypes'] is List)
+          'Exception chain: ${(data['errorTypes'] as List).join(' -> ')}',
+        if (data['hostFrames'] is List &&
+            (data['hostFrames'] as List).isNotEmpty)
+          'Relevant methods: ${(data['hostFrames'] as List).join(', ')}',
         'Videos found: ${data['videoCount'] ?? videos.length}',
         if (data['diagnosis'] != null)
           'Diagnosis: ${data['diagnosis']}',

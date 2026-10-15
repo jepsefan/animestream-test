@@ -125,9 +125,32 @@ class _AniyomiRepositoriesPageState extends State<AniyomiRepositoriesPage> with 
     );
     if (approved != true || !mounted) return;
     try {
-      await AniyomiExtensionBridge.uninstallExtension(ext.packageName);
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Confirm uninstall in Android')));
+      final status = await AniyomiExtensionBridge.uninstallExtension(ext.packageName);
+      await _refreshInstalled();
+      if (!mounted) return;
+      final stillInstalled = _installed.containsKey(ext.packageName);
+      if (!stillInstalled) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('${ext.name} has been uninstalled')));
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          duration: const Duration(seconds: 9),
+          content: Text(status == 'not_uninstalled'
+              ? 'Extension was not removed. You can open Android app settings.'
+              : 'Android still reports the extension as installed.'),
+          action: SnackBarAction(
+            label: 'App info',
+            onPressed: () async {
+              try {
+                await AniyomiExtensionBridge.openExtensionAppSettings(ext.packageName);
+              } catch (_) {
+                if (mounted) ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Could not open Android app settings')));
+              }
+            },
+          ),
+        ));
+      }
     } catch (error) {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Cannot open uninstaller: ' + error.toString())));

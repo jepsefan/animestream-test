@@ -20,6 +20,14 @@ import uy.kohesive.injekt.api.TypeReference
  */
 internal class ExtensionHostRuntime(private val context: Context) {
     data class Loaded(val source: AnimeSource, val sourceCount: Int)
+    private data class Cached(val versionCode: Long, val updatedAt: Long,
+        val paths: List<String>, val sources: List<AnimeSource>)
+    companion object {
+        private val cache = mutableMapOf<String, Cached>()
+        fun invalidate(packageName: String) {
+            synchronized(cache) { cache.remove(packageName) }
+        }
+    }
     data class SourceInfo(
         val id: Long,
         val name: String,
@@ -51,7 +59,10 @@ internal class ExtensionHostRuntime(private val context: Context) {
         return Loaded(selected, sources.size)
     }
 
-    private fun loadAll(packageName: String): List<AnimeSource> {
+    private fun loadAll(packageName: String): List<AnimeSource> =
+        synchronized(cache) { loadAllLocked(packageName) }
+
+    private fun loadAllLocked(packageName: String): List<AnimeSource> {
         val app = context.applicationContext as? Application
             ?: error("Android application is unavailable")
         val helper = NetworkHelper.initialize(app)
@@ -81,9 +92,27 @@ internal class ExtensionHostRuntime(private val context: Context) {
             .orEmpty().split(';', ',').map { it.trim() }.filter { it.isNotBlank() }
         val factoryEntry = info.metaData?.getString("tachiyomi.animeextension.factory")
             ?.trim()?.takeIf { it.isNotBlank() }
+        val pkgInfo = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            manager.getPackageInfo(packageName, PackageManager.PackageInfoFlags.of(0L))
+        } else {
+            @Suppress("DEPRECATION")
+            manager.getPackageInfo(packageName, 0)
+        }
+        val code = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P)
+            pkgInfo.longVersionCode else {
+                @Suppress("DEPRECATION")
+                pkgInfo.versionCode.toLong()
+            }
+        val paths = listOfNotNull(info.sourceDir) +
+            (info.splitSourceDirs?.toList() ?: emptyList())
+        cache[packageName]?.let { cached ->
+            if (cached.versionCode == code && cached.updatedAt == pkgInfo.lastUpdateTime &&
+                cached.paths == paths) return cached.sources
+        }
+        cache.remove(packageName)
         val entryPoints = (classEntries + listOfNotNull(factoryEntry)).distinct()
         require(entryPoints.isNotEmpty()) { "Extension has no source entry points" }
-        val apkPaths = listOfNotNull(info.sourceDir) + (info.splitSourceDirs?.toList() ?: emptyList())
+        val apkPaths = paths
         require(apkPaths.isNotEmpty()) { "No APK paths for extension" }
         val extensionClasses = mutableSetOf<String>()
         for (apk in apkPaths) {
@@ -113,6 +142,7 @@ internal class ExtensionHostRuntime(private val context: Context) {
             }
         }.distinctBy { it.id }
         require(sources.isNotEmpty()) { "Extension created no anime sources" }
+        cache[packageName] = Cached(code, pkgInfo.lastUpdateTime, paths, sources)
         return sources
     }
 }

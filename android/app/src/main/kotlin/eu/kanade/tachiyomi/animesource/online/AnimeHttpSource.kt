@@ -141,6 +141,21 @@ abstract class AnimeHttpSource : AnimeCatalogueSource {
     override fun fetchEpisodeList(anime: SAnime): Observable<List<SEpisode>> =
         fetch(episodeListRequest(anime), ::episodeListParse)
 
+    // Compatibility hooks required by Anikku's ParsedAnimeHttpSource.
+    protected open fun relatedAnimeListParse(response: Response): List<SAnime> =
+        throw UnsupportedOperationException()
+    protected open fun relatedMangaListParse(response: Response): List<SAnime> =
+        relatedAnimeListParse(response)
+    protected open fun hosterListParse(response: Response): List<Hoster> =
+        throw UnsupportedOperationException()
+
+    protected open fun videoUrlParse(response: Response): String =
+        throw UnsupportedOperationException()
+
+    protected open fun List<Hoster>.sortHosters(): List<Hoster> = this
+    protected open fun List<Video>.sortVideos(): List<Video> = this
+    protected open fun List<Video>.sort(): List<Video> = this
+
     // Legacy Rx API used by the tested Aniyomi extension APKs.
     protected open fun videoListRequest(episode: SEpisode): Request =
         Request.Builder().url(baseUrl + episode.url).headers(headers).build()

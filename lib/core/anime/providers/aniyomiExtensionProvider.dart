@@ -114,7 +114,11 @@ class AniyomiExtensionProvider extends AnimeProvider {
     final response = await AniyomiExtensionBridge.resolveExtensionStreams(
         extension.packageName, episodeId, metadata ?? 'Episode', sourceId: selectedSource?.id);
     if (response['status'] != 'stream_list_completed') {
-      throw StateError('Aniyomi streams: ${response['status']}');
+      final safeError = response['error']?.toString() ?? '';
+      final diagnosis = response['diagnosis']?.toString() ?? '';
+      throw StateError('Aniyomi streams: ${response['status']}'
+          '${safeError.isEmpty ? '' : ' ($safeError)'}'
+          '${diagnosis.isEmpty ? '' : ' [$diagnosis]'}');
     }
     final streams = <VideoStream>[];
     for (final item in ((response['videos'] as List?) ?? const []).whereType<Map>()) {

@@ -262,7 +262,7 @@ class _AniyomiRepositoriesPageState extends State<AniyomiRepositoriesPage> with 
               ListTile(
                 title: Text(repo.host),
                 subtitle: Text(repo.toString(), maxLines: 2),
-                trailing: Wrap(mainAxisSize: MainAxisSize.min, children: [
+                trailing: Row(mainAxisSize: MainAxisSize.min, children: [
                   IconButton(
                     tooltip: 'Load catalog',
                     onPressed: _busy ? null : () => _load(repo),
@@ -360,7 +360,7 @@ class _AniyomiRepositoriesPageState extends State<AniyomiRepositoriesPage> with 
                       ? ' • Installed v' + _installed[entry.packageName]!.version
                       : ''),
                   ),
-                  trailing: Wrap(mainAxisSize: MainAxisSize.min, children: [
+                  trailing: Row(mainAxisSize: MainAxisSize.min, children: [
                     if (_installed[entry.packageName] == null ||
                         _installed[entry.packageName]!.versionCode < entry.versionCode)
                       IconButton(

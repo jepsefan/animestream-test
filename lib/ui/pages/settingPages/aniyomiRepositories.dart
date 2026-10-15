@@ -18,6 +18,7 @@ class _AniyomiRepositoriesPageState extends State<AniyomiRepositoriesPage> with 
   final Map<String, List<AniyomiCatalogEntry>> _catalogs = {};
   final Map<String, String> _errors = {};
   bool _busy = false;
+  bool _loadingCatalogs = true;
   String _search = '';
   String _language = 'all';
   int _section = 2;
@@ -134,8 +135,38 @@ class _AniyomiRepositoriesPageState extends State<AniyomiRepositoriesPage> with 
   }
 
   Future<void> _reload() async {
-    final items = await _manager.repositories();
-    if (mounted) setState(() => _repos = items);
+    if (mounted) setState(() => _loadingCatalogs = true);
+    try {
+      final items = await _manager.repositories();
+      if (!mounted) return;
+      setState(() {
+        _repos = items;
+        _catalogs.removeWhere((key, _) => !items.any((repo) => repo.toString() == key));
+        _errors.clear();
+      });
+
+      // Loading saved URLs is not enough: load their catalog content on every
+      // visit, without requiring the user to tap the repository refresh icon.
+      for (final repo in items) {
+        try {
+          final entries = await _manager.fetchExtensions(repo);
+          if (!mounted) return;
+          setState(() => _catalogs[repo.toString()] = entries);
+        } catch (error) {
+          if (!mounted) return;
+          setState(() {
+            _catalogs.remove(repo.toString());
+            _errors[repo.toString()] = error.toString();
+          });
+        }
+      }
+    } catch (error) {
+      if (mounted) {
+        setState(() => _errors['local'] = 'Cannot read saved repositories: $error');
+      }
+    } finally {
+      if (mounted) setState(() => _loadingCatalogs = false);
+    }
   }
 
   Future<void> _add() async {
@@ -254,6 +285,11 @@ class _AniyomiRepositoriesPageState extends State<AniyomiRepositoriesPage> with 
         const Divider(),
         if (_repos.isEmpty)
           const ListTile(title: Text('No repositories added')),
+        if (_loadingCatalogs)
+          const LinearProgressIndicator(),
+        if (_errors['local'] != null)
+          ListTile(title: const Text('Repository storage error'),
+            subtitle: Text(_errors['local']!)),
         // Repository management stays local and is separate from package removal.
         ExpansionTile(
           title: const Text('Repository management'),
@@ -261,7 +297,7 @@ class _AniyomiRepositoriesPageState extends State<AniyomiRepositoriesPage> with 
             for (final repo in _repos)
               ListTile(
                 title: Text(repo.host),
-                subtitle: Text(repo.toString(), maxLines: 2),
+                subtitle: Text(_errors[repo.toString()] ?? repo.toString(), maxLines: 2),
                 trailing: Row(mainAxisSize: MainAxisSize.min, children: [
                   IconButton(
                     tooltip: 'Load catalog',
@@ -395,8 +431,13 @@ class _AniyomiRepositoriesPageState extends State<AniyomiRepositoriesPage> with 
                   ),
                 ),
             ],
-            if (matching.isEmpty && extraInstalled.isEmpty)
-              const ListTile(title: Text('No matching extensions')),
+            if (matching.isEmpty && extraInstalled.isEmpty && !_loadingCatalogs)
+              ListTile(
+                title: const Text('No matching extensions'),
+                subtitle: Text(_catalogs.isEmpty
+                  ? 'No catalogs loaded. Check repository management for errors.'
+                  : 'Try another tab, language or search term.'),
+              ),
           ]);
         }),
         const SizedBox(height: 12),

@@ -92,27 +92,7 @@ internal class ExtensionEpisodeProbe(private val context: Context) {
         return try {
             performStreams(packageName, episodeUrl, episodeName, sourceId = sourceId)
         } catch (error: Throwable) {
-            val errors = mutableListOf<String>()
-            val seen = java.util.Collections.newSetFromMap(
-                java.util.IdentityHashMap<Throwable, Boolean>()
-            )
-            var throwable: Throwable? = error
-            while (throwable != null && seen.add(throwable) && errors.size < 8) {
-                // Messages from extractors can contain signed media URLs.
-                errors.add(throwable.javaClass.simpleName)
-                throwable = if (throwable is java.lang.reflect.InvocationTargetException) {
-                    throwable.targetException ?: throwable.cause
-                } else throwable.cause
-            }
-            mapOf(
-                "status" to "stream_list_failed",
-                "errorTypes" to errors,
-                "error" to errors.joinToString(" -> "),
-                "safeRequestSummary" to summarizeStreamRequests(
-                    eu.kanade.tachiyomi.network.NetworkHelper
-                        .requireInstance().streamRequestDiagnostics()
-                )
-            )
+            ExtensionLinkageDiagnostics.describe(error)
         }
     }
 
@@ -130,12 +110,7 @@ internal class ExtensionEpisodeProbe(private val context: Context) {
         return try {
             performStreams(packageName, episodeUrl, episodeName, sourceId = sourceId, forPlayback = true)
         } catch (error: Throwable) {
-            mapOf(
-                "status" to "stream_list_failed",
-                "error" to (error.cause ?: error).javaClass.simpleName,
-                "errorTypes" to generateSequence(error as Throwable?) { it.cause }
-                    .take(5).map { it.javaClass.simpleName }.toList()
-            )
+            ExtensionLinkageDiagnostics.describe(error)
         }
     }
 
@@ -158,7 +133,11 @@ internal class ExtensionEpisodeProbe(private val context: Context) {
                 override val type: java.lang.reflect.Type = Json::class.java
             }, Json { ignoreUnknownKeys = true; explicitNulls = false })
         }
-        val source = ExtensionHostRuntime(context).load(packageName, sourceId).source
+        val source = try {
+            ExtensionHostRuntime(context).load(packageName, sourceId).source
+        } catch (failure: Throwable) {
+            throw ExtensionStreamStageFailure("load_source", failure)
+        }
         val episode = eu.kanade.tachiyomi.animesource.model.SEpisode.create().apply {
             url = episodeUrl
             name = episodeName
@@ -166,7 +145,11 @@ internal class ExtensionEpisodeProbe(private val context: Context) {
         // One opt-in test. Observe cache hits as well as network requests.
         helper.beginStreamDiagnostics()
         val videos = try {
-            ExtensionSourceCalls.videos(source, episode)
+            try {
+                ExtensionSourceCalls.videos(source, episode)
+            } catch (failure: Throwable) {
+                throw ExtensionStreamStageFailure("resolve_videos", failure)
+            }
         } finally {
             helper.endStreamDiagnostics()
         }

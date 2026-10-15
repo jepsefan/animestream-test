@@ -99,7 +99,8 @@ class _PluginPageState extends State<PluginPage> {
         SnackBar(content: Text('Sources from ${ext.name} are now in the source list')));
     } catch (error) {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Source discovery failed: ${error.runtimeType}')));
+        SnackBar(duration: const Duration(seconds: 12),
+          content: Text('Source discovery failed: $error')));
     } finally {
       if (mounted) setState(() => _busyId = null);
     }

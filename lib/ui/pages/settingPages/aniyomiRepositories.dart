@@ -353,7 +353,7 @@ class _AniyomiRepositoriesPageState extends State<AniyomiRepositoriesPage> with 
             if (_section == 0 && installed == null) return false;
             if (_section == 1 &&
                 (installed == null || installed.versionCode >= entry.versionCode)) return false;
-            if (_section == 2 && installed != null) return false;
+            // Browse includes both installed and available extensions.
             if (_language != 'all' && entry.language != _language) return false;
             return (entry.name + entry.packageName + entry.language)
                 .toLowerCase().contains(_search);

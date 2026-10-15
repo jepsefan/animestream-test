@@ -7,6 +7,7 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.ExecutionException
+import eu.kanade.tachiyomi.animesource.online.AnimeHttpSource
 
 /**
  * Version-neutral calls: modern suspend API first, legacy RxJava as fallback.
@@ -58,28 +59,49 @@ internal object ExtensionSourceCalls {
         }
         if (hosters != null) {
             val collected = mutableListOf<Video>()
-            // An empty hoster list is meaningful and must not use a different API.
+            var lastFailure: Throwable? = null
+            // A single unavailable hoster must not hide working alternatives.
             for (hoster in hosters.take(30)) {
-                val predefined = hoster.videoList
-                if (predefined != null) {
-                    collected.addAll(predefined)
-                } else {
-                    collected.addAll(runBlocking {
+                try {
+                    val offered = hoster.videoList ?: runBlocking {
                         withTimeout(WAIT_MS) { source.getVideoList(hoster) }
-                    })
+                    }
+                    collected.addAll(offered)
+                } catch (failure: Throwable) {
+                    lastFailure = failure
                 }
             }
-            return collected.distinctBy { it.videoUrl to it.videoTitle }
+            if (collected.isEmpty() && lastFailure != null) throw lastFailure
+            return resolveLazyVideos(source, collected)
         }
 
         // Extensions-lib 1.5+ direct coroutine API.
-        return try {
+        val direct = try {
             runBlocking { withTimeout(WAIT_MS) { source.getVideoList(episode) } }
         } catch (e: Throwable) {
             if (!unsupported(e)) throw e
-            // Legacy extensions-lib RxJava API.
             source.fetchVideoList(episode).toBlocking()
                 .toFuture().get(WAIT_MS, TimeUnit.MILLISECONDS)
         }
+        return resolveLazyVideos(source, direct)
     }
+    private fun resolveLazyVideos(source: AnimeSource, videos: List<Video>): List<Video> {
+        val httpSource = source as? AnimeHttpSource ?: return videos
+        return videos.mapNotNull { video ->
+            // Already-playable streams must never be re-fetched. Some legacy
+            // extractors return "null" as a placeholder for unresolved URLs.
+            val candidate = video.videoUrl.trim()
+            if (candidate.startsWith("http://", true) ||
+                candidate.startsWith("https://", true)) return@mapNotNull video
+            try {
+                runBlocking { withTimeout(WAIT_MS) { httpSource.resolveVideo(video) } }
+                    ?: video
+            } catch (_: Throwable) {
+                // Do not discard original candidates; diagnostics can still
+                // report that the hoster returned no playable stream.
+                video
+            }
+        }.distinctBy { it.videoUrl to it.videoTitle }
+    }
+
 }

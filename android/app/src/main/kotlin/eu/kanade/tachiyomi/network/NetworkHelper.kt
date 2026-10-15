@@ -159,8 +159,11 @@ class NetworkHelper(private val application: Application) {
         "Mozilla/5.0 (Linux; Android 13) AppleWebKit/537.36 " +
             "(KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36"
 
+    val cookieJar: AndroidCookieJar by lazy { AndroidCookieJar() }
+
     val client: OkHttpClient by lazy {
         OkHttpClient.Builder()
+            .cookieJar(cookieJar)
             .connectTimeout(30, TimeUnit.SECONDS)
             .readTimeout(30, TimeUnit.SECONDS)
             .callTimeout(2, TimeUnit.MINUTES)

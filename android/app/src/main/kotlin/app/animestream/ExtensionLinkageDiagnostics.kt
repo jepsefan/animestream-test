@@ -10,6 +10,11 @@ internal class ExtensionStreamStageFailure(
     cause: Throwable
 ) : RuntimeException(cause)
 
+internal class ExtensionDiscoveryStageFailure(
+    val stageName: String,
+    cause: Throwable
+) : RuntimeException(cause)
+
 internal object ExtensionLinkageDiagnostics {
     private val allowedPrefixes = listOf(
         "eu.kanade.", "keiyoushi.", "kotlin.", "kotlinx.", "java.",
@@ -27,7 +32,12 @@ internal object ExtensionLinkageDiagnostics {
         return cleaned
     }
 
-    fun describe(error: Throwable): Map<String, Any?> {
+    fun describe(error: Throwable): Map<String, Any?> = describeInternal(error, false)
+
+    fun describeDiscovery(error: Throwable): Map<String, Any?> =
+        describeInternal(error, true)
+
+    private fun describeInternal(error: Throwable, discovery: Boolean): Map<String, Any?> {
         val chain = mutableListOf<Throwable>()
         val seen = java.util.Collections.newSetFromMap(
             java.util.IdentityHashMap<Throwable, Boolean>()
@@ -56,8 +66,10 @@ internal object ExtensionLinkageDiagnostics {
             }
         }
 
-        val stage = chain.filterIsInstance<ExtensionStreamStageFailure>()
-            .firstOrNull()?.stageName ?: "unknown"
+        val stage = if (discovery)
+            chain.filterIsInstance<ExtensionDiscoveryStageFailure>().firstOrNull()?.stageName
+        else
+            chain.filterIsInstance<ExtensionStreamStageFailure>().firstOrNull()?.stageName
         val frames = chain.asSequence().flatMap { it.stackTrace.asSequence() }
             .filter { frame ->
                 frame.className.startsWith("eu.kanade.") ||
@@ -68,10 +80,19 @@ internal object ExtensionLinkageDiagnostics {
             .distinct().take(6).toList()
 
         return mapOf(
-            "status" to "stream_list_failed",
+            "status" to if (discovery) "failed" else "stream_list_failed",
+            "errorType" to (chain.firstOrNull { it !is ExtensionDiscoveryStageFailure &&
+                it !is ExtensionStreamStageFailure }
+                ?.javaClass?.simpleName ?: "UnknownError"),
+            "failureCategory" to if (chain.any { it is LinkageError ||
+                it is ClassNotFoundException }) "linkage"
+                else if (chain.any { it is java.lang.reflect.InvocationTargetException })
+                    "extension_constructor"
+                else if (chain.any { it is IllegalStateException })
+                    "invalid_source_state" else "extension_runtime",
             "errorTypes" to chain.map { it.javaClass.simpleName },
             "missingClasses" to missing.toList().take(8),
-            "failureStage" to stage,
+            "failureStage" to (stage ?: "unknown"),
             "hostFrames" to frames
         )
     }

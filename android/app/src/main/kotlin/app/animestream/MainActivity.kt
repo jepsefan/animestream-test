@@ -119,6 +119,29 @@ class MainActivity: FlutterActivity() {
                         }
                     }
                 }
+                "listExtensionSourcePreferences", "updateExtensionSourcePreference" -> {
+                    val pkg = call.argument<String>("packageName")
+                    val sourceId = call.argument<Number>("sourceId")?.toLong()
+                    if (pkg.isNullOrBlank() || sourceId == null ||
+                        listInstalledAnimeExtensions().none { it["packageName"] == pkg }) {
+                        result.error("INVALID_SOURCE", "Select an installed extension source", null)
+                    } else {
+                        Thread {
+                            val response = try {
+                                val host = ExtensionSourcePreferences(this)
+                                if (call.method == "listExtensionSourcePreferences")
+                                    host.list(pkg, sourceId)
+                                else
+                                    host.change(pkg, sourceId,
+                                        call.argument<String>("key").orEmpty(),
+                                        call.argument<Any>("value"))
+                            } catch (e: Throwable) {
+                                ExtensionLinkageDiagnostics.describeDiscovery(e)
+                            }
+                            runOnUiThread { result.success(response) }
+                        }.start()
+                    }
+                }
                 "discoverExtensionSources" -> {
                     val pkg = call.argument<String>("packageName")
                     if (pkg.isNullOrBlank()) {

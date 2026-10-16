@@ -1,6 +1,13 @@
 # AnimeStream — Latest three beta releases
 
-The complete development history is in [CHANGELOG.md](CHANGELOG.md). Notes below reflect the current beta34.44 development branch.
+The complete development history is in [CHANGELOG.md](CHANGELOG.md). Notes below reflect the current beta34.45 development branch.
+
+## v1.4.9-beta34.45 — AnimeOnsen extension 403 search fallback
+- Detect HTTP 403 on the installed AnimeOnsen extension's Meilisearch endpoint, and only in that case search using the already-working built-in AnimeOnsen v4 API.
+- Preserve title identity via the shared AnimeOnsen content ID, then continue episode retrieval, video resolution and subtitle handling in AnimeOnsen [Ext].
+- Show fallback status in Manage Providers diagnostics, without exposing tokens.
+- Built-in AnimeOnsen and other extensions unchanged. **Not yet build/device verified.**
+- Keep deferred non-Latin subtitle glyph issue unchanged.
 
 ## v1.4.9-beta34.44 — Configure extension source preferences
 - **Source settings** in Manage Providers for approved `[Ext]` sources, using each extension's own declared settings.
@@ -8,18 +15,6 @@ The complete development history is in [CHANGELOG.md](CHANGELOG.md). Notes below
 - Animenosub's declared video quality, SUB/RAW and preferred video server options are primary test cases.
 - Does not change the player, subtitle renderer or external audio playback.
 - **Not yet built or device-tested.** Beta34.43 remains the latest version with user-confirmed playback.
-
-## v1.4.9-beta34.43 — External extension audio metadata
-- Preserve external audio track URLs, language and labels from Anikku extensions into AnimeStream's playback-only stream data.
-- Show counts of external subtitle and audio tracks in the server selector.
-- External standalone audio tracks are **not yet selectable or playable** through Better Player. HLS/internal player track selection is unchanged.
-- **User-confirmed on-device:** AnimeOnsen [Ext] plays video in beta34.43 and 9 subtitle tracks are displayed. This confirms track discovery, not that every individual track was rendered or selected. Other extension regression tests remain open.
-
-## v1.4.9-beta34.42 — Hoster and lazy video support
-- Add the Anikku-compatible `resolveVideo(Video)` hook for extension implementations resolving a playable URL at a later stage.
-- Continue trying remaining hosters if an individual hoster fails; leave valid HTTP/HTTPS streams unchanged.
-- Preserve subtitle and audio metadata from returned video objects.
-- **User confirmed video playback working in beta34.42.**
 
 ### Known limitations
 - Some non-Latin subtitles (possibly Arabic) appear as squares with crosses; logged and deliberately deferred per user request.

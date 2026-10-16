@@ -85,21 +85,53 @@ internal object ExtensionSourceCalls {
         }
         return resolveLazyVideos(source, direct)
     }
+    /** Validate URL shapes without returning or logging potentially signed links. */
+    private fun isPlayableHttpUrl(value: String): Boolean {
+        val uri = try { android.net.Uri.parse(value.trim()) } catch (_: Exception) { null }
+        return uri != null &&
+            uri.scheme?.lowercase() in setOf("http", "https") &&
+            !uri.host.isNullOrBlank()
+    }
+
+    /**
+     * Different extensions resolve lazy links in different ways:
+     * 1) extensions-lib 1.6: resolveVideo(Video) -> Video?
+     * 2) legacy extensions: getVideoUrl(Video) -> String using videoPageUrl
+     *
+     * Neither path should touch a video that already supplies a playable URL.
+     * If the legacy resolver succeeds, copy rather than reconstructing Video so
+     * subtitle/audio tracks, headers, title and quality metadata are retained.
+     */
     private fun resolveLazyVideos(source: AnimeSource, videos: List<Video>): List<Video> {
         val httpSource = source as? AnimeHttpSource ?: return videos
-        return videos.mapNotNull { video ->
-            // Already-playable streams must never be re-fetched. Some legacy
-            // extractors return "null" as a placeholder for unresolved URLs.
-            val candidate = video.videoUrl.trim()
-            if (candidate.startsWith("http://", true) ||
-                candidate.startsWith("https://", true)) return@mapNotNull video
-            try {
-                runBlocking { withTimeout(WAIT_MS) { httpSource.resolveVideo(video) } }
-                    ?: video
+        return videos.map { original ->
+            if (isPlayableHttpUrl(original.videoUrl)) return@map original
+
+            val modern = try {
+                runBlocking {
+                    withTimeout(WAIT_MS) { httpSource.resolveVideo(original) }
+                } ?: original
             } catch (_: Throwable) {
-                // Do not discard original candidates; diagnostics can still
-                // report that the hoster returned no playable stream.
-                video
+                original
+            }
+
+            if (isPlayableHttpUrl(modern.videoUrl) ||
+                !isPlayableHttpUrl(modern.videoPageUrl)) {
+                return@map modern
+            }
+
+            val resolvedUrl = try {
+                runBlocking {
+                    withTimeout(WAIT_MS) { httpSource.getVideoUrl(modern) }
+                }
+            } catch (_: Throwable) {
+                null
+            }
+
+            if (resolvedUrl != null && isPlayableHttpUrl(resolvedUrl)) {
+                modern.copy(videoUrl = resolvedUrl.trim())
+            } else {
+                modern
             }
         }.distinctBy { it.videoUrl to it.videoTitle }
     }

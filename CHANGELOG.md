@@ -2,6 +2,13 @@
 
 Complete development history. Published GitHub Releases use the concise [RELEASE_NOTES.md](RELEASE_NOTES.md) for the latest three beta versions. Older entries remain here for reference.
 
+## v1.4.9-beta34.50 — Yūzōnō multi-select preferences
+- Add generic `MultiSelectListPreference` support to the installed-extension Host API bridge and settings UI, including checkbox lists and Save/Cancel.
+- Reject unknown values and oversized selections; persist validated string sets using the extension's existing per-source preference screen.
+- Targets AniWaves.ru's source-declared **Exclude Servers** and **Exclude Types**, while remaining usable by other compatible Anikku extensions.
+- AnimeOnsen fallback search, player, subtitles and working Animenosub integration remain unchanged.
+- Version `1.4.9-beta34.50+61`. **Build/device tests pending.**
+
 ## v1.4.9-beta34.49 — Manual extension match and artwork integration
 - Both manual source dialogs now save a confirmed [Ext] match after loading episodes, so reopening the same AniList series can reuse that source alias.
 - Keep source-specific artwork for selected matches and prefer per-episode previews where available in episode cards, otherwise falling back to the source cover and AniList cover.

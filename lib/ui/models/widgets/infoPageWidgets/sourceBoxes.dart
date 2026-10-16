@@ -267,12 +267,18 @@ class SourceSideWidget extends StatelessWidget {
                                 },
                               ).then((result) async {
                                 if (result == null) return;
-                                provider.epSearcherror = false;
-                                provider.foundName = null;
-                                final links = await SourceManager.instance.getAnimeEpisodes(provider.selectedSource.identifier, result['alias']);
-
-                                provider.paginate(links);
-                                provider.foundName = result['name'];
+                          provider.epSearcherror = false;
+                          provider.foundName = null;
+                          try {
+                            await provider.applyManualSourceSelection(
+                                Map<String, String?>.from(result as Map));
+                          } catch (error) {
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text('Could not load selection: ${error.runtimeType}')),
+                              );
+                            }
+                          }
                               });
                             },
                             icon: Icon(
@@ -602,10 +608,16 @@ class SourceBodyWidget extends StatelessWidget {
                           if (result == null) return;
                           provider.epSearcherror = false;
                           provider.foundName = null;
-                          final links = await SourceManager.instance.getAnimeEpisodes(provider.selectedSource.identifier, result['alias']);
-
-                          provider.paginate(links);
-                          provider.foundName = result['name'];
+                          try {
+                            await provider.applyManualSourceSelection(
+                                Map<String, String?>.from(result as Map));
+                          } catch (error) {
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text('Could not load selection: ${error.runtimeType}')),
+                              );
+                            }
+                          }
                         });
                       },
                       icon: Icon(

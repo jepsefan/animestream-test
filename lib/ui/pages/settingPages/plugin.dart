@@ -362,6 +362,10 @@ class _PluginPageState extends State<PluginPage> {
       }).join('\n');
       final summary = <String>[
         'Status: ${data['status'] ?? 'unknown'}',
+        if (data['fallbackUsed'] == true)
+          'Search fallback: built-in AnimeOnsen API (extension returned 403)',
+        if (data['fallbackStatus'] != null)
+          'Fallback: ${data['fallbackStatus']} (${data['fallbackErrorType'] ?? 'unknown'})',
         if (data['error'] != null) 'Error: ${data['error']}',
         if (data['warning'] != null) 'Warning: ${data['warning']}',
         if (data['titleMatchCount'] != null)

@@ -33,6 +33,12 @@ class InfoProvider extends ChangeNotifier {
   String? _foundName;
   String? _manualSearchQuery;
   Map<String, String> _extensionSelections = {};
+  final Set<String> _attemptedSavedExtensionLinks = {};
+  String? _extensionLookupStage;
+  String? _extensionEpisodeDiagnostic;
+
+  /// Safe diagnostic stages without video URLs, headers or credentials.
+  String? get extensionEpisodeDiagnostic => _extensionEpisodeDiagnostic;
   String? _extensionCover;
 
   /// Artwork from the confirmed extension match, only for [Ext] sources.
@@ -383,22 +389,34 @@ class InfoProvider extends ChangeNotifier {
     final sourceId = selectedSource.identifier;
     if (AniyomiExtensionProvider.isExtensionId(sourceId)) {
       final saved = _extensionSelections[sourceId];
-      if (saved != null && saved.isNotEmpty) {
-        final links = await sourceManager.getAnimeEpisodes(sourceId, saved);
-        if (links.isNotEmpty) {
-          paginate(links);
-          _foundName = saved.split('\u001f').last;
-          notifyListeners();
-          return;
+      if (saved != null && saved.isNotEmpty &&
+          _attemptedSavedExtensionLinks.add(sourceId)) {
+        _extensionLookupStage = 'saved_episode_link';
+        try {
+          final links = await sourceManager.getAnimeEpisodes(sourceId, saved);
+          if (links.isNotEmpty) {
+            paginate(links);
+            _foundName = saved.split('\u001f').last;
+            _extensionEpisodeDiagnostic = null;
+            notifyListeners();
+            return;
+          }
+        } catch (error) {
+          // Do not print third-party exception text; URLs can contain tokens.
+          Logs.app.log(
+            'Saved extension episode link failed: ${error.runtimeType}');
         }
+        // A stale source URL must never block trying fresh search results.
       }
     }
 
+    _extensionLookupStage = 'source_search';
     final results = await sourceManager.searchInSource(sourceId, query);
     if (results.isEmpty) {
       throw StateError('No results from ${selectedSource.name}');
     }
 
+    _extensionLookupStage = 'title_matching';
     Map<String, String?> selected;
     if (AniyomiExtensionProvider.isExtensionId(sourceId)) {
       // Only use exact title aliases from the current AniList series.
@@ -445,7 +463,12 @@ class InfoProvider extends ChangeNotifier {
     }
     final alias = selected['alias'];
     if (alias == null || alias.isEmpty) throw StateError('Source URL not found');
+    _extensionLookupStage = 'episode_fetch';
     final links = await sourceManager.getAnimeEpisodes(sourceId, alias);
+    if (links.isEmpty) {
+      throw StateError('No episodes for selected source result');
+    }
+    _extensionEpisodeDiagnostic = null;
     _extensionCover = AniyomiExtensionProvider.isExtensionId(sourceId)
         ? _validExtensionImage(selected['imageUrl']) : null;
     paginate(links);
@@ -497,6 +520,9 @@ class InfoProvider extends ChangeNotifier {
   Future<void> getEpisodes() async {
     _foundName = null;
     _epSearcherror = false;
+    _extensionEpisodeDiagnostic = null;
+    _extensionLookupStage = null;
+    _attemptedSavedExtensionLinks.clear();
     // Never display episodes from the previous provider while a new source loads.
     paginate([]);
     notifyListeners();
@@ -544,19 +570,33 @@ class InfoProvider extends ChangeNotifier {
       // Keep this bounded. A source may return unfiltered listings for some
       // searches; the _search method still verifies AniList identity/season.
       var attempts = 0;
+      final failedStages = <String, int>{};
+      String? lastErrorType;
       for (final title in titles) {
         if (attempts++ >= 16) break;
         try {
           await _search(title);
           if (_epLinks.isNotEmpty) {
+            _extensionEpisodeDiagnostic = null;
             notifyListeners();
             return;
           }
         } catch (error) {
+          final stage = _extensionLookupStage ?? 'unknown';
+          failedStages[stage] = (failedStages[stage] ?? 0) + 1;
+          lastErrorType = error.runtimeType.toString();
           Logs.app.log(
-              'Aniyomi source search attempt $attempts failed: ${error.runtimeType}');
+              'Aniyomi attempt $attempts failed at $stage: ${error.runtimeType}');
         }
       }
+      final orderedStages = failedStages.entries.toList()
+        ..sort((a, b) => b.value.compareTo(a.value));
+      final summary = orderedStages.isNotEmpty
+          ? orderedStages.map((e) => '${e.key}=${e.value}').join(', ')
+          : 'no_matching_results';
+      _extensionEpisodeDiagnostic =
+          'No episodes after $attempts searches; stages: $summary; '
+          'last error: ${lastErrorType ?? 'none'}. Use Manual Search.';
       // A missing catalog entry is not a network/decoder failure. The user
       // can still choose a result explicitly via the Manual Search sheet.
       _epSearcherror = true;

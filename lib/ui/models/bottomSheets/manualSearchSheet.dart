@@ -26,6 +26,7 @@ class _ManualSearchSheetState extends State<ManualSearchSheet> {
   TextEditingController searchBarController = TextEditingController();
   FocusNode searchBarFocusNode = FocusNode();
   bool searching = false;
+  String? searchFailureType;
   List<Widget> searchResults = [];
 
   Future<void> search(String searchTerm) async {
@@ -33,6 +34,7 @@ class _ManualSearchSheetState extends State<ManualSearchSheet> {
       setState(() {
         searchResults = [];
         searching = true;
+        searchFailureType = null;
       });
     try {
       var res = await SourceManager.instance.searchInSource(widget.source, searchTerm);
@@ -94,7 +96,8 @@ class _ManualSearchSheetState extends State<ManualSearchSheet> {
         );
       }
     } catch (err) {
-      print(err);
+      // Do not expose signed URLs or headers from a third-party error.
+      searchFailureType = err.runtimeType.toString();
     }
     if (mounted)
       setState(() {
@@ -156,7 +159,9 @@ class _ManualSearchSheetState extends State<ManualSearchSheet> {
                   : searchResults.isEmpty
                       ? Center(
                           child: Text(
-                            "No Results!",
+                            searchFailureType == null
+                                ? "No Results!"
+                                : "Source search failed ($searchFailureType)",
                             style: TextStyle(
                               color: appTheme.textMainColor,
                               fontFamily: "NunitoSans",

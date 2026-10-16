@@ -14,7 +14,8 @@ class SourceSideWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    String sourceMatchString = "Searching... ";
+    String sourceMatchString = provider.extensionEpisodeDiagnostic ??
+        "Searching... ";
     IconData statusIcon;
     Color statusColor;
 
@@ -356,7 +357,8 @@ class SourceBodyWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     // ignore: unused_local_variable cus it is used!
-    String sourceMatchString = "Searching... ";
+    String sourceMatchString = provider.extensionEpisodeDiagnostic ??
+        "Searching... ";
     IconData statusIcon;
     Color statusColor;
 

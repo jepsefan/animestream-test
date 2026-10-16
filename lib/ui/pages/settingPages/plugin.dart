@@ -212,8 +212,22 @@ class _PluginPageState extends State<PluginPage> {
           ext.packageName, sourceId);
       if (!mounted) return;
       if (response['status'] != 'ok') {
+        // Linkage diagnostics are sanitized on Android: no URLs or tokens.
+        final reason = [
+          (response['status'] ?? 'unknown').toString(),
+          if (response['failureStage'] != null)
+            'stage: ${response['failureStage']}',
+          if (response['errorType'] != null)
+            'error: ${response['errorType']}',
+          if (response['failureCategory'] != null)
+            'category: ${response['failureCategory']}',
+          if ((response['missingClasses'] as List?)?.isNotEmpty == true)
+            'missing classes: ${(response['missingClasses'] as List).join(', ')}',
+        ].join(' • ');
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text('Source settings: ${response['status']}')));
+          duration: const Duration(seconds: 12),
+          content: Text('Source settings: $reason'),
+        ));
         return;
       }
       final items = ((response['preferences'] as List?) ?? const [])

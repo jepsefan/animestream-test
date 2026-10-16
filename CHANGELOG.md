@@ -2,6 +2,13 @@
 
 Complete development history. Published GitHub Releases use the concise [RELEASE_NOTES.md](RELEASE_NOTES.md) for the latest three beta versions. Older entries remain here for reference.
 
+## v1.4.9-beta34.51 — Extension episode recovery and safe diagnostics
+- Attempt each saved [Ext] source episode link at most once per page load. If it fails or returns no episodes, continue ordinary search instead of repeating the same stale link for every title variant.
+- Track bounded extension search, title-match and episode-fetch failure stages without exposing source URLs, request headers or tokens.
+- Show a clear manual-search failure type instead of silently reporting “No Results” on network/runtime errors.
+- Report safe source-preference error category, stage and missing Host API class identifiers when available.
+- No player, subtitle renderer or AnimeOnsen search fallback changes. Version `1.4.9-beta34.51+62`. Build and device testing pending.
+
 ## v1.4.9-beta34.50 — Yūzōnō multi-select preferences
 - Add generic `MultiSelectListPreference` support to the installed-extension Host API bridge and settings UI, including checkbox lists and Save/Cancel.
 - Reject unknown values and oversized selections; persist validated string sets using the extension's existing per-source preference screen.

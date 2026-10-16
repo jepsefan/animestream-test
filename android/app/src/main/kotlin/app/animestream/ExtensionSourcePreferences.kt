@@ -24,14 +24,23 @@ internal class ExtensionSourcePreferences(private val context: Context) {
     )
 
     private fun setup(packageName: String, sourceId: Long): Setup {
-        val loaded = ExtensionHostRuntime(context).load(packageName, sourceId).source
+        val loaded = try {
+            ExtensionHostRuntime(context).load(packageName, sourceId).source
+        } catch (error: Throwable) {
+            throw ExtensionDiscoveryStageFailure("settings_load_source", error)
+        }
         val configurable = loaded as? ConfigurableAnimeSource
             ?: throw IllegalArgumentException("Source does not support settings")
-        val manager = PreferenceManager(context)
-        // Match ConfigurableAnimeSource.preferenceKey() from the shared host API.
-        manager.sharedPreferencesName = "source_${loaded.id}"
-        val screen = manager.createPreferenceScreen(context)
-        configurable.setupPreferenceScreen(screen)
+        val screen = try {
+            val manager = PreferenceManager(context)
+            // Match ConfigurableAnimeSource.preferenceKey() from the shared host API.
+            manager.sharedPreferencesName = "source_${loaded.id}"
+            val prepared = manager.createPreferenceScreen(context)
+            configurable.setupPreferenceScreen(prepared)
+            prepared
+        } catch (error: Throwable) {
+            throw ExtensionDiscoveryStageFailure("settings_build_screen", error)
+        }
         return Setup(configurable, screen)
     }
 

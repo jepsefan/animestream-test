@@ -74,6 +74,19 @@ class _SourceTileState extends State<SourceTile> {
                         color: appTheme.textSubColor,
                       ),
                     ),
+                    if (widget.source.subtitleTracks.isNotEmpty ||
+                        widget.source.externalAudioTracks.isNotEmpty) ...[
+                      SizedBox(height: 4),
+                      Text(
+                        [
+                          if (widget.source.subtitleTracks.isNotEmpty)
+                            '${widget.source.subtitleTracks.length} subtitles',
+                          if (widget.source.externalAudioTracks.isNotEmpty)
+                            '${widget.source.externalAudioTracks.length} external audio (metadata)',
+                        ].join(' • '),
+                        style: TextStyle(fontSize: 12, color: appTheme.textSubColor),
+                      ),
+                    ],
                   ],
                 ),
               ),

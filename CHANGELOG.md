@@ -2,6 +2,13 @@
 
 Complete development history. Published GitHub Releases use the concise [RELEASE_NOTES.md](RELEASE_NOTES.md) for the latest three beta versions. Older entries remain here for reference.
 
+## v1.4.9-beta34.45 — AnimeOnsen extension 403 search fallback
+- Detect HTTP 403 on the installed AnimeOnsen extension's Meilisearch endpoint, and only in that case search using the already-working built-in AnimeOnsen v4 API.
+- Preserve title identity via the shared AnimeOnsen content ID, then continue episode retrieval, video resolution and subtitle handling in AnimeOnsen [Ext].
+- Show fallback status in Manage Providers diagnostics, without exposing tokens.
+- Built-in AnimeOnsen and other extensions unchanged. **Not yet build/device verified.**
+- Keep deferred non-Latin subtitle glyph issue unchanged.
+
 ## v1.4.9-beta34.44 — Extension source settings (list/switch)
 - Expose source-defined preferences through the shared native `ConfigurableAnimeSource.setupPreferenceScreen` API, not per-site hardcoding.
 - Add **Source settings** on enabled `[Ext]` providers in Manage Providers. List values and toggles are validated and saved to source-specific SharedPreferences.

@@ -143,7 +143,7 @@ class InfoPageEpisodeGrid extends StatelessWidget {
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(8),
                   child: Image.network(
-                    provider.data.cover,
+                    provider.extensionCover ?? provider.data.cover,
                     fit: BoxFit.cover,
                     color: hovered.value ? Colors.black.withAlpha(100) : null,
                     colorBlendMode: BlendMode.darken,
@@ -196,7 +196,8 @@ class InfoPageEpisodeGrid extends StatelessWidget {
   Widget _episodeTileDesktop(ValueNotifier<bool> hovered, int index, BuildContext context) {
     final episode = provider.visibleEpList[provider.currentPageIndex][index]['epLink'] as EpisodeDetails;
     final episodeNumber = episode.episodeNumber;
-    final thumbnail = episode.thumbnail ?? provider.data.cover;
+    final thumbnail = (episode.thumbnail?.isNotEmpty == true
+            ? episode.thumbnail : null) ?? provider.extensionCover ?? provider.data.cover;
     final title = episode.episodeTitle != null && episode.episodeTitle!.isNotEmpty
         ? "$episodeNumber: ${episode.episodeTitle}"
         : 'Episode $episodeNumber';

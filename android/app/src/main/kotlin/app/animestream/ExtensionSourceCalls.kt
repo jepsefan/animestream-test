@@ -94,6 +94,35 @@ internal object ExtensionSourceCalls {
     }
 
     /**
+     * Check for an extension-provided legacy resolver before issuing another
+     * HTTP request. AnimeHttpSource has a default fetchVideoUrl, and the
+     * shared ParsedAnimeHttpSource has a default HTML parser: neither proves
+     * that the installed extension can actually resolve a video page.
+     */
+    private fun supportsLegacyVideoUrl(source: AnimeHttpSource): Boolean {
+        var type: Class<*>? = source.javaClass
+        while (type != null && type != AnimeHttpSource::class.java) {
+            if (type != eu.kanade.tachiyomi.animesource.online.ParsedAnimeHttpSource::class.java &&
+                type.declaredMethods.any { method ->
+                    val parameters = method.parameterTypes
+                    when (method.name) {
+                        "getVideoUrl" ->
+                            parameters.size == 2 && parameters[0] == Video::class.java
+                        "fetchVideoUrl" ->
+                            parameters.size == 1 && parameters[0] == Video::class.java
+                        "videoUrlParse" ->
+                            parameters.size == 1 &&
+                            (parameters[0] == okhttp3.Response::class.java ||
+                                parameters[0] == org.jsoup.nodes.Document::class.java)
+                        else -> false
+                    }
+                }) return true
+            type = type.superclass
+        }
+        return false
+    }
+
+    /**
      * Different extensions resolve lazy links in different ways:
      * 1) extensions-lib 1.6: resolveVideo(Video) -> Video?
      * 2) legacy extensions: getVideoUrl(Video) -> String using videoPageUrl
@@ -104,6 +133,7 @@ internal object ExtensionSourceCalls {
      */
     private fun resolveLazyVideos(source: AnimeSource, videos: List<Video>): List<Video> {
         val httpSource = source as? AnimeHttpSource ?: return videos
+        val hasLegacyResolver = supportsLegacyVideoUrl(httpSource)
         return videos.map { original ->
             if (isPlayableHttpUrl(original.videoUrl)) return@map original
 
@@ -116,7 +146,7 @@ internal object ExtensionSourceCalls {
             }
 
             if (isPlayableHttpUrl(modern.videoUrl) ||
-                !isPlayableHttpUrl(modern.videoPageUrl)) {
+                !hasLegacyResolver || !isPlayableHttpUrl(modern.videoPageUrl)) {
                 return@map modern
             }
 

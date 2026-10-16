@@ -188,6 +188,23 @@ internal class ExtensionEpisodeProbe(private val context: Context) {
                         "label" to language
                     )
                 }
+                // External audio is metadata for now; audio-only URLs cannot
+                // be attached to an unrelated video using BetterPlayer's HLS
+                // audio selector. Keep all supported tracks for a future
+                // platform-specific audio mixer and display their languages.
+                val audioTracks = video.audioTracks.take(24).mapNotNull { track ->
+                    val raw = track.url.trim()
+                    val address = try { android.net.Uri.parse(raw) } catch (_: Exception) { null }
+                    if (address == null ||
+                        address.scheme?.lowercase() !in setOf("http", "https") ||
+                        address.host.isNullOrBlank()) return@mapNotNull null
+                    val language = track.lang.trim().ifBlank { "Unknown" }
+                    mapOf(
+                        "url" to raw,
+                        "language" to language,
+                        "label" to language
+                    )
+                }
                 val initialSubtitle = subtitles.firstOrNull()
                 mapOf(
                     "url" to url,
@@ -199,6 +216,7 @@ internal class ExtensionEpisodeProbe(private val context: Context) {
                     "subtitle" to (initialSubtitle?.get("url") ?: ""),
                     "subtitleFormat" to (initialSubtitle?.get("format") ?: ""),
                     "subtitleTracks" to subtitles,
+                    "audioTracks" to audioTracks,
                     "audioTrackCount" to video.audioTracks.size,
                     "subtitleTrackCount" to video.subtitleTracks.size
                 )

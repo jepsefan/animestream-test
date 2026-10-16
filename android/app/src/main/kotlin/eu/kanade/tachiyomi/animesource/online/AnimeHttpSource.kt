@@ -163,11 +163,25 @@ abstract class AnimeHttpSource : AnimeCatalogueSource {
     protected open fun videoListParse(response: Response, hoster: Hoster): List<Video> =
         throw UnsupportedOperationException("Hoster parser not implemented")
 
-    override suspend fun getHosterList(episode: SEpisode): List<Hoster> =
-        fetch(hosterListRequest(episode), ::hosterListParse)
+    override suspend fun getHosterList(episode: SEpisode): List<Hoster> {
+        // A legacy episode-only source must not make an extra HTTP request.
+        // Check whether its source hierarchy actually provides a hoster parser.
+        var current: Class<*>? = javaClass
+        var hasHosterParser = false
+        while (current != null && current != AnimeHttpSource::class.java) {
+            if (current.declaredMethods.any { it.name == "hosterListParse" &&
+                    it.parameterTypes.contentEquals(arrayOf(Response::class.java)) }) {
+                hasHosterParser = true
+                break
+            }
+            current = current.superclass
+        }
+        if (!hasHosterParser) throw UnsupportedOperationException("Hoster API not implemented")
+        return fetch(hosterListRequest(episode), ::hosterListParse)
             .toBlocking().single().let { hosters ->
                 with(this) { hosters.sortHosters() }
             }
+    }
 
     override suspend fun getVideoList(hoster: Hoster): List<Video> =
         fetch(videoListRequest(hoster)) { videoListParse(it, hoster) }

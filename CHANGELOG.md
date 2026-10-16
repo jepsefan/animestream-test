@@ -6,7 +6,7 @@ Complete development history. Published GitHub Releases use the concise [RELEASE
 - Carry extension-provided external audio URLs, languages and labels from Android's playback-only bridge into Dart `VideoStream.externalAudioTracks`, alongside existing subtitle tracks.
 - Show external audio and subtitle track counts in the server selection interface without exposing signed URLs.
 - Do not present external standalone audio as selectable Better Player tracks; audio-file synchronization/mixing is not implemented.
-- Version `1.4.9-beta34.43+54`. **Build and device tests pending**; beta34.42 remains the last user-confirmed version.
+- Version `1.4.9-beta34.43+54`. **User-confirmed on-device:** AnimeOnsen [Ext] plays video and reports 9 subtitle tracks in the interface. Selection/rendering of all nine individual tracks and Animenosub playback on this beta have not been separately verified.
 
 ## v1.4.9-beta34.42 — Hoster resilience and lazy video resolution
 - Add Anikku-compatible `AnimeHttpSource.resolveVideo(Video)` default hook.

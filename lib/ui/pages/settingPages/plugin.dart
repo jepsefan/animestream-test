@@ -6,7 +6,7 @@ import 'package:animestream/core/anime/providers/providerManager.dart';
 import 'package:animestream/core/app/runtimeDatas.dart';
 import 'package:flutter/material.dart';
 
-/// Experimental catalog and local source storage. Execution is not supported yet.
+/// Manage installed Android extension sources with explicit approval.
 class PluginPage extends StatefulWidget {
   const PluginPage({super.key});
 
@@ -22,6 +22,9 @@ class _PluginPageState extends State<PluginPage> {
   bool _loading = true;
   String? _error;
   String? _busyId;
+  String? _bulkProgress;
+  String? _bulkSummary;
+  List<String> _bulkFailures = [];
   final Map<String, String> _classDiagnostics = {};
   final Set<String> _testingExtensions = {};
   final Map<String, String> _searchDiagnostics = {};
@@ -73,6 +76,101 @@ class _PluginPageState extends State<PluginPage> {
     } finally {
       if (mounted) setState(() => _loading = false);
     }
+  }
+
+  /// Explicitly opt in to running every listed, not-already-approved APK.
+  /// Per-package signer and version checks stay in SourceManager.
+  Future<void> _enableAllInstalledSources() async {
+    if (_loading || _busyId != null || _apkExtensions.isEmpty) return;
+    final enabledIds = SourceManager.instance.sources
+        .map((source) => source.identifier).toList();
+    final pending = _apkExtensions.where((ext) =>
+        !enabledIds.any((id) => id.startsWith(
+            'aniyomi:${ext.packageName}#'))).toList();
+    final skipped = _apkExtensions.length - pending.length;
+    if (pending.isEmpty) {
+      setState(() {
+        _bulkSummary = 'All ${_apkExtensions.length} installed extensions '
+            'are already enabled.';
+        _bulkFailures = [];
+        _bulkProgress = null;
+      });
+      return;
+    }
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialog) => AlertDialog(
+        title: const Text('Enable all installed extensions?'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('This will execute code from ${pending.length} installed '
+                  'extension APKs to discover their sources. Only continue '
+                  'if you trust EVERY extension below.'),
+              const SizedBox(height: 10),
+              const Text('An APK signature does not guarantee that its code '
+                  'is safe. Some sources may contact external websites. '
+                  'Already enabled sources will be skipped.'),
+              const SizedBox(height: 10),
+              SelectableText(pending.map((ext) =>
+                  '${ext.name} (${ext.packageName})').join('\n')),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(dialog, false),
+              child: const Text('Cancel')),
+          TextButton(onPressed: () => Navigator.pop(dialog, true),
+              child: const Text('Enable all')),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    setState(() {
+      _busyId = '__bulk_enable__';
+      _bulkProgress = '0/${pending.length}';
+      _bulkSummary = null;
+      _bulkFailures = [];
+    });
+
+    var enabled = 0;
+    final failures = <String>[];
+    for (var i = 0; i < pending.length; i++) {
+      final ext = pending[i];
+      if (mounted) setState(() =>
+          _bulkProgress = '${i + 1}/${pending.length}: ${ext.name}');
+      try {
+        await SourceManager.instance.enableExtensionSources(ext);
+        enabled++;
+      } catch (error) {
+        // Do not display third-party exception messages: they might contain
+        // media links, query tokens or authentication headers.
+        final reason = error is StateError &&
+                ['No sources found in this extension',
+                 'Extension changed during approval; refresh and retry',
+                 'Cannot approve an extension without a valid APK signing key']
+                    .contains(error.message.toString())
+            ? error.message.toString()
+            : error.runtimeType.toString();
+        failures.add('${ext.name}: $reason');
+      }
+    }
+
+    if (!mounted) return;
+    setState(() {
+      _busyId = null;
+      _bulkProgress = null;
+      _bulkFailures = failures;
+      _bulkSummary = 'Enabled $enabled; already enabled $skipped; '
+          'failed ${failures.length}.';
+    });
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text(_bulkSummary!),
+      duration: const Duration(seconds: 6),
+    ));
   }
 
   Future<void> _enableSources(AniyomiExtensionInfo ext) async {
@@ -661,7 +759,7 @@ class _PluginPageState extends State<PluginPage> {
         appBar: AppBar(
           title: const Text('Manage Providers [Beta]'),
           actions: [
-            IconButton(onPressed: _loading ? null : _refresh,
+            IconButton(onPressed: _loading || _busyId != null ? null : _refresh,
               icon: const Icon(Icons.refresh), tooltip: 'Refresh catalog'),
           ],
           bottom: const TabBar(tabs: [
@@ -672,9 +770,9 @@ class _PluginPageState extends State<PluginPage> {
         body: Column(children: [
           const Padding(
             padding: EdgeInsets.all(12),
-            child: Text('Experimental: providers can be downloaded and stored, '
-              'but cannot run or appear as playable sources yet. '
-              'Only install code from sources you trust.'),
+            child: Text('Installed Android extensions can run as [Ext] sources '
+              'after explicit approval. Other downloaded provider code '
+              'remains stored only. Enable APKs you trust.'),
           ),
           if (_error != null)
             Padding(padding: const EdgeInsets.all(12),
@@ -683,7 +781,37 @@ class _PluginPageState extends State<PluginPage> {
               ? const Center(child: CircularProgressIndicator())
               : TabBarView(children: [
                   ListView(children: [
-                    const Padding(padding: EdgeInsets.all(8), child: Text('Detected Android APK extensions (not loaded)')),
+                    const Padding(padding: EdgeInsets.all(8), child: Text('Installed Android APK extensions')),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(8, 8, 8, 4),
+                      child: Align(
+                        alignment: Alignment.centerLeft,
+                        child: FilledButton.icon(
+                          onPressed: _busyId != null || _apkExtensions.isEmpty
+                              ? null : _enableAllInstalledSources,
+                          icon: const Icon(Icons.playlist_add_check),
+                          label: const Text('Enable all installed sources'),
+                        ),
+                      ),
+                    ),
+                    if (_bulkProgress != null)
+                      Padding(
+                        padding: const EdgeInsets.all(8),
+                        child: Text('Enabling: $_bulkProgress'),
+                      ),
+                    if (_bulkSummary != null)
+                      Padding(
+                        padding: const EdgeInsets.all(8),
+                        child: Text(_bulkSummary!),
+                      ),
+                    if (_bulkFailures.isNotEmpty)
+                      ExpansionTile(
+                        title: Text('Failed extensions (${_bulkFailures.length})'),
+                        children: [
+                          for (final message in _bulkFailures)
+                            ListTile(dense: true, title: Text(message)),
+                        ],
+                      ),
                     if (_apkExtensions.isEmpty)
                       const Padding(padding: EdgeInsets.all(8), child: Text('No installed Aniyomi APK extensions detected')),
                     for (final ext in _apkExtensions)

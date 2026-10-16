@@ -14,6 +14,8 @@ Source analysis: the installed Yūzōnō extension's SearchInterceptor obtains `
 - Version `1.4.9-beta34.45+56`.
 
 ## Validation
-Not build or device verified. Test AnimeOnsen [Ext] search for a known series: the fallback should show `Search fallback: built-in AnimeOnsen API` only when the extension search returns the exact 403 above; then open a result, load episodes and verify playback/subtitles through [Ext]. Test built-in AnimeOnsen independently and Animenosub for regressions.
+**User-reported device result:** After upgrading to beta34.45, the user confirmed the previously failing AnimeOnsen [Ext] operation now works. The report follows the 403 search error and fallback change; separate verification of every episode, playback and subtitle track was not supplied. No independent build run was performed here.
+
+Test AnimeOnsen [Ext] search for a known series: the fallback should show `Search fallback: built-in AnimeOnsen API` only when the extension search returns the exact 403 above; then open a result, load episodes and verify playback/subtitles through [Ext]. Test built-in AnimeOnsen independently and Animenosub for regressions.
 
 Previously documented issue remains deferred by request: some possibly Arabic subtitles show missing-glyph squares/crosses.

@@ -372,16 +372,9 @@ jobs:
           name: changelog
           path: CHANGELOG.md
 
-      - name: Commit and push changelog
-        env:
-          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
-          VERSION: ${{ needs.extract-version.outputs.version }}
-        run: |
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git add CHANGELOG.md
-          git diff --staged --quiet || git commit -m "docs: update changelog for v$VERSION"
-          git push origin HEAD:"$DEFAULT_BRANCH" || echo "No changes to push"
+      # The generated artifact is for GitHub Release body only.
+      # The permanent CHANGELOG.md in git is maintained separately, so
+      # publishing an older tag cannot overwrite newer release history.
 
   notify:
     name: Notify Release

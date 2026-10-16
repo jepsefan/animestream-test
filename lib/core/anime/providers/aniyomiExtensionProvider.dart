@@ -135,6 +135,12 @@ class AniyomiExtensionProvider extends AnimeProvider {
           (entry) => ExternalSubtitleTrack.fromMap(entry)).where(
           (track) => track.url.startsWith('https://') ||
               track.url.startsWith('http://')).toList();
+      final audioTracks = ((item['audioTracks'] as List?) ?? const [])
+          .whereType<Map>()
+          .map((track) => ExternalAudioTrack.fromMap(track))
+          .where((track) => track.url.startsWith('https://') ||
+              track.url.startsWith('http://'))
+          .toList();
       streams.add(VideoStream(
         quality: item['quality']?.toString() ?? 'Auto',
         url: url,
@@ -142,6 +148,7 @@ class AniyomiExtensionProvider extends AnimeProvider {
         backup: false,
         subtitle: subtitle?.isNotEmpty == true ? subtitle : null,
         subtitleTracks: subtitles,
+        externalAudioTracks: audioTracks,
         subtitleFormat: (item['subtitleFormat'] ?? '').toString(),
         customHeaders: headers,
       ));

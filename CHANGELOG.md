@@ -2,6 +2,13 @@
 
 Complete development history. Published GitHub Releases use the concise [RELEASE_NOTES.md](RELEASE_NOTES.md) for the latest three beta versions. Older entries remain here for reference.
 
+## v1.4.9-beta34.46 — Generic Anikku Hoster APIs
+- Add modern Anikku 1.6 hoster-list and hoster-specific video request/parse hooks to the shared `AnimeHttpSource`.
+- Add legacy `getVideoUrl` / `fetchVideoUrl` API hooks for extensions that resolve a video URL separately.
+- Skip hoster network calls for legacy episode-only sources unless they implement a hoster parser.
+- Preserve beta34.45 AnimeOnsen HTTP 403 search fallback and do not change subtitles or the player.
+- Version `1.4.9-beta34.46+57`. **Build and device regression tests pending.**
+
 ## v1.4.9-beta34.45 — AnimeOnsen extension 403 search fallback
 - Detect HTTP 403 on the installed AnimeOnsen extension's Meilisearch endpoint, and only in that case search using the already-working built-in AnimeOnsen v4 API.
 - Preserve title identity via the shared AnimeOnsen content ID, then continue episode retrieval, video resolution and subtitle handling in AnimeOnsen [Ext].

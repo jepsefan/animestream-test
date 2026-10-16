@@ -1,6 +1,13 @@
 # AnimeStream — Latest three beta releases
 
-The complete development history is in [CHANGELOG.md](CHANGELOG.md). Notes below reflect the current beta34.43 development branch.
+The complete development history is in [CHANGELOG.md](CHANGELOG.md). Notes below reflect the current beta34.44 development branch.
+
+## v1.4.9-beta34.44 — Configure extension source preferences
+- **Source settings** in Manage Providers for approved `[Ext]` sources, using each extension's own declared settings.
+- Support selectable lists and on/off controls, with bounded options and validated updates stored in source-specific Android preferences.
+- Animenosub's declared video quality, SUB/RAW and preferred video server options are primary test cases.
+- Does not change the player, subtitle renderer or external audio playback.
+- **Not yet built or device-tested.** Beta34.43 remains the latest version with user-confirmed playback.
 
 ## v1.4.9-beta34.43 — External extension audio metadata
 - Preserve external audio track URLs, language and labels from Anikku extensions into AnimeStream's playback-only stream data.
@@ -14,13 +21,8 @@ The complete development history is in [CHANGELOG.md](CHANGELOG.md). Notes below
 - Preserve subtitle and audio metadata from returned video objects.
 - **User confirmed video playback working in beta34.42.**
 
-## v1.4.9-beta34.41 — Parsed source compatibility
-- Add the shared `ParsedAnimeHttpSource` superclass and Jsoup parsers for anime, episode and stream metadata.
-- Extend Anikku HTTP source parsing and sorting hooks.
-- Repair the missing base class needed by Yūzōnō's Animenosub extension.
-- **User confirmed Animenosub [Ext] search, episodes, SUB/DUB/RAW video choices and actual Better Player playback.** AnimeOnsen [Ext] also remained functional.
-
 ### Known limitations
+- Some non-Latin subtitles (possibly Arabic) appear as squares with crosses; logged and deliberately deferred per user request.
 - **Deferred subtitle display bug:** A language that appears to be Arabic is rendered as square boxes with crosses during AnimeOnsen playback; language identification and font/glyph root cause are unconfirmed. This is recorded only, not fixed in beta34.43.
 ### Known limitations
 - Some 123Anime video hosts still return no playable streams.

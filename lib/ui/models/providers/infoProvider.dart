@@ -33,6 +33,10 @@ class InfoProvider extends ChangeNotifier {
   String? _foundName;
   String? _manualSearchQuery;
   Map<String, String> _extensionSelections = {};
+  String? _extensionCover;
+
+  /// Artwork from the confirmed extension match, only for [Ext] sources.
+  String? get extensionCover => _extensionCover;
 
   MediaStatus? _mediaListStatus;
 
@@ -105,6 +109,7 @@ class InfoProvider extends ChangeNotifier {
 
   set selectedSource(ProviderDetails val) {
     _selectedSource = val;
+    _extensionCover = null;
     if (aspProvider != val.identifier) {
       saveAnimeSpecificPreference(
           id.toString(),
@@ -441,9 +446,41 @@ class InfoProvider extends ChangeNotifier {
     final alias = selected['alias'];
     if (alias == null || alias.isEmpty) throw StateError('Source URL not found');
     final links = await sourceManager.getAnimeEpisodes(sourceId, alias);
+    _extensionCover = AniyomiExtensionProvider.isExtensionId(sourceId)
+        ? _validExtensionImage(selected['imageUrl']) : null;
     paginate(links);
     _foundName = selected['name'];
     notifyListeners();
+  }
+
+  /// Apply a user-confirmed search result consistently on desktop and TV.
+  /// Persist the per-source match only after episodes have loaded.
+  Future<void> applyManualSourceSelection(Map<String, String?> result) async {
+    final sourceId = selectedSource.identifier;
+    final alias = result['alias'];
+    if (alias == null || alias.isEmpty) {
+      throw StateError('Selected source result has no identifier');
+    }
+    final links = await sourceManager.getAnimeEpisodes(sourceId, alias);
+    if (links.isEmpty) {
+      throw StateError('No episodes for selected source result');
+    }
+    if (AniyomiExtensionProvider.isExtensionId(sourceId)) {
+      await saveExtensionSourceSelection(result);
+      _extensionCover = _validExtensionImage(result['imageUrl']);
+    } else {
+      _extensionCover = null;
+    }
+    paginate(links);
+    _foundName = result['name'];
+    notifyListeners();
+  }
+
+  String? _validExtensionImage(String? url) {
+    final uri = Uri.tryParse(url?.trim() ?? '');
+    if (uri == null || !uri.hasAuthority ||
+        (uri.scheme != 'http' && uri.scheme != 'https')) return null;
+    return uri.toString();
   }
 
   Future<void> saveExtensionSourceSelection(Map<String, String?> result) async {

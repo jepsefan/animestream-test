@@ -2,6 +2,12 @@
 
 Complete development history. Published GitHub Releases use the concise [RELEASE_NOTES.md](RELEASE_NOTES.md) for the latest three beta versions. Older entries remain here for reference.
 
+## v1.4.9-beta34.49 — Manual extension match and artwork integration
+- Both manual source dialogs now save a confirmed [Ext] match after loading episodes, so reopening the same AniList series can reuse that source alias.
+- Keep source-specific artwork for selected matches and prefer per-episode previews where available in episode cards, otherwise falling back to the source cover and AniList cover.
+- Maintain existing AniList identity checks for automatic matches. No changes to player, subtitle rendering, AnimeOnsen fallback, or extension installer.
+- Version `1.4.9-beta34.49+60`. Build and device tests pending.
+
 ## v1.4.9-beta34.48 — Enable all installed extension sources
 - Add **Enable all installed sources** in Manage Providers [Beta] → Installed, with an explicit confirmation listing all APKs to be activated.
 - Skip extensions whose approved sources are already enabled. Run discovery sequentially for the remaining packages; continue after individual failures and display enabled/skipped/failed counts with a failure list.

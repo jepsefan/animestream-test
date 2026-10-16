@@ -12,14 +12,17 @@ The complete development history is in [CHANGELOG.md](CHANGELOG.md). Notes below
 - Add common Hoster request and parser entry points for compatible Anikku extensions.
 - Support legacy per-video URL retrieval methods without changing existing playable streams.
 - Legacy extensions continue using their episode-based video extraction, without additional hoster HTTP requests.
-- Beta34.45 fallback search and current subtitle/player handling unchanged. **Build and device tests pending.**
+- Beta34.45 fallback search and current subtitle/player handling unchanged. **Build and playback confirmed by user.**
+
+## v1.4.9-beta34.45 — AnimeOnsen extension search fallback
+- If the extension search returns HTTP 403 from AnimeOnsen's search host, use the working built-in AnimeOnsen search API for title discovery.
+- Continue loading episodes, video and subtitles through AnimeOnsen [Ext].
+- The user confirmed this fallback works on device.
 
 ### Known limitations
-- Some non-Latin subtitles (possibly Arabic) appear as squares with crosses; logged and deliberately deferred per user request.
-- **Deferred subtitle display bug:** A language that appears to be Arabic is rendered as square boxes with crosses during AnimeOnsen playback; language identification and font/glyph root cause are unconfirmed. This is recorded only, not fixed in beta34.43.
-### Known limitations
-- Some 123Anime video hosts still return no playable streams.
-- Full Anikku Host API coverage, source preference screens and standalone external audio playback remain unfinished.
-- Installing extension APKs still requires Android confirmation and cryptographic signing-certificate checks; repository URLs are entered by the user and stored locally.
+- Some possibly Arabic subtitle characters display as squares with crosses. Logged and deferred by request; no font/rendering change.
+- Some 123Anime hosts still return no playable video.
+- Standalone external audio tracks cannot yet be selected for playback, and not every Anikku extension API is supported.
+- Extension repository URLs remain user-supplied and local. APK installation requires signing checks and Android confirmation.
 
-Older betas: [CHANGELOG.md](CHANGELOG.md).
+Older versions: [CHANGELOG.md](CHANGELOG.md).

@@ -2,6 +2,7 @@ package app.animestream
 
 import android.content.Context
 import androidx.preference.ListPreference
+import androidx.preference.MultiSelectListPreference
 import androidx.preference.Preference
 import androidx.preference.PreferenceGroup
 import androidx.preference.PreferenceManager
@@ -51,7 +52,8 @@ internal class ExtensionSourcePreferences(private val context: Context) {
     private fun safePreferences(screen: PreferenceGroup): List<Preference> =
         mutableListOf<Preference>().also { collect(screen, it) }
             .filter { safeKey(it.key) && it.isEnabled &&
-                (it is ListPreference || it is TwoStatePreference) }
+                (it is ListPreference || it is MultiSelectListPreference ||
+                    it is TwoStatePreference) }
             .take(32)
 
     fun list(packageName: String, sourceId: Long): Map<String, Any?> {
@@ -77,6 +79,26 @@ internal class ExtensionSourcePreferences(private val context: Context) {
                                 "title" to title,
                                 "type" to "list",
                                 "value" to (preference.value ?: ""),
+                                "entries" to entries.map { it.take(140) },
+                                "values" to values
+                            )
+                        }
+                    }
+                    is MultiSelectListPreference -> {
+                        val values = preference.entryValues?.map { it.toString() }
+                            ?: emptyList()
+                        val entries = preference.entries?.map { it.toString() }
+                            ?: emptyList()
+                        if (values.isEmpty() || values.size != entries.size ||
+                            values.size > 64 || values.any { it.length > 160 }) {
+                            null
+                        } else {
+                            val selected = preference.values ?: emptySet()
+                            mapOf(
+                                "key" to key,
+                                "title" to title,
+                                "type" to "multi_select",
+                                "value" to values.filter { it in selected },
                                 "entries" to entries.map { it.take(140) },
                                 "values" to values
                             )
@@ -120,6 +142,23 @@ internal class ExtensionSourcePreferences(private val context: Context) {
                     if (!preference.callChangeListener(selected))
                         return mapOf("status" to "change_rejected")
                     preference.value = selected
+                }
+                is MultiSelectListPreference -> {
+                    val provided = value as? List<*>
+                        ?: return mapOf("status" to "invalid_value")
+                    if (provided.size > 64 || provided.any { it !is String }) {
+                        return mapOf("status" to "invalid_value")
+                    }
+                    val selected = provided.filterIsInstance<String>().toSet()
+                    val allowed = preference.entryValues?.map { it.toString() }?.toSet()
+                        ?: return mapOf("status" to "invalid_preference")
+                    if (!allowed.containsAll(selected)) {
+                        return mapOf("status" to "invalid_value")
+                    }
+                    if (!preference.callChangeListener(selected)) {
+                        return mapOf("status" to "change_rejected")
+                    }
+                    preference.values = selected
                 }
                 is TwoStatePreference -> {
                     val selected = value as? Boolean

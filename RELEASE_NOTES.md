@@ -1,6 +1,13 @@
 # AnimeStream — Latest three beta releases
 
-The complete development history is in [CHANGELOG.md](CHANGELOG.md). Notes below reflect the current beta34.47 development branch.
+The complete development history is in [CHANGELOG.md](CHANGELOG.md). Notes below reflect the current beta34.48 development branch.
+
+## v1.4.9-beta34.48 — Activate all installed extensions
+- Add one **Enable all installed sources** button in Manage Providers [Beta], requiring confirmation that lists the installed APKs to enable.
+- Skip already-approved sources, activate remaining extensions one at a time, and show progress plus per-extension failure summaries.
+- Keep signature/version validation, persisted source approvals, existing playback, and explicit trust consent unchanged.
+- Update outdated explanation in provider management.
+- **Not yet build/device tested.** Beta34.47 playback was user-confirmed.
 
 ## v1.4.9-beta34.47 — Lazy video links
 - Add fallback from Anikku's modern `resolveVideo` to older `getVideoUrl` for compatible extension-hosted video placeholders.
@@ -13,11 +20,6 @@ The complete development history is in [CHANGELOG.md](CHANGELOG.md). Notes below
 - Support legacy per-video URL retrieval methods without changing existing playable streams.
 - Legacy extensions continue using their episode-based video extraction, without additional hoster HTTP requests.
 - Beta34.45 fallback search and current subtitle/player handling unchanged. **Build and playback confirmed by user.**
-
-## v1.4.9-beta34.45 — AnimeOnsen extension search fallback
-- If the extension search returns HTTP 403 from AnimeOnsen's search host, use the working built-in AnimeOnsen search API for title discovery.
-- Continue loading episodes, video and subtitles through AnimeOnsen [Ext].
-- The user confirmed this fallback works on device.
 
 ### Known limitations
 - Some possibly Arabic subtitle characters display as squares with crosses. Logged and deferred by request; no font/rendering change.

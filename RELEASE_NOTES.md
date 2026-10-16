@@ -1,6 +1,12 @@
 # AnimeStream — Latest three beta releases
 
-The complete development history is in [CHANGELOG.md](CHANGELOG.md). Notes below reflect the current beta34.48 development branch.
+The complete development history is in [CHANGELOG.md](CHANGELOG.md). Notes below reflect the current beta34.49 development branch.
+
+## v1.4.9-beta34.49 — Manual matches and source images
+- Save user-confirmed extension title matches after successfully loading episodes, in both manual search dialogs.
+- Prefer episode preview artwork, then extension cover artwork, then AniList cover in supported episode tiles.
+- Preserve existing verified playback pipeline and known deferred subtitle issue.
+- Build and device testing pending.
 
 ## v1.4.9-beta34.48 — Activate all installed extensions
 - Add one **Enable all installed sources** button in Manage Providers [Beta], requiring confirmation that lists the installed APKs to enable.
@@ -14,12 +20,6 @@ The complete development history is in [CHANGELOG.md](CHANGELOG.md). Notes below
 - Preserve audio/subtitle tracks and headers; don't issue extra requests for already playable URLs.
 - AnimeOnsen search fallback, built-in providers and subtitle renderer unchanged.
 - Build/device regression testing required.
-
-## v1.4.9-beta34.46 — Anikku Hoster compatibility
-- Add common Hoster request and parser entry points for compatible Anikku extensions.
-- Support legacy per-video URL retrieval methods without changing existing playable streams.
-- Legacy extensions continue using their episode-based video extraction, without additional hoster HTTP requests.
-- Beta34.45 fallback search and current subtitle/player handling unchanged. **Build and playback confirmed by user.**
 
 ### Known limitations
 - Some possibly Arabic subtitle characters display as squares with crosses. Logged and deferred by request; no font/rendering change.

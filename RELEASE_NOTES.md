@@ -1,6 +1,12 @@
 # AnimeStream — Latest three beta releases
 
-The complete development history is in [CHANGELOG.md](CHANGELOG.md). Notes below reflect the current beta34.45 development branch.
+The complete development history is in [CHANGELOG.md](CHANGELOG.md). Notes below reflect the current beta34.46 development branch.
+
+## v1.4.9-beta34.46 — Anikku Hoster compatibility
+- Add common Hoster request and parser entry points for compatible Anikku extensions.
+- Support legacy per-video URL retrieval methods without changing existing playable streams.
+- Legacy extensions continue using their episode-based video extraction, without additional hoster HTTP requests.
+- Beta34.45 fallback search and current subtitle/player handling unchanged. **Build and device tests pending.**
 
 ## v1.4.9-beta34.45 — AnimeOnsen extension 403 search fallback
 - Detect HTTP 403 on the installed AnimeOnsen extension's Meilisearch endpoint, and only in that case search using the already-working built-in AnimeOnsen v4 API.
@@ -8,13 +14,6 @@ The complete development history is in [CHANGELOG.md](CHANGELOG.md). Notes below
 - Show fallback status in Manage Providers diagnostics, without exposing tokens.
 - Built-in AnimeOnsen and other extensions unchanged. **User confirmed the beta34.45 fix works on device** after the earlier 403 search failure; full playback regression checks for this beta have not been separately confirmed.
 - Keep deferred non-Latin subtitle glyph issue unchanged.
-
-## v1.4.9-beta34.44 — Configure extension source preferences
-- **Source settings** in Manage Providers for approved `[Ext]` sources, using each extension's own declared settings.
-- Support selectable lists and on/off controls, with bounded options and validated updates stored in source-specific Android preferences.
-- Animenosub's declared video quality, SUB/RAW and preferred video server options are primary test cases.
-- Does not change the player, subtitle renderer or external audio playback.
-- **Not yet built or device-tested.** Beta34.43 remains the latest version with user-confirmed playback.
 
 ### Known limitations
 - Some non-Latin subtitles (possibly Arabic) appear as squares with crosses; logged and deliberately deferred per user request.

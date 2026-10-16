@@ -1,6 +1,12 @@
 # AnimeStream — Latest three beta releases
 
-The complete development history is in [CHANGELOG.md](CHANGELOG.md). Notes below reflect the current beta34.49 development branch.
+The complete development history is in [CHANGELOG.md](CHANGELOG.md). Notes below reflect the current beta34.50 development branch.
+
+## v1.4.9-beta34.50 — More Yūzōnō settings
+- Support multi-select options declared by installed Anikku extensions. Shows checkboxes and saves selected values in the source's own preferences.
+- Example: AniWaves.ru can declare Exclude Servers / Exclude Types instead of requiring source-specific UI code.
+- Validate every selection against the extension-provided option set; retain Cancel without saving.
+- No changes to media playback or AnimeOnsen. **Not yet build/device tested.**
 
 ## v1.4.9-beta34.49 — Manual matches and source images
 - Save user-confirmed extension title matches after successfully loading episodes, in both manual search dialogs.
@@ -14,12 +20,6 @@ The complete development history is in [CHANGELOG.md](CHANGELOG.md). Notes below
 - Keep signature/version validation, persisted source approvals, existing playback, and explicit trust consent unchanged.
 - Update outdated explanation in provider management.
 - **Not yet build/device tested.** Beta34.47 playback was user-confirmed.
-
-## v1.4.9-beta34.47 — Lazy video links
-- Add fallback from Anikku's modern `resolveVideo` to older `getVideoUrl` for compatible extension-hosted video placeholders.
-- Preserve audio/subtitle tracks and headers; don't issue extra requests for already playable URLs.
-- AnimeOnsen search fallback, built-in providers and subtitle renderer unchanged.
-- Build/device regression testing required.
 
 ### Known limitations
 - Some possibly Arabic subtitle characters display as squares with crosses. Logged and deferred by request; no font/rendering change.

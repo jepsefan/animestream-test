@@ -1,3 +1,102 @@
+# AnimeStream — Changelog
+
+Complete development history. Published GitHub Releases use the concise [RELEASE_NOTES.md](RELEASE_NOTES.md) for the latest three beta versions. Older entries remain here for reference.
+
+## v1.4.9-beta34.43 — Preserve external audio and subtitle metadata
+- Carry extension-provided external audio URLs, languages and labels from Android's playback-only bridge into Dart `VideoStream.externalAudioTracks`, alongside existing subtitle tracks.
+- Show external audio and subtitle track counts in the server selection interface without exposing signed URLs.
+- Do not present external standalone audio as selectable Better Player tracks; audio-file synchronization/mixing is not implemented.
+- Version `1.4.9-beta34.43+54`. **Build and device tests pending**; beta34.42 remains the last user-confirmed version.
+
+## v1.4.9-beta34.42 — Hoster resilience and lazy video resolution
+- Add Anikku-compatible `AnimeHttpSource.resolveVideo(Video)` default hook.
+- Resolve video placeholders when necessary, preserving already-playable HTTP/HTTPS URLs.
+- Isolate failing hosters so other hosters can still return streams; retain the underlying error if all fail.
+- **User confirmed working playback** following this beta; used as regression reference.
+
+## v1.4.9-beta34.41 — Parsed HTML source Host API
+- Add the missing `ParsedAnimeHttpSource` shared superclass and Jsoup parsing hooks for search, episode lists, hosters and video listings.
+- Extend `AnimeHttpSource` parsing/sorting hooks used by Yūzōnō multisrc extensions.
+- **User confirmed Animenosub [Ext] search, 16 episodes, several SUB/DUB/RAW stream choices and actual Better Player playback.** AnimeOnsen [Ext] remained working.
+
+## v1.4.9-beta34.40 — Source-discovery diagnostics
+- Identify failure stage (entry point, construction, source factory or metadata), missing classes and redacted exception chain when enabling installed sources.
+- Diagnosed Animenosub's missing `eu.kanade.tachiyomi.animesource.online.ParsedAnimeHttpSource`.
+- Branched from the confirmed beta34.38 Host API; the beta34.39 embed experiment was **not** included.
+
+## v1.4.9-beta34.38 — OkHttp extension ABI
+- Add `OkHttpExtensionsKt` functions `await`, `awaitSuccess`, `asObservable`, `asObservableSuccess` and `HttpException`.
+- Fix `NoClassDefFoundError` during AnimeOnsen stream retrieval.
+- Correct the duplicate beta34.38 branch ref that initially built beta34.37 code instead.
+- **User confirmed AnimeOnsen [Ext] video streams work with the correctly built beta34.38.**
+
+## v1.4.9-beta34.37 — Redacted extension linkage diagnostics
+- Report safe missing-class names, failure stage, exception chain and relevant host call sites during extension video resolution.
+- Pinpointed `OkHttpExtensionsKt` as the missing playback dependency rather than guessing from an empty server list.
+
+## v1.4.9-beta34.36 — Reliable Android uninstall feedback
+- Await Android's uninstall result, then recheck whether the APK is installed.
+- Offer a system **App info** fallback if removal was cancelled or the package remains.
+- Replace the premature “Confirm uninstall in Android” toast with a result-driven message.
+
+## v1.4.9-beta34.35 — Auto-load catalogs and improve stream diagnosis
+- Fetch saved repository indexes automatically when the Extensions page opens, surfacing loading and fetch errors.
+- Include installed and uninstalled entries under Browse.
+- Switch to Android's dedicated uninstall-package action and improve redacted playback status diagnostics.
+- 123Anime's embed/playlist extraction remained unresolved.
+
+## v1.4.9-beta34.34 — Extension network sessions
+- Implement Anikku-compatible `AndroidCookieJar` and shared OkHttp cookie/session handling with an Android TV fallback where WebView is absent.
+- Add missing HTTP PATCH request helper API.
+- Preserve installed APK certificate verification and source approvals.
+
+## v1.4.9-beta34.33 — Shared runtime and source preferences
+- Add source-scoped Android SharedPreferences methods used by configurable Anikku extensions.
+- Cache source instances and invalidate cached objects on APK version/path changes.
+- Full extension preference-screen UI and broad Host API parity remained incomplete.
+
+## v1.4.9-beta34.32 — Extension library UI and uninstall
+- Organize extensions into Installed, Updates and Browse, with searching, language filters, icons and deduplicated catalog entries.
+- Add an Android uninstall entry for installed extension packages (separate from disabling a source).
+- Existing signed installation and local repository URLs remain in place.
+
+## v1.4.9-beta34.31 — APK installer lifecycle
+- Refresh installed extension versions after returning from Android's installer.
+- Add manual installed-package refresh, avoid Android 11+ package-visibility false negatives, and clean stale APK cache.
+- **User later confirmed APK installation works**, though further uninstall feedback improvements were needed.
+
+## v1.4.9-beta34.30 — Signed extension installation
+- Install or update extensions from user-added local catalogs using HTTPS downloads and Android's own confirmation UI.
+- Verify APK signing cryptographically and compare signing certificate SHA-256 with the user-approved repository fingerprint.
+- Display installed versions and updates; persist approved per-APK source selections only while APK signer and version remain unchanged.
+- Add factory-class metadata handling. Third-party code still requires explicit activation.
+
+## v1.4.9-beta34.28 — Shared extension model ABI
+- Align `AnimeFilter`, `Video`, `Hoster`, `SAnime` and `SEpisode` signatures with more Anikku extension bytecode.
+- Add a local ABI diagnostic without executing extension APK code.
+
+## v1.4.9-beta34.27 — Anime source interface alignment
+- Separate `AnimeSource` from `AnimeCatalogueSource` APIs, with coroutine/Rx bridging and related-anime compatibility placeholders.
+
+## v1.4.9-beta34.26 — Multi-source extension routing
+- Enumerate multiple source IDs per installed APK and route search, episodes and streams to the selected source.
+- Add explicit enablement of sources shown as `[Ext]`; approval was initially memory-only.
+
+## v1.4.9-beta34.25 — Shared extension host foundation
+- Consolidate class loading, Injekt setup, source factories and modern/legacy API calls into a common Android runtime.
+
+## v1.4.9-beta34.24 — Locally pinned repository trust
+- Add user approval of `repo.json` certificate fingerprints and detection of changed repository keys.
+- HTTPS metadata fetch limits/redirect protection; APK signature enforcement followed in beta34.30.
+
+## v1.4.9-beta34.23 — User-managed extension catalogs
+- Store entered Aniyomi/Yūzōnō `index.min.json` URLs locally, browse catalog contents and show source metadata.
+- Do **not** bundle the Yūzōnō catalog URL in the repository.
+
+> **Branch history:** Beta34.29's alternate source/episode changes were intentionally excluded from this development line (beta34.30 branched from beta34.28). The beta34.39 embed diagnostics experiment was also not merged into the beta34.40→34.43 line. Beta34.22 was an earlier catalog installation experiment, not the parent of beta34.23.
+
+---
+
 ## v1.4.9-beta34.21 — Inspect Aniyomi subtitle formats; search fallback
 - Detect ASS/SSA, WebVTT and SRT using actual subtitle file headers and timestamp syntax. Bound HTTP reads, preserve stream headers, and do not log signed URLs.
 - Gradually populate subtitle format labels without assuming unknown formats are ASS.

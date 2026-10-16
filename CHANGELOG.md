@@ -8,6 +8,8 @@ Complete development history. Published GitHub Releases use the concise [RELEASE
 - Do not present external standalone audio as selectable Better Player tracks; audio-file synchronization/mixing is not implemented.
 - Version `1.4.9-beta34.43+54`. **User-confirmed on-device:** AnimeOnsen [Ext] plays video and reports 9 subtitle tracks in the interface. Selection/rendering of all nine individual tracks and Animenosub playback on this beta have not been separately verified.
 
+- **Known subtitle issue (deferred):** During user playback testing, one subtitle language believed to be Arabic displays missing-character glyphs (squares with crosses). The exact language and cause are not confirmed. Other tested subtitles were not reported affected. No renderer/font changes in this beta; leave for later investigation.
+
 ## v1.4.9-beta34.42 — Hoster resilience and lazy video resolution
 - Add Anikku-compatible `AnimeHttpSource.resolveVideo(Video)` default hook.
 - Resolve video placeholders when necessary, preserving already-playable HTTP/HTTPS URLs.

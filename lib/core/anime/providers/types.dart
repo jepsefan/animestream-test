@@ -28,6 +28,30 @@ class ExternalSubtitleTrack {
       );
 }
 
+/// External audio supplied by an extension. Metadata is not an HLS track selector.
+class ExternalAudioTrack {
+  final String url;
+  final String language;
+  final String label;
+
+  const ExternalAudioTrack({
+    required this.url,
+    required this.language,
+    required this.label,
+  });
+
+  Map<String, dynamic> toMap() => {
+    'url': url, 'language': language, 'label': label,
+  };
+
+  factory ExternalAudioTrack.fromMap(Map<dynamic, dynamic> map) =>
+      ExternalAudioTrack(
+        url: map['url']?.toString() ?? '',
+        language: map['language']?.toString() ?? 'Unknown',
+        label: map['label']?.toString() ?? 'Unknown',
+      );
+}
+
 class VideoStream {
   /// The quality of the video stream.
   ///
@@ -51,6 +75,9 @@ class VideoStream {
   /// using subtitle/subtitleFormat without providing this list.
   final List<ExternalSubtitleTrack> subtitleTracks;
 
+  /// Additional external audio URLs provided by the source; not selectable yet.
+  final List<ExternalAudioTrack> externalAudioTracks;
+
   /// The server name or identifier
   final String server;
 
@@ -68,6 +95,7 @@ class VideoStream {
     this.subtitleFormat = null,
     this.subtitle = null,
     this.subtitleTracks = const [],
+    this.externalAudioTracks = const [],
     this.customHeaders = null,
   });
 
@@ -86,6 +114,7 @@ class VideoStream {
       'subtitle': subtitle,
       'subtitleFormat': subtitleFormat,
       'subtitleTracks': subtitleTracks.map((track) => track.toMap()).toList(),
+      'externalAudioTracks': externalAudioTracks.map((track) => track.toMap()).toList(),
       'server': server,
       'backup': backup,
       'customHeaders': customHeaders,
@@ -101,6 +130,10 @@ class VideoStream {
       subtitleTracks: (map['subtitleTracks'] as List?)
           ?.whereType<Map>()
           .map((track) => ExternalSubtitleTrack.fromMap(track))
+          .toList() ?? const [],
+      externalAudioTracks: (map['externalAudioTracks'] as List?)
+          ?.whereType<Map>()
+          .map((track) => ExternalAudioTrack.fromMap(track))
           .toList() ?? const [],
       server: map['server'] as String,
       backup: map['backup'] as bool,

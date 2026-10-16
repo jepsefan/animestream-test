@@ -6,7 +6,7 @@ The complete development history is in [CHANGELOG.md](CHANGELOG.md). Notes below
 - Detect HTTP 403 on the installed AnimeOnsen extension's Meilisearch endpoint, and only in that case search using the already-working built-in AnimeOnsen v4 API.
 - Preserve title identity via the shared AnimeOnsen content ID, then continue episode retrieval, video resolution and subtitle handling in AnimeOnsen [Ext].
 - Show fallback status in Manage Providers diagnostics, without exposing tokens.
-- Built-in AnimeOnsen and other extensions unchanged. **Not yet build/device verified.**
+- Built-in AnimeOnsen and other extensions unchanged. **User confirmed the beta34.45 fix works on device** after the earlier 403 search failure; full playback regression checks for this beta have not been separately confirmed.
 - Keep deferred non-Latin subtitle glyph issue unchanged.
 
 ## v1.4.9-beta34.44 — Configure extension source preferences

@@ -2,6 +2,13 @@
 
 Complete development history. Published GitHub Releases use the concise [RELEASE_NOTES.md](RELEASE_NOTES.md) for the latest three beta versions. Older entries remain here for reference.
 
+## v1.4.9-beta34.47 — Legacy lazy video URL compatibility
+- Resolve non-playable placeholder video URLs through modern `resolveVideo(Video)`, followed by legacy `getVideoUrl(Video)` only if needed and the video-page URL is valid.
+- Retain subtitle/audio track lists, custom headers and video titles by copying the original Video with the final playable URL.
+- Skip extra requests for video entries already containing valid HTTP/HTTPS URLs.
+- Preserve confirmed beta34.46 playback, beta34.45 AnimeOnsen search fallback and the deferred non-Latin subtitle glyph issue.
+- Version `1.4.9-beta34.47+58`. Build and device tests pending.
+
 ## v1.4.9-beta34.46 — Generic Anikku Hoster APIs
 - Add modern Anikku 1.6 hoster-list and hoster-specific video request/parse hooks to the shared `AnimeHttpSource`.
 - Add legacy `getVideoUrl` / `fetchVideoUrl` API hooks for extensions that resolve a video URL separately.

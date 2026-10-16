@@ -1,3 +1,4 @@
+import 'package:animestream/core/anime/providers/animeonsen.dart';
 import 'package:flutter/services.dart';
 
 /// Bridge to installed Android Aniyomi extension APKs.
@@ -63,7 +64,54 @@ class AniyomiExtensionBridge {
       String packageName, String query, {int? sourceId}) async {
     final raw = await _channel.invokeMethod<Map<dynamic, dynamic>>(
       'testExtensionSearch', {'packageName': packageName, 'query': query, 'sourceId': sourceId});
-    return Map<String, dynamic>.from(raw ?? const {});
+    final response = Map<String, dynamic>.from(raw ?? const {});
+    // Yuzono AnimeOnsen uses a website-provided Meilisearch token for
+    // search.animeonsen.xyz. If THAT endpoint rejects the extension with 403,
+    // reuse the separately working built-in v4 search for source identity.
+    // Episode and video calls still go through the original extension APK.
+    const animeOnsenPackage =
+        'eu.kanade.tachiyomi.animeextension.all.animeonsen';
+    final deniedSearch = response['status'] == 'search_failed' &&
+        ((response['networkDiagnostics'] as List?) ?? const []).any((entry) {
+          if (entry is! Map) return false;
+          return entry['host'] == 'search.animeonsen.xyz' &&
+              entry['path'] == '/indexes/content/search' &&
+              entry['status']?.toString() == '403';
+        });
+    if (packageName != animeOnsenPackage || !deniedSearch) return response;
+    try {
+      final builtIn = AnimeOnsen();
+      await builtIn.checkAndUpdateToken();
+      final matches = await builtIn.search(query);
+      final results = matches.where((item) =>
+          (item['alias']?.isNotEmpty ?? false) &&
+          (item['name']?.isNotEmpty ?? false)).take(20).map((item) {
+        return <String, String>{
+          'title': item['name']!,
+          // Built-in API and the extension both identify titles by content_id.
+          'url': item['alias']!,
+          'cover': item['imageUrl'] ?? '',
+        };
+      }).toList();
+      return <String, dynamic>{
+        'status': 'search_completed',
+        'sourceClass': 'AnimeOnsen (built-in search fallback)',
+        'fallbackUsed': true,
+        'fallbackReason': 'extension_search_http_403',
+        'warning': 'AnimeOnsen extension search returned HTTP 403. '
+            'Results were obtained from the built-in AnimeOnsen API. '
+            'Episode and stream loading still use AnimeOnsen [Ext].',
+        'resultCount': results.length,
+        'results': results,
+        'networkDiagnostics': response['networkDiagnostics'] ?? const [],
+      };
+    } catch (fallbackError) {
+      // Keep the extension error and report only the fallback error type,
+      // never token values, response bodies or signed URLs.
+      response['fallbackStatus'] = 'failed';
+      response['fallbackErrorType'] = fallbackError.runtimeType.toString();
+      return response;
+    }
   }
 
   /// Loads episode metadata for one user-selected extension search result.

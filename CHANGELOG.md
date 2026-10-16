@@ -2,6 +2,13 @@
 
 Complete development history. Published GitHub Releases use the concise [RELEASE_NOTES.md](RELEASE_NOTES.md) for the latest three beta versions. Older entries remain here for reference.
 
+## v1.4.9-beta34.48 — Enable all installed extension sources
+- Add **Enable all installed sources** in Manage Providers [Beta] → Installed, with an explicit confirmation listing all APKs to be activated.
+- Skip extensions whose approved sources are already enabled. Run discovery sequentially for the remaining packages; continue after individual failures and display enabled/skipped/failed counts with a failure list.
+- Preserve the existing per-package APK signing fingerprint, versionCode recheck, locally persisted approvals, and manual activation safety model. No extension is executed automatically at startup.
+- Correct misleading provider-management helper text: approved installed Android [Ext] sources can run; separately downloaded Dart provider code remains stored only.
+- Version `1.4.9-beta34.48+59`. **Build and device verification pending.** Beta34.47 playback was confirmed by user.
+
 ## v1.4.9-beta34.47 — Legacy lazy video URL compatibility
 - Resolve non-playable placeholder video URLs through modern `resolveVideo(Video)`, followed by legacy `getVideoUrl(Video)` only when a valid video-page URL exists **and** the extension supplies a resolver. Avoid a new HTTP request from the generic default parser.
 - Retain subtitle/audio track lists, custom headers and video titles by copying the original Video with the final playable URL.

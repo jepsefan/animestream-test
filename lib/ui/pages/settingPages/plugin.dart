@@ -106,6 +106,98 @@ class _PluginPageState extends State<PluginPage> {
     }
   }
 
+  Future<void> _showSourceSettings(
+      AniyomiExtensionInfo ext, int sourceId, String sourceName) async {
+    setState(() => _busyId = ext.packageName);
+    try {
+      final response = await AniyomiExtensionBridge.listSourcePreferences(
+          ext.packageName, sourceId);
+      if (!mounted) return;
+      if (response['status'] != 'ok') {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Source settings: ${response['status']}')));
+        return;
+      }
+      final items = ((response['preferences'] as List?) ?? const [])
+          .whereType<Map>()
+          .map((item) => Map<String, dynamic>.from(item)).toList();
+      await showModalBottomSheet<void>(
+        context: context,
+        isScrollControlled: true,
+        builder: (ctx) => StatefulBuilder(
+          builder: (ctx, refresh) => SafeArea(
+            child: ListView(
+              shrinkWrap: true,
+              padding: const EdgeInsets.all(16),
+              children: [
+                Text('$sourceName settings',
+                    style: Theme.of(ctx).textTheme.titleLarge),
+                if (items.isEmpty)
+                  const ListTile(title: Text('No supported source settings')),
+                for (final item in items)
+                  if (item['type'] == 'list')
+                    ListTile(
+                      title: Text(item['title']?.toString() ?? ''),
+                      subtitle: Text(item['value']?.toString() ?? ''),
+                      onTap: () async {
+                        final values = (item['values'] as List?) ?? const [];
+                        final entries = (item['entries'] as List?) ?? const [];
+                        if (values.length != entries.length) return;
+                        final selected = await showDialog<String>(
+                          context: ctx,
+                          builder: (dialog) => SimpleDialog(
+                            title: Text(item['title']?.toString() ?? 'Select'),
+                            children: [
+                              for (var i = 0; i < values.length; i++)
+                                SimpleDialogOption(
+                                  onPressed: () => Navigator.pop(
+                                      dialog, values[i].toString()),
+                                  child: Text(entries[i].toString()),
+                                ),
+                            ],
+                          ),
+                        );
+                        if (selected == null) return;
+                        final result = await AniyomiExtensionBridge.updateSourcePreference(
+                            ext.packageName, sourceId, item['key'].toString(), selected);
+                        if (!ctx.mounted) return;
+                        if (result['status'] == 'updated') {
+                          refresh(() => item['value'] = selected);
+                        } else {
+                          ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(
+                              content: Text('Save failed: ${result['status']}')));
+                        }
+                      },
+                    )
+                  else if (item['type'] == 'boolean')
+                    SwitchListTile(
+                      title: Text(item['title']?.toString() ?? ''),
+                      value: item['value'] == true,
+                      onChanged: (value) async {
+                        final result = await AniyomiExtensionBridge.updateSourcePreference(
+                            ext.packageName, sourceId, item['key'].toString(), value);
+                        if (!ctx.mounted) return;
+                        if (result['status'] == 'updated') {
+                          refresh(() => item['value'] = value);
+                        } else {
+                          ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(
+                              content: Text('Save failed: ${result['status']}')));
+                        }
+                      },
+                    ),
+              ],
+            ),
+          ),
+        ),
+      );
+    } catch (error) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text('Source settings failed: ${error.runtimeType}')));
+    } finally {
+      if (mounted) setState(() => _busyId = null);
+    }
+  }
+
   Future<void> _disableExtensionSources(AniyomiExtensionInfo ext) async {
     setState(() => _busyId = ext.packageName);
     try {
@@ -683,6 +775,22 @@ class _PluginPageState extends State<PluginPage> {
                                 SelectableText(_streamDiagnostics[ext.packageName]!),
                               ],
                             ),
+                          for (final provider in SourceManager.instance.sources.where(
+                              (item) => item.identifier.startsWith(
+                                  'aniyomi:${ext.packageName}#')))
+                            if (int.tryParse(provider.identifier.split('#').last) != null)
+                              ListTile(
+                                dense: true,
+                                title: Text(provider.name),
+                                trailing: TextButton.icon(
+                                  onPressed: _busyId != null ? null :
+                                      () => _showSourceSettings(ext,
+                                        int.parse(provider.identifier.split('#').last),
+                                        provider.name),
+                                  icon: const Icon(Icons.tune),
+                                  label: const Text('Source settings'),
+                                ),
+                              ),
                           Wrap(
                             alignment: WrapAlignment.end,
                             spacing: 8,

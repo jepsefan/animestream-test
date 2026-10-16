@@ -9,4 +9,4 @@ Based directly on beta34.42, the user-confirmed working reference for AnimeOnsen
 - No site-specific parsing or special-case extension changes.
 - Version 1.4.9-beta34.43+54.
 
-**Not built or device tested here.** Build APK, verify that AnimeOnsen and Animenosub playback still works, and check server selections. If a source provides external audio, the server card should show an external audio count (metadata only).
+**Validation:** The user reports beta34.43 plays video using AnimeOnsen [Ext] and displays **9 subtitle tracks**. The nine tracks are discovered by the UI; their individual rendering and language selection were not confirmed. Animenosub playback on this beta and external audio track availability/selection have not been separately tested. No independent build/device verification was performed in the development environment.

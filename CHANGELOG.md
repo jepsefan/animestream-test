@@ -2,6 +2,13 @@
 
 Complete development history. Published GitHub Releases use the concise [RELEASE_NOTES.md](RELEASE_NOTES.md) for the latest three beta versions. Older entries remain here for reference.
 
+## v1.4.9-beta34.44 — Extension source settings (list/switch)
+- Expose source-defined preferences through the shared native `ConfigurableAnimeSource.setupPreferenceScreen` API, not per-site hardcoding.
+- Add **Source settings** on enabled `[Ext]` providers in Manage Providers. List values and toggles are validated and saved to source-specific SharedPreferences.
+- Supports Animenosub's declared quality, SUB/RAW type and preferred server lists in principle; device validation is still needed.
+- No code changes to external audio playback or the deferred non-Latin subtitle glyph issue.
+- Version `1.4.9-beta34.44+55`. **Build and device tests pending**; beta34.43 is the latest user-confirmed playback reference.
+
 ## v1.4.9-beta34.43 — Preserve external audio and subtitle metadata
 - Carry extension-provided external audio URLs, languages and labels from Android's playback-only bridge into Dart `VideoStream.externalAudioTracks`, alongside existing subtitle tracks.
 - Show external audio and subtitle track counts in the server selection interface without exposing signed URLs.

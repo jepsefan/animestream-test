@@ -22,6 +22,20 @@ Built with ❤️ using Flutter
 
 **animestream** is a project made to stream and download Anime. Inspired from parent project [animestream-electron](https://github.com/frostnova721/animestream-electron) which was limited to desktops. Just wanted to make an app! btw, this app is **HEAVILY** inspired from saikou (you know what it means!)
 
+## Development fork: Anikku-compatible extensions
+
+This branch tracks the v1.4.9-beta34.x experimental Android extension implementation.
+
+- Add Aniyomi-compatible catalog URLs manually in **Settings → Extension Repositories**. Repository URLs and signing-key approvals remain local; Yūzōnō is not bundled.
+- Install and update supported extensions from the catalog after verifying APK signatures. Android asks for confirmation.
+- Enable installed extension sources individually under **Settings → Manage Providers [Beta]**. Approved sources appear as **[Ext]** in the source selector.
+- Search, browse episodes, resolve compatible hosters and play video through the existing player.
+- AnimeOnsen [Ext] and Animenosub [Ext] playback were confirmed working by device testing in beta34.41–34.42. Beta34.43 has not yet been device-verified.
+- External subtitle tracks are selectable where supported; extension-provided standalone audio tracks are currently transferred as metadata only, not playable choices.
+- Full Anikku source API compatibility and certain 123Anime video hosts remain work in progress.
+
+**Release notes:** [Latest three betas](RELEASE_NOTES.md) · [Full beta history](CHANGELOG.md) · [Beta34.43 technical notes](docs/beta34.43-extension-track-metadata.md)
+
 ## Installation
 
 ### Android & Windows

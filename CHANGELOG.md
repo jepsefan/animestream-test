@@ -3,7 +3,7 @@
 Complete development history. Published GitHub Releases use the concise [RELEASE_NOTES.md](RELEASE_NOTES.md) for the latest three beta versions. Older entries remain here for reference.
 
 ## v1.4.9-beta34.47 — Legacy lazy video URL compatibility
-- Resolve non-playable placeholder video URLs through modern `resolveVideo(Video)`, followed by legacy `getVideoUrl(Video)` only if needed and the video-page URL is valid.
+- Resolve non-playable placeholder video URLs through modern `resolveVideo(Video)`, followed by legacy `getVideoUrl(Video)` only when a valid video-page URL exists **and** the extension supplies a resolver. Avoid a new HTTP request from the generic default parser.
 - Retain subtitle/audio track lists, custom headers and video titles by copying the original Video with the final playable URL.
 - Skip extra requests for video entries already containing valid HTTP/HTTPS URLs.
 - Preserve confirmed beta34.46 playback, beta34.45 AnimeOnsen search fallback and the deferred non-Latin subtitle glyph issue.

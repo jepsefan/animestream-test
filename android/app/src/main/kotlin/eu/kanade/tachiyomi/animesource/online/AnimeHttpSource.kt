@@ -152,6 +152,40 @@ abstract class AnimeHttpSource : AnimeCatalogueSource {
     protected open fun videoUrlParse(response: Response): String =
         throw UnsupportedOperationException()
 
+    // Anikku extensions-lib 1.6 Hoster request/parse API. These defaults
+    // preserve older extensions that only implement per-episode video lists.
+    protected open fun hosterListRequest(episode: SEpisode): Request =
+        Request.Builder().url(baseUrl + episode.url).headers(headers).build()
+
+    protected open fun videoListRequest(hoster: Hoster): Request =
+        Request.Builder().url(hoster.hosterUrl).headers(headers).build()
+
+    protected open fun videoListParse(response: Response, hoster: Hoster): List<Video> =
+        throw UnsupportedOperationException("Hoster parser not implemented")
+
+    override suspend fun getHosterList(episode: SEpisode): List<Hoster> =
+        fetch(hosterListRequest(episode), ::hosterListParse)
+            .toBlocking().single().let { hosters ->
+                with(this) { hosters.sortHosters() }
+            }
+
+    override suspend fun getVideoList(hoster: Hoster): List<Video> =
+        fetch(videoListRequest(hoster)) { videoListParse(it, hoster) }
+            .toBlocking().single().let { videos ->
+                with(this) { videos.sortVideos() }
+            }
+
+    // Historical lazy URL resolution hooks. Only explicitly requested by
+    // the bridge for unresolved video placeholders, never valid media URLs.
+    protected open fun videoUrlRequest(video: Video): Request =
+        Request.Builder().url(video.videoPageUrl).headers(headers).build()
+
+    open fun fetchVideoUrl(video: Video): Observable<String> =
+        fetch(videoUrlRequest(video), ::videoUrlParse)
+
+    open suspend fun getVideoUrl(video: Video): String =
+        fetchVideoUrl(video).toBlocking().single()
+
     protected open fun List<Hoster>.sortHosters(): List<Hoster> = this
     protected open fun List<Video>.sortVideos(): List<Video> = this
     protected open fun List<Video>.sort(): List<Video> = this

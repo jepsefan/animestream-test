@@ -267,6 +267,75 @@ class _PluginPageState extends State<PluginPage> {
                         }
                       },
                     )
+                  else if (item['type'] == 'multi_select')
+                    ListTile(
+                      title: Text(item['title']?.toString() ?? ''),
+                      subtitle: Text(
+                        ((item['value'] as List?) ?? const []).isEmpty
+                            ? 'None excluded'
+                            : ((item['value'] as List?) ?? const [])
+                                .map((v) => v.toString()).join(', ')),
+                      trailing: const Icon(Icons.checklist),
+                      onTap: () async {
+                        final entries = (item['entries'] as List?) ?? const [];
+                        final values = (item['values'] as List?) ?? const [];
+                        if (entries.length != values.length) return;
+                        final chosen = ((item['value'] as List?) ?? const [])
+                            .map((e) => e.toString()).toSet();
+                        final selected = await showDialog<List<String>>(
+                          context: ctx,
+                          builder: (dialog) => StatefulBuilder(
+                            builder: (dialog, refreshChoices) => AlertDialog(
+                              title: Text(item['title']?.toString() ?? 'Select'),
+                              content: SizedBox(
+                                width: double.maxFinite,
+                                child: ListView(
+                                  shrinkWrap: true,
+                                  children: [
+                                    for (var i = 0; i < values.length; i++)
+                                      CheckboxListTile(
+                                        title: Text(entries[i].toString()),
+                                        value: chosen.contains(values[i].toString()),
+                                        onChanged: (enabled) => refreshChoices(() {
+                                          final key = values[i].toString();
+                                          if (enabled == true) {
+                                            chosen.add(key);
+                                          } else {
+                                            chosen.remove(key);
+                                          }
+                                        }),
+                                      ),
+                                  ],
+                                ),
+                              ),
+                              actions: [
+                                TextButton(
+                                  onPressed: () => Navigator.pop(dialog),
+                                  child: const Text('Cancel'),
+                                ),
+                                TextButton(
+                                  onPressed: () => Navigator.pop(
+                                    dialog, values.map((v) => v.toString())
+                                        .where(chosen.contains).toList()),
+                                  child: const Text('Save'),
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                        if (selected == null) return;
+                        final result = await AniyomiExtensionBridge.updateSourcePreference(
+                            ext.packageName, sourceId, item['key'].toString(), selected);
+                        if (!ctx.mounted) return;
+                        if (result['status'] == 'updated') {
+                          refresh(() => item['value'] = selected);
+                        } else {
+                          ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(
+                            content: Text('Save failed: ${result['status']}'),
+                          ));
+                        }
+                      },
+                    )
                   else if (item['type'] == 'boolean')
                     SwitchListTile(
                       title: Text(item['title']?.toString() ?? ''),

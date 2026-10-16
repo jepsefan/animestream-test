@@ -6,7 +6,7 @@ The complete development history is in [CHANGELOG.md](CHANGELOG.md). Notes below
 - Preserve external audio track URLs, language and labels from Anikku extensions into AnimeStream's playback-only stream data.
 - Show counts of external subtitle and audio tracks in the server selector.
 - External standalone audio tracks are **not yet selectable or playable** through Better Player. HLS/internal player track selection is unchanged.
-- Beta34.43 is based on the working beta34.42 and is **not yet build- or device-tested**.
+- **User-confirmed on-device:** AnimeOnsen [Ext] plays video in beta34.43 and 9 subtitle tracks are displayed. This confirms track discovery, not that every individual track was rendered or selected. Other extension regression tests remain open.
 
 ## v1.4.9-beta34.42 — Hoster and lazy video support
 - Add the Anikku-compatible `resolveVideo(Video)` hook for extension implementations resolving a playable URL at a later stage.

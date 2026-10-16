@@ -21,6 +21,8 @@ The complete development history is in [CHANGELOG.md](CHANGELOG.md). Notes below
 - **User confirmed Animenosub [Ext] search, episodes, SUB/DUB/RAW video choices and actual Better Player playback.** AnimeOnsen [Ext] also remained functional.
 
 ### Known limitations
+- **Deferred subtitle display bug:** A language that appears to be Arabic is rendered as square boxes with crosses during AnimeOnsen playback; language identification and font/glyph root cause are unconfirmed. This is recorded only, not fixed in beta34.43.
+### Known limitations
 - Some 123Anime video hosts still return no playable streams.
 - Full Anikku Host API coverage, source preference screens and standalone external audio playback remain unfinished.
 - Installing extension APKs still requires Android confirmation and cryptographic signing-certificate checks; repository URLs are entered by the user and stored locally.

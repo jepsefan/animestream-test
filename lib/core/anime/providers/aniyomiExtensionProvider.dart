@@ -153,35 +153,12 @@ class AniyomiExtensionProvider extends AnimeProvider {
       // multi-part format; do not guess a host from a video URL.
       final parts = qualityLabel.split(RegExp(r'\s+-\s+'))
           .map((part) => part.trim()).where((part) => part.isNotEmpty).toList();
-      final inferred = !usefulHoster && parts.length >= 4 &&
-              RegExp(r'^\\d{3,4}p?(?:\\s*\\(.*\\))?
-        quality: item['quality']?.toString() ?? 'Auto',
-        url: url,
-        server: hosterName.isNotEmpty
-            ? '$providerName • $hosterName'
-            : providerName,
-        backup: false,
-        subtitle: subtitle?.isNotEmpty == true ? subtitle : null,
-        subtitleTracks: subtitles,
-        externalAudioTracks: audioTracks,
-        subtitleFormat: (item['subtitleFormat'] ?? '').toString(),
-        customHeaders: headers,
-      ));
-    }
-    if (streams.isEmpty) throw StateError('Aniyomi: no playable streams returned');
-    update(streams, true);
-  }
-
-  @override
-  Future<void> getDownloadSources(
-      String episodeUrl, void Function(List<VideoStream>, bool) update,
-      {bool dub = false, String? metadata}) async {
-    throw UnimplementedError('Aniyomi extension downloads are not enabled');
-  }
-}
-, caseSensitive: false)
+      final inferred = !usefulHoster &&
+              parts.length >= 4 &&
+              RegExp(r'^\d{3,4}p?(?:\s*\(.*\))?$', caseSensitive: false)
                   .hasMatch(parts.last)
-          ? parts[parts.length - 2] : '';
+          ? parts[parts.length - 2]
+          : '';
       final hosterName = usefulHoster ? rawHoster : inferred;
       streams.add(VideoStream(
         quality: item['quality']?.toString() ?? 'Auto',

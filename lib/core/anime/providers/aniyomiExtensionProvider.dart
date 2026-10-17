@@ -141,7 +141,48 @@ class AniyomiExtensionProvider extends AnimeProvider {
           .where((track) => track.url.startsWith('https://') ||
               track.url.startsWith('http://'))
           .toList();
-      final hosterName = (item['hosterName'] ?? '').toString().trim();
+      final rawHoster = (item['hosterName'] ?? '').toString().trim();
+      // Some legacy/multisrc sources report a synthetic Hoster called
+      // "no_hoster_list". That is not a real server name.
+      final usefulHoster = rawHoster.isNotEmpty &&
+          !const {'no_hoster_list', 'none', 'unknown'}
+              .contains(rawHoster.toLowerCase().replaceAll(' ', '_'));
+      final qualityLabel = (item['quality'] ?? '').toString();
+      // Older extensions commonly return server names inside a structured
+      // quality string: "SUB - Omega - VidMoly - 720p". Use only an explicit
+      // multi-part format; do not guess a host from a video URL.
+      final parts = qualityLabel.split(RegExp(r'\\s+-\\s+'))
+          .map((part) => part.trim()).where((part) => part.isNotEmpty).toList();
+      final inferred = !usefulHoster && parts.length >= 4 &&
+              RegExp(r'^\\d{3,4}p?(?:\\s*\\(.*\\))?
+        quality: item['quality']?.toString() ?? 'Auto',
+        url: url,
+        server: hosterName.isNotEmpty
+            ? '$providerName • $hosterName'
+            : providerName,
+        backup: false,
+        subtitle: subtitle?.isNotEmpty == true ? subtitle : null,
+        subtitleTracks: subtitles,
+        externalAudioTracks: audioTracks,
+        subtitleFormat: (item['subtitleFormat'] ?? '').toString(),
+        customHeaders: headers,
+      ));
+    }
+    if (streams.isEmpty) throw StateError('Aniyomi: no playable streams returned');
+    update(streams, true);
+  }
+
+  @override
+  Future<void> getDownloadSources(
+      String episodeUrl, void Function(List<VideoStream>, bool) update,
+      {bool dub = false, String? metadata}) async {
+    throw UnimplementedError('Aniyomi extension downloads are not enabled');
+  }
+}
+, caseSensitive: false)
+                  .hasMatch(parts.last)
+          ? parts[parts.length - 2] : '';
+      final hosterName = usefulHoster ? rawHoster : inferred;
       streams.add(VideoStream(
         quality: item['quality']?.toString() ?? 'Auto',
         url: url,

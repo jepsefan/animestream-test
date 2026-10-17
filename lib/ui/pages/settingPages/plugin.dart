@@ -219,6 +219,10 @@ class _PluginPageState extends State<PluginPage> {
             'stage: ${response['failureStage']}',
           if (response['errorType'] != null)
             'error: ${response['errorType']}',
+          if (response['missingMethod'] != null)
+            'method: ${response['missingMethod']}',
+          if ((response['hostFrames'] as List?)?.isNotEmpty == true)
+            'host calls: ${(response['hostFrames'] as List).take(3).join(', ')}',
           if (response['failureCategory'] != null)
             'category: ${response['failureCategory']}',
           if ((response['missingClasses'] as List?)?.isNotEmpty == true)

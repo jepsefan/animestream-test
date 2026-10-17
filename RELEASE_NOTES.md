@@ -1,6 +1,11 @@
 # AnimeStream — Latest three beta releases
 
-The complete development history is in [CHANGELOG.md](CHANGELOG.md). Notes below reflect the current beta34.52 development branch.
+The complete development history is in [CHANGELOG.md](CHANGELOG.md). Notes below reflect the current beta34.53 development branch.
+
+## v1.4.9-beta34.53 — Fix synthetic server labels
+- Hide placeholder `no_hoster_list` and recover VidMoly-style host names from explicitly structured quality labels.
+- Improve Source settings diagnostics for NoSuchMethodError with sanitized host method information. This diagnoses but does not yet establish or fix the underlying method mismatch.
+- Leave playback and subtitles unchanged. **Not yet built/device-tested.**
 
 ## v1.4.9-beta34.52 — More informative video server selection
 - Retain the Hoster display name for modern Anikku extensions when retrieving video streams and lazy-resolving their links.

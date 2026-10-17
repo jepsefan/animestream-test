@@ -79,6 +79,16 @@ internal object ExtensionLinkageDiagnostics {
             .map { it.className + "." + it.methodName }
             .distinct().take(6).toList()
 
+        // Only report class and method identifiers for linkage failures.
+        // The complete NoSuchMethodError text may include private data;
+        // never forward it or a stack trace to the Flutter UI.
+        val methodHint = chain.filterIsInstance<NoSuchMethodError>()
+            .asSequence()
+            .mapNotNull { issue ->
+                Regex("""(?:method|Method)\\s+([A-Za-z_$][A-Za-z0-9_$]{1,90})""")
+                    .find(issue.message.orEmpty())?.groupValues?.getOrNull(1)
+            }.firstOrNull()
+
         return mapOf(
             "status" to if (discovery) "failed" else "stream_list_failed",
             "errorType" to (chain.firstOrNull { it !is ExtensionDiscoveryStageFailure &&
@@ -92,6 +102,7 @@ internal object ExtensionLinkageDiagnostics {
                     "invalid_source_state" else "extension_runtime",
             "errorTypes" to chain.map { it.javaClass.simpleName },
             "missingClasses" to missing.toList().take(8),
+            "missingMethod" to methodHint,
             "failureStage" to (stage ?: "unknown"),
             "hostFrames" to frames
         )

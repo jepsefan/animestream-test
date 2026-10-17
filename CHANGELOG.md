@@ -2,6 +2,12 @@
 
 Complete development history. Published GitHub Releases use the concise [RELEASE_NOTES.md](RELEASE_NOTES.md) for the latest three beta versions. Older entries remain here for reference.
 
+## v1.4.9-beta34.53 — Server labels and source settings diagnostics
+- Ignore synthetic `no_hoster_list` hoster labels. For structured legacy quality labels such as `SUB - Omega - VidMoly - 720p`, show the explicit server component as a fallback.
+- Preserve actual hoster names from modern Anikku extensions; retain all playback URLs, subtitle tracks, audio metadata and request headers.
+- Show safe missing-method hints and host call stages for failed Source settings setup, instead of a generic `NoSuchMethodError` alone. Exact failing AndroidX API method still requires device diagnosis.
+- Version `1.4.9-beta34.53+64`. Not yet built/device-verified. Existing subtitle glyph issue remains deferred.
+
 ## v1.4.9-beta34.52 — Preserve extension video hoster labels
 - Keep each Anikku Hoster's display name associated with the videos it returns, including videos resolved later by `resolveVideo` or `getVideoUrl`.
 - Show the hoster in AnimeStream's server selection (e.g., `AnimePahe [Ext] • Kwik`) while retaining the source identity and original quality, URLs, headers, subtitles and audio metadata.

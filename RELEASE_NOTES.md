@@ -1,30 +1,21 @@
-# AnimeStream — Latest three beta releases
+# AnimeStream — Latest three beta development versions
 
-The complete development history is in [CHANGELOG.md](CHANGELOG.md). Notes below reflect the current beta34.53 development branch.
+The complete development history is in [CHANGELOG.md](CHANGELOG.md). These notes describe beta34.55, beta34.54 and beta34.53. Beta34.54 did not produce a verified APK.
 
-## v1.4.9-beta34.53 — Fix synthetic server labels
-- Hide placeholder `no_hoster_list` and recover VidMoly-style host names from explicitly structured quality labels.
-- Improve Source settings diagnostics for NoSuchMethodError with sanitized host method information. This diagnoses but does not yet establish or fix the underlying method mismatch.
-- Leave playback and subtitles unchanged. **Not yet built/device-tested.**
+## v1.4.9-beta34.55 — Fix Dart compilation of Aniyomi hoster labels
+- Restore a complete Dart `RegExp` for structured quality/hoster labels and correct the interrupted `getStreams()` implementation.
+- Remove accidentally duplicated Dart code outside the provider class; this addresses the reported compilation cascade in `aniyomiExtensionProvider.dart`, `sources.dart` and `infoProvider.dart`.
+- Preserve meaningful server/hoster names, video quality, URLs, request headers and subtitle/audio track metadata. Continue excluding placeholder `no_hoster_list`.
+- Version `1.4.9-beta34.55+65`. **Source fix committed and checked in GitHub, but APK build and device playback not yet verified.**
 
-## v1.4.9-beta34.52 — More informative video server selection
-- Retain the Hoster display name for modern Anikku extensions when retrieving video streams and lazy-resolving their links.
-- Show extension and hoster together in the server selector, while preserving all video tracks, HTTP headers and source quality labels.
-- Episode-only sources continue using their familiar labels.
-- Source settings show human-readable list choices where supported.
-- **Not yet built/device-tested.** Beta34.51 source/episode recovery was user-confirmed.
+## v1.4.9-beta34.54 — Build-fix attempts (not successful)
+- Beta34.54 development branches still contained the truncated regex and duplicate trailing code, and are superseded by beta34.55.
+- **Not a verified build/release.** Use the beta34.55 correction branch instead.
 
-## v1.4.9-beta34.51 — Recover extension episode searches
-- Retry ordinary title searching after a saved extension match returns no episodes or fails, instead of repeatedly trying the stale match.
-- Distinguish empty manual search results from search errors; record safe error stages for failed episode loading.
-- Source settings now identify the safe error type, stage and missing classes when available.
-- No changes to playback or AnimeOnsen service handling. **User-confirmed on device:** [Ext] sources that previously failed to find episodes work again in beta34.51. Individual playback hosts and source settings have not all been separately checked.
-
-## v1.4.9-beta34.50 — More Yūzōnō settings
-- Support multi-select options declared by installed Anikku extensions. Shows checkboxes and saves selected values in the source's own preferences.
-- Example: AniWaves.ru can declare Exclude Servers / Exclude Types instead of requiring source-specific UI code.
-- Validate every selection against the extension-provided option set; retain Cancel without saving.
-- No changes to media playback or AnimeOnsen. **Not yet build/device tested.**
+## v1.4.9-beta34.53 — Synthetic host labels and diagnostics
+- Suppress `no_hoster_list` and other placeholder Hoster labels. For explicitly structured quality labels, use their hoster segment as a fallback.
+- Add sanitized missing-method/stage diagnostics for extension Source settings; the AndroidX method mismatch still requires device diagnosis.
+- **Previous reported APK compile failed** due to malformed provider source. No verified beta34.53 playback.
 
 ### Known limitations
 - Some possibly Arabic subtitle characters display as squares with crosses. Logged and deferred by request; no font/rendering change.

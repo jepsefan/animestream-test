@@ -6,7 +6,7 @@ The complete development history is in [CHANGELOG.md](CHANGELOG.md). Notes below
 - Retry ordinary title searching after a saved extension match returns no episodes or fails, instead of repeatedly trying the stale match.
 - Distinguish empty manual search results from search errors; record safe error stages for failed episode loading.
 - Source settings now identify the safe error type, stage and missing classes when available.
-- No changes to playback or AnimeOnsen service handling. **Not yet built/device-tested.**
+- No changes to playback or AnimeOnsen service handling. **User-confirmed on device:** [Ext] sources that previously failed to find episodes work again in beta34.51. Individual playback hosts and source settings have not all been separately checked.
 
 ## v1.4.9-beta34.50 — More Yūzōnō settings
 - Support multi-select options declared by installed Anikku extensions. Shows checkboxes and saves selected values in the source's own preferences.

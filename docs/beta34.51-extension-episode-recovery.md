@@ -12,4 +12,6 @@ Base: beta34.50, which introduced Yūzōnō multi-select preferences.
 ## Test
 Build v1.4.9-beta34.51+62. For a previously saved extension match, test both a valid title and a stale title link. Verify ordinary search runs after a stale link rather than repeating it for every title variant. On a failing extension, inspect the source status and Source settings error stage. Verify Animenosub playback when the remote source is available. Do not treat a site's HTTP error as an APK class-loading failure.
 
-**Not independently built or device-tested.** Known deferred subtitle missing-glyph issue remains unchanged.
+**User device confirmation:** The user reports that the [Ext] sources work again after beta34.51, following the earlier failure to find episodes. This supports the source/episode recovery, but does not establish that every extension's streams or settings have been tested. No independent build or device verification was performed here.
+
+Known deferred subtitle missing-glyph issue remains unchanged.

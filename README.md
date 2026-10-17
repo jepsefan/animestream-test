@@ -30,7 +30,7 @@ This branch tracks the v1.4.9-beta34.x experimental Android extension implementa
 - Install and update supported extensions from the catalog after verifying APK signatures. Android asks for confirmation.
 - Enable installed extension sources individually under **Settings → Manage Providers [Beta]**. Approved sources appear as **[Ext]** in the source selector.
 - Search, browse episodes, resolve compatible hosters and play video through the existing player.
-- AnimeOnsen [Ext] and Animenosub [Ext] playback were confirmed in beta34.41–34.42; beta34.51 episode recovery was confirmed on device. The beta34.55 Dart hoster build repair has not yet been APK-build or device-verified.
+- AnimeOnsen [Ext] and Animenosub [Ext] playback were confirmed working by device testing in beta34.41–34.42. Beta34.43 has not yet been device-verified.
 - External subtitle tracks are selectable where supported; extension-provided standalone audio tracks are currently transferred as metadata only, not playable choices.
 - Full Anikku source API compatibility and certain 123Anime video hosts remain work in progress.
 

@@ -1,6 +1,12 @@
 # AnimeStream — Latest three beta development versions
 
-The complete development history is in [CHANGELOG.md](CHANGELOG.md). These notes describe beta34.55, beta34.54 and beta34.53. Beta34.54 did not produce a verified APK.
+The complete development history is in [CHANGELOG.md](CHANGELOG.md). These notes cover beta34.56, beta34.55 and beta34.54. Beta34.54 was an unsuccessful build-fix attempt.
+
+## v1.4.9-beta34.56 — Source Settings AndroidX Preference linkage
+- Preserve AndroidX Preference classes and JVM methods in R8-minified APKs. Installed Anikku/Aniyomi extensions reference these APIs dynamically.
+- The beta34.55 AniWaves.ru [Ext] Source settings test failed at `settings_build_screen` with `NoSuchMethodError: getContext` in `AniWaves.setupPreferenceScreen`. Upstream source calls `screen.context` to create preferences; this fix targets the likely missing/renamed host method.
+- Existing Source settings UI already supports source-declared lists, multiple-choice lists and toggles. This beta does not hardcode AniWaves options or modify the playback/player/subtitle code.
+- Version `1.4.9-beta34.56+66`. **APK build and device behavior remain to be verified.** Test settings open/save/reopen and AniWaves playback.
 
 ## v1.4.9-beta34.55 — Fix Dart compilation of Aniyomi hoster labels
 - Restore a complete Dart `RegExp` for structured quality/hoster labels and correct the interrupted `getStreams()` implementation.
@@ -12,10 +18,6 @@ The complete development history is in [CHANGELOG.md](CHANGELOG.md). These notes
 - Beta34.54 development branches still contained the truncated regex and duplicate trailing code, and are superseded by beta34.55.
 - **Not a verified build/release.** Use the beta34.55 correction branch instead.
 
-## v1.4.9-beta34.53 — Synthetic host labels and diagnostics
-- Suppress `no_hoster_list` and other placeholder Hoster labels. For explicitly structured quality labels, use their hoster segment as a fallback.
-- Add sanitized missing-method/stage diagnostics for extension Source settings; the AndroidX method mismatch still requires device diagnosis.
-- **Previous reported APK compile failed** due to malformed provider source. No verified beta34.53 playback.
 
 ### Known limitations
 - Some possibly Arabic subtitle characters display as squares with crosses. Logged and deferred by request; no font/rendering change.

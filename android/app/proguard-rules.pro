@@ -3,6 +3,12 @@
 -keep class eu.kanade.tachiyomi.animesource.** { *; }
 -keep interface eu.kanade.tachiyomi.animesource.** { *; }
 -keep class eu.kanade.tachiyomi.network.** { *; }
+# Anikku/Aniyomi APKs call AndroidX Preference APIs through their own DEX.
+# These calls are invisible to R8 in the host APK; preserve public JVM names
+# and members such as PreferenceScreen/Preference.getContext(), which
+# AniWaves.setupPreferenceScreen needs when constructing Source settings.
+-keep class androidx.preference.** { *; }
+-keep interface androidx.preference.** { *; }
 # Top-level JsoupExtensionsKt methods are called from external APKs via JVM linkage.
 -keep class eu.kanade.tachiyomi.util.** { *; }
 -keep class uy.kohesive.injekt.** { *; }

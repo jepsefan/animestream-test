@@ -151,7 +151,7 @@ class AniyomiExtensionProvider extends AnimeProvider {
       // Older extensions commonly return server names inside a structured
       // quality string: "SUB - Omega - VidMoly - 720p". Use only an explicit
       // multi-part format; do not guess a host from a video URL.
-      final parts = qualityLabel.split(RegExp(r'\\s+-\\s+'))
+      final parts = qualityLabel.split(RegExp(r'\s+-\s+'))
           .map((part) => part.trim()).where((part) => part.isNotEmpty).toList();
       final inferred = !usefulHoster && parts.length >= 4 &&
               RegExp(r'^\\d{3,4}p?(?:\\s*\\(.*\\))?

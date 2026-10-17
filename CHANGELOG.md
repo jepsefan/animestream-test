@@ -7,7 +7,7 @@ Complete development history. Published GitHub Releases use the concise [RELEASE
 - Remove the mistakenly duplicated trailing code after the provider class. The malformed file previously caused cascading Dart compiler errors involving `StateError`, `VideoStream`, `sources.dart` and `infoProvider.dart`.
 - Preserve explicit Hoster labels and infer a hoster only from structured legacy quality strings such as `SUB - Omega - VidMoly - 720p`. Ignore synthetic labels such as `no_hoster_list`.
 - Keep stream quality, media URLs, subtitle/audio metadata and HTTP request headers unchanged.
-- Version `1.4.9-beta34.55+65`. Corrected source committed; **Flutter APK build and Android TV/device playback not yet verified**. No change to subtitle renderers or extension repository storage.
+- Version `1.4.9-beta34.55+65`. **User-confirmed on an Android device:** AniWaves.ru [Ext] matches the title, presents distinct stream choices (DatSaV 360p/480p and Vidplay 720p) and successfully plays the selected stream. The previously broken compile path is therefore functional in the installed test APK, although GitHub Actions build status was not independently reviewed and other hosts/settings remain unverified. No subtitle renderer or extension repository storage changes.
 
 ## v1.4.9-beta34.54 — Unsuccessful hoster build correction attempts
 - Two beta34.54 development branches attempted to correct the beta34.53 hoster labeling code, but retained an unterminated Dart regex and duplicated trailing code; these branches are **not suitable for APK builds**.

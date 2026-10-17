@@ -7,7 +7,8 @@ Complete development history. Published GitHub Releases use the concise [RELEASE
 - Track bounded extension search, title-match and episode-fetch failure stages without exposing source URLs, request headers or tokens.
 - Show a clear manual-search failure type instead of silently reporting “No Results” on network/runtime errors.
 - Report safe source-preference error category, stage and missing Host API class identifiers when available.
-- No player, subtitle renderer or AnimeOnsen search fallback changes. Version `1.4.9-beta34.51+62`. Build and device testing pending.
+- No player, subtitle renderer or AnimeOnsen search fallback changes. Version `1.4.9-beta34.51+62`.
+- **User-confirmed on device:** previously failing installed [Ext] sources now work again in beta34.51. The report follows the missing-episode problem; not every source, stream host or settings option has been individually verified.
 
 ## v1.4.9-beta34.50 — Yūzōnō multi-select preferences
 - Add generic `MultiSelectListPreference` support to the installed-extension Host API bridge and settings UI, including checkbox lists and Save/Cancel.

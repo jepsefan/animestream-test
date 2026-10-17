@@ -141,10 +141,13 @@ class AniyomiExtensionProvider extends AnimeProvider {
           .where((track) => track.url.startsWith('https://') ||
               track.url.startsWith('http://'))
           .toList();
+      final hosterName = (item['hosterName'] ?? '').toString().trim();
       streams.add(VideoStream(
         quality: item['quality']?.toString() ?? 'Auto',
         url: url,
-        server: providerName,
+        server: hosterName.isNotEmpty
+            ? '$providerName • $hosterName'
+            : providerName,
         backup: false,
         subtitle: subtitle?.isNotEmpty == true ? subtitle : null,
         subtitleTracks: subtitles,

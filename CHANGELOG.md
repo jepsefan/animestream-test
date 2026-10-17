@@ -2,6 +2,13 @@
 
 Complete development history. Published GitHub Releases use the concise [RELEASE_NOTES.md](RELEASE_NOTES.md) for the latest three beta versions. Older entries remain here for reference.
 
+## v1.4.9-beta34.52 — Preserve extension video hoster labels
+- Keep each Anikku Hoster's display name associated with the videos it returns, including videos resolved later by `resolveVideo` or `getVideoUrl`.
+- Show the hoster in AnimeStream's server selection (e.g., `AnimePahe [Ext] • Kwik`) while retaining the source identity and original quality, URLs, headers, subtitles and audio metadata.
+- Direct/legacy episode-only extensions keep the existing server label. Suppress control characters and cap hoster display names at 80 characters.
+- Improve source-setting list labels so users see human-readable entries instead of internal option keys when available.
+- Version `1.4.9-beta34.52+63`. No source-specific special cases, playback decoder changes or subtitle renderer modifications. **Build and device tests pending.**
+
 ## v1.4.9-beta34.51 — Extension episode recovery and safe diagnostics
 - Attempt each saved [Ext] source episode link at most once per page load. If it fails or returns no episodes, continue ordinary search instead of repeating the same stale link for every title variant.
 - Track bounded extension search, title-match and episode-fetch failure stages without exposing source URLs, request headers or tokens.

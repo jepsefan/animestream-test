@@ -13,6 +13,15 @@ import eu.kanade.tachiyomi.animesource.online.AnimeHttpSource
  * Version-neutral calls: modern suspend API first, legacy RxJava as fallback.
  * Only fallback for genuinely unsupported methods, not for HTTP/parser failures.
  */
+/**
+ * Keep the originating hoster separate from the quality string: distinct
+ * hosts can offer the same quality and use different playback headers.
+ */
+internal data class ExtensionVideoCandidate(
+    val video: Video,
+    val hosterName: String? = null
+)
+
 internal object ExtensionSourceCalls {
     private const val WAIT_MS = 35000L
 
@@ -49,7 +58,7 @@ internal object ExtensionSourceCalls {
         }
     }
 
-    fun videos(source: AnimeSource, episode: SEpisode): List<Video> {
+    fun videos(source: AnimeSource, episode: SEpisode): List<ExtensionVideoCandidate> {
         // Extensions-lib 1.6+: obtain available hosters, then resolve each.
         val hosters: List<Hoster>? = try {
             runBlocking { withTimeout(WAIT_MS) { source.getHosterList(episode) } }
@@ -58,7 +67,7 @@ internal object ExtensionSourceCalls {
             null
         }
         if (hosters != null) {
-            val collected = mutableListOf<Video>()
+            val collected = mutableListOf<ExtensionVideoCandidate>()
             var lastFailure: Throwable? = null
             // A single unavailable hoster must not hide working alternatives.
             for (hoster in hosters.take(30)) {
@@ -66,7 +75,12 @@ internal object ExtensionSourceCalls {
                     val offered = hoster.videoList ?: runBlocking {
                         withTimeout(WAIT_MS) { source.getVideoList(hoster) }
                     }
-                    collected.addAll(offered)
+                    // Only a display label crosses into Flutter. Never expose
+                    // hosterUrl or opaque internalData in diagnostics or UI.
+                    val label = hoster.hosterName
+                        .filter { it >= ' ' && it != '\u007f' }
+                        .trim().take(80).ifEmpty { null }
+                    collected.addAll(offered.map { ExtensionVideoCandidate(it, label) })
                 } catch (failure: Throwable) {
                     lastFailure = failure
                 }
@@ -83,7 +97,9 @@ internal object ExtensionSourceCalls {
             source.fetchVideoList(episode).toBlocking()
                 .toFuture().get(WAIT_MS, TimeUnit.MILLISECONDS)
         }
-        return resolveLazyVideos(source, direct)
+        return resolveLazyVideos(
+            source, direct.map { ExtensionVideoCandidate(it) }
+        )
     }
     /** Validate URL shapes without returning or logging potentially signed links. */
     private fun isPlayableHttpUrl(value: String): Boolean {
@@ -131,11 +147,14 @@ internal object ExtensionSourceCalls {
      * If the legacy resolver succeeds, copy rather than reconstructing Video so
      * subtitle/audio tracks, headers, title and quality metadata are retained.
      */
-    private fun resolveLazyVideos(source: AnimeSource, videos: List<Video>): List<Video> {
+    private fun resolveLazyVideos(
+        source: AnimeSource, videos: List<ExtensionVideoCandidate>
+    ): List<ExtensionVideoCandidate> {
         val httpSource = source as? AnimeHttpSource ?: return videos
         val hasLegacyResolver = supportsLegacyVideoUrl(httpSource)
-        return videos.map { original ->
-            if (isPlayableHttpUrl(original.videoUrl)) return@map original
+        return videos.map { candidate ->
+            val original = candidate.video
+            if (isPlayableHttpUrl(original.videoUrl)) return@map candidate
 
             val modern = try {
                 runBlocking {
@@ -147,7 +166,7 @@ internal object ExtensionSourceCalls {
 
             if (isPlayableHttpUrl(modern.videoUrl) ||
                 !hasLegacyResolver || !isPlayableHttpUrl(modern.videoPageUrl)) {
-                return@map modern
+                return@map candidate.copy(video = modern)
             }
 
             val resolvedUrl = try {
@@ -158,12 +177,10 @@ internal object ExtensionSourceCalls {
                 null
             }
 
-            if (resolvedUrl != null && isPlayableHttpUrl(resolvedUrl)) {
-                modern.copy(videoUrl = resolvedUrl.trim())
-            } else {
-                modern
-            }
-        }.distinctBy { it.videoUrl to it.videoTitle }
+            candidate.copy(video = if (
+                resolvedUrl != null && isPlayableHttpUrl(resolvedUrl)
+            ) modern.copy(videoUrl = resolvedUrl.trim()) else modern)
+        }.distinctBy { it.video.videoUrl to it.video.videoTitle }
     }
 
 }

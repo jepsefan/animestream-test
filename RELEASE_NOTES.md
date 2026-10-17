@@ -1,6 +1,13 @@
 # AnimeStream — Latest three beta releases
 
-The complete development history is in [CHANGELOG.md](CHANGELOG.md). Notes below reflect the current beta34.51 development branch.
+The complete development history is in [CHANGELOG.md](CHANGELOG.md). Notes below reflect the current beta34.52 development branch.
+
+## v1.4.9-beta34.52 — More informative video server selection
+- Retain the Hoster display name for modern Anikku extensions when retrieving video streams and lazy-resolving their links.
+- Show extension and hoster together in the server selector, while preserving all video tracks, HTTP headers and source quality labels.
+- Episode-only sources continue using their familiar labels.
+- Source settings show human-readable list choices where supported.
+- **Not yet built/device-tested.** Beta34.51 source/episode recovery was user-confirmed.
 
 ## v1.4.9-beta34.51 — Recover extension episode searches
 - Retry ordinary title searching after a saved extension match returns no episodes or fails, instead of repeatedly trying the stale match.

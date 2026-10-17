@@ -250,7 +250,14 @@ class _PluginPageState extends State<PluginPage> {
                   if (item['type'] == 'list')
                     ListTile(
                       title: Text(item['title']?.toString() ?? ''),
-                      subtitle: Text(item['value']?.toString() ?? ''),
+                      subtitle: Text(() {
+                        final values = (item['values'] as List?) ?? const [];
+                        final entries = (item['entries'] as List?) ?? const [];
+                        final selectedIndex = values.indexOf(item['value']);
+                        return selectedIndex >= 0 && selectedIndex < entries.length
+                            ? entries[selectedIndex].toString()
+                            : (item['value']?.toString() ?? '');
+                      }()),
                       onTap: () async {
                         final values = (item['values'] as List?) ?? const [];
                         final entries = (item['entries'] as List?) ?? const [];

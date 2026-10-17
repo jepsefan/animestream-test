@@ -154,7 +154,8 @@ internal class ExtensionEpisodeProbe(private val context: Context) {
             helper.endStreamDiagnostics()
         }
         if (forPlayback) {
-            val playable = videos.take(40).mapNotNull { video ->
+            val playable = videos.take(40).mapNotNull { candidate ->
+                val video = candidate.video
                 val url = video.videoUrl
                 val uri = try { android.net.Uri.parse(url) } catch (_: Exception) { null }
                 if (uri == null || uri.scheme?.lowercase() !in setOf("http", "https") ||
@@ -210,6 +211,7 @@ internal class ExtensionEpisodeProbe(private val context: Context) {
                     "url" to url,
                     "quality" to video.videoTitle.ifBlank { "Auto" },
                     "server" to packageName.substringAfterLast('.'),
+                    "hosterName" to (candidate.hosterName ?: ""),
                     "headers" to (video.headers?.toMultimap()?.mapValues {
                         it.value.joinToString("; ")
                     } ?: emptyMap<String, String>()),
@@ -240,7 +242,8 @@ internal class ExtensionEpisodeProbe(private val context: Context) {
             "safeRequestSummary" to traces,
             "episodeName" to episodeName,
             "videoCount" to videos.size,
-            "videos" to videos.take(40).map { video ->
+            "videos" to videos.take(40).map { candidate ->
+                val video = candidate.video
                 val resolvedUrl = video.videoUrl
                 val scheme = try { android.net.Uri.parse(resolvedUrl).scheme.orEmpty() }
                     catch (_: Exception) { "" }
@@ -255,6 +258,7 @@ internal class ExtensionEpisodeProbe(private val context: Context) {
                 }
                 mapOf(
                     "quality" to video.videoTitle,
+                    "hosterName" to (candidate.hosterName ?: ""),
                     "format" to format,
                     "host" to host,
                     "protocol" to scheme,

@@ -2,6 +2,12 @@
 
 Complete development history. Published GitHub Releases use the concise [RELEASE_NOTES.md](RELEASE_NOTES.md) for the latest three beta versions. Older entries remain here for reference.
 
+## v1.4.9-beta34.56 — Source Settings R8 / AndroidX Preference compatibility
+- The user's beta34.55 AniWaves.ru [Ext] device test shows `settings_build_screen`, `NoSuchMethodError`, missing method `getContext`, from `AniWaves.setupPreferenceScreen`; title matching, hoster choices and video playback remain confirmed working.
+- Root-cause hypothesis: installed extension bytecode calls `PreferenceScreen.context` (`Preference.getContext()` on the JVM), but host release R8 shrinking may remove or rename AndroidX Preference members because those cross-APK references are invisible to the host app's static analysis.
+- Add keep rules for `androidx.preference.**` types, interfaces and methods in `android/app/proguard-rules.pro`, preserving extension-facing AndroidX Preference linkage during minified release builds.
+- This is a host-level compatibility fix: no source-specific filtering logic, user preferences, player/subtitles, repository URLs or existing extension APKs are changed.
+- Version `1.4.9-beta34.56+66`. **Not yet built or device-tested.** Verify that AniWaves Source settings opens, lists its extension-defined options and persists saved choices; check another configurable extension and re-test AniWaves video playback. If `getContext` still fails, capture sanitized failure class and method to locate the actual receiver.
 ## v1.4.9-beta34.55 — Repair Aniyomi hoster Dart build
 - Repair the truncated `RegExp` in `aniyomiExtensionProvider.dart` and restore the complete hoster-name fallback / `VideoStream` creation block.
 - Remove the mistakenly duplicated trailing code after the provider class. The malformed file previously caused cascading Dart compiler errors involving `StateError`, `VideoStream`, `sources.dart` and `infoProvider.dart`.
@@ -12,6 +18,7 @@ Complete development history. Published GitHub Releases use the concise [RELEASE
 ## v1.4.9-beta34.54 — Unsuccessful hoster build correction attempts
 - Two beta34.54 development branches attempted to correct the beta34.53 hoster labeling code, but retained an unterminated Dart regex and duplicated trailing code; these branches are **not suitable for APK builds**.
 - No separate verified beta34.54 release or successful device test is claimed. Superseded by the beta34.55 source repair.
+
 ## v1.4.9-beta34.53 — Server labels and source settings diagnostics
 - Ignore synthetic `no_hoster_list` hoster labels. For structured legacy quality labels such as `SUB - Omega - VidMoly - 720p`, show the explicit server component as a fallback.
 - Preserve actual hoster names from modern Anikku extensions; retain all playback URLs, subtitle tracks, audio metadata and request headers.

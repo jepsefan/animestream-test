@@ -85,7 +85,7 @@ internal object ExtensionLinkageDiagnostics {
         val methodHint = chain.filterIsInstance<NoSuchMethodError>()
             .asSequence()
             .mapNotNull { issue ->
-                Regex("""(?:method|Method)\\s+([A-Za-z_$][A-Za-z0-9_$]{1,90})""")
+                Regex("""(?:method|Method)\s+([A-Za-z_$][A-Za-z0-9_$]{1,90})""")
                     .find(issue.message.orEmpty())?.groupValues?.getOrNull(1)
             }.firstOrNull()
 

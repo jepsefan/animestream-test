@@ -2,6 +2,13 @@
 
 Complete development history. Published GitHub Releases use the concise [RELEASE_NOTES.md](RELEASE_NOTES.md) for the latest three beta versions. Older entries remain here for reference.
 
+## v1.4.9-beta34.59 — Extension series-page source relinking
+- User-confirmed regression in the beta34.58 family: **Manage Providers** can find source episodes/streams (e.g. AnimeOnsen [Ext], HTTP 200, one DASH video and nine subtitle tracks) while the series page reports no matching results for installed extensions.
+- Cause under investigation: Manage Providers probes historically omit `sourceId` and use the first source; series-page searches, episodes and streams specify a persisted approved source ID. Beta34.57 added safe name/language fallback only to Source Settings, not to the series playback path.
+- Pass the existing approved source's exact name and language through the series search/episode/stream Dart bridge and Kotlin probes. If a saved source ID cannot be found after restart, use the shared runtime's **unique exact name+language** fallback. Never use first-source fallback when an explicit ID is supplied and never silently select an ambiguous source.
+- Preserve source approvals, AniList identity verification, manual search behavior, Host API playback/headers/subtitles, and the 20-second OLED pause dimming of beta34.58. Manage Providers probes with no selected source ID remain unchanged.
+- Version `1.4.9-beta34.59+69`. **Not yet build- or device-verified.** After app restart, confirm AniWaves [Ext] series page searches/episodes and stream playback; compare AnimeOnsen [Ext] probe vs series UI. Failures still require stage diagnostics for distinction from title mismatch.
+
 ## v1.4.9-beta34.58 — OLED pause-dimming delay to 20 seconds
 - Increase the `Watch` screen OLED Pause Protection timer from 8 to **20 seconds** after playback is paused (`lib/ui/pages/watch.dart`).
 - Keep the existing dark overlay opacity and fade animation, immediate restoration on resume, and timer cancellation while playing or buffering.

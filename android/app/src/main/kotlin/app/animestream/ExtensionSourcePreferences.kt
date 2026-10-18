@@ -23,9 +23,14 @@ internal class ExtensionSourcePreferences(private val context: Context) {
         val screen: PreferenceGroup
     )
 
-    private fun setup(packageName: String, sourceId: Long): Setup {
+    private fun setup(
+        packageName: String, sourceId: Long,
+        approvedName: String?, approvedLanguage: String?
+    ): Setup {
         val loaded = try {
-            ExtensionHostRuntime(context).load(packageName, sourceId).source
+            ExtensionHostRuntime(context).load(
+                packageName, sourceId, approvedName, approvedLanguage
+            ).source
         } catch (error: Throwable) {
             throw ExtensionDiscoveryStageFailure("settings_load_source", error)
         }
@@ -65,9 +70,14 @@ internal class ExtensionSourcePreferences(private val context: Context) {
                     it is TwoStatePreference) }
             .take(32)
 
-    fun list(packageName: String, sourceId: Long): Map<String, Any?> {
+    fun list(
+        packageName: String, sourceId: Long,
+        approvedName: String? = null, approvedLanguage: String? = null
+    ): Map<String, Any?> {
         return try {
-            val (source, screen) = setup(packageName, sourceId)
+            val (source, screen) = setup(
+                packageName, sourceId, approvedName, approvedLanguage
+            )
             val available = safePreferences(screen)
             val records = available.mapNotNull { preference ->
                 val key = preference.key ?: return@mapNotNull null
@@ -135,11 +145,14 @@ internal class ExtensionSourcePreferences(private val context: Context) {
     }
 
     fun change(
-        packageName: String, sourceId: Long, key: String, value: Any?
+        packageName: String, sourceId: Long, key: String, value: Any?,
+        approvedName: String? = null, approvedLanguage: String? = null
     ): Map<String, Any?> {
         if (!safeKey(key)) return mapOf("status" to "invalid_preference")
         return try {
-            val (_, screen) = setup(packageName, sourceId)
+            val (_, screen) = setup(
+                packageName, sourceId, approvedName, approvedLanguage
+            )
             val preference = safePreferences(screen).firstOrNull { it.key == key }
                 ?: return mapOf("status" to "invalid_preference")
             when (preference) {

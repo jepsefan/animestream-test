@@ -2,6 +2,12 @@
 
 Complete development history. Published GitHub Releases use the concise [RELEASE_NOTES.md](RELEASE_NOTES.md) for the latest three beta versions. Older entries remain here for reference.
 
+## v1.4.9-beta34.57 — Restore Source settings after app restart
+- User report: after restarting AnimeStream, **all** approved extension Source settings fail with `settings_load_source` / `IllegalStateException` (`invalid_source_state`). Disabling and re-enabling the sources restores access.
+- During Source settings only, if a previously approved source ID is no longer found among the loaded APK's sources, resolve the user-approved source using an exact and unique source name + language match. No fallback to an arbitrary or first source; if validation fails, keep the existing safe error rather than selecting another source.
+- Pass approved name/language from AnimeStream's locally restored approval metadata through Flutter and Android bridges. Existing signing key and APK version checks for approvals are retained; no automatic execution of unapproved sources.
+- Make the existing auto-save behavior explicit: each successfully saved setting displays a confirmation inside the menu, and a Done button closes the sheet. Multi-select Save/Cancel remains.
+- Version `1.4.9-beta34.57+67`. **Not yet built or device-tested.** Restart the app, reopen Source settings across AniWaves and other installed extensions without re-enabling sources, verify choices persist, and regression-test video playback.
 ## v1.4.9-beta34.56 — Source Settings R8 / AndroidX Preference compatibility
 - The user's beta34.55 AniWaves.ru [Ext] device test shows `settings_build_screen`, `NoSuchMethodError`, missing method `getContext`, from `AniWaves.setupPreferenceScreen`; title matching, hoster choices and video playback remain confirmed working.
 - Root-cause hypothesis: installed extension bytecode calls `PreferenceScreen.context` (`Preference.getContext()` on the JVM), but host release R8 shrinking may remove or rename AndroidX Preference members because those cross-APK references are invisible to the host app's static analysis.

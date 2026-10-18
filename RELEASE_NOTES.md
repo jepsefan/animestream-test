@@ -1,6 +1,12 @@
 # AnimeStream — Latest three beta development versions
 
-The complete development history is in [CHANGELOG.md](CHANGELOG.md). These notes cover beta34.56, beta34.55 and beta34.54. Beta34.54 was an unsuccessful build-fix attempt.
+The complete development history is in [CHANGELOG.md](CHANGELOG.md). Notes below cover beta34.57, beta34.56 and beta34.55; older versions remain in the changelog.
+
+## v1.4.9-beta34.57 — Restart-safe Source settings
+- Attempt exact, unique name/language re-linking of the *already approved* extension source when its stored source ID no longer matches the installed runtime following an app restart. A missing or ambiguous match still fails safely.
+- Keep source approvals, per-source preferences, APK signing/version checks, video playback and the built-in providers unchanged.
+- Show an inline Saved confirmation for successful changes and a Done button in Source settings. Source-defined multi-select Save/Cancel is unchanged.
+- Version `1.4.9-beta34.57+67`. **Build and device tests pending**; verify reopening AniWaves and other extensions after restart without disabling/re-enabling, and confirm persisted options and video playback.
 
 ## v1.4.9-beta34.56 — Source Settings AndroidX Preference linkage
 - Preserve AndroidX Preference classes and JVM methods in R8-minified APKs. Installed Anikku/Aniyomi extensions reference these APIs dynamically.
@@ -13,11 +19,6 @@ The complete development history is in [CHANGELOG.md](CHANGELOG.md). These notes
 - Remove accidentally duplicated Dart code outside the provider class; this addresses the reported compilation cascade in `aniyomiExtensionProvider.dart`, `sources.dart` and `infoProvider.dart`.
 - Preserve meaningful server/hoster names, video quality, URLs, request headers and subtitle/audio track metadata. Continue excluding placeholder `no_hoster_list`.
 - Version `1.4.9-beta34.55+65`. **User-confirmed on device:** AniWaves.ru [Ext] finds the title, lists DatSaV (360p/480p) and Vidplay (720p), and plays video successfully. This verifies the tested extension playback path; other hosts and settings remain untested, and CI build status has not been checked independently.
-
-## v1.4.9-beta34.54 — Build-fix attempts (not successful)
-- Beta34.54 development branches still contained the truncated regex and duplicate trailing code, and are superseded by beta34.55.
-- **Not a verified build/release.** Use the beta34.55 correction branch instead.
-
 
 ### Known limitations
 - Some possibly Arabic subtitle characters display as squares with crosses. Logged and deferred by request; no font/rendering change.

@@ -51,11 +51,28 @@ internal class ExtensionHostRuntime(private val context: Context) {
             }
         }
 
-    fun load(packageName: String, sourceId: Long? = null): Loaded {
+    fun load(
+        packageName: String, sourceId: Long? = null,
+        approvedName: String? = null, approvedLanguage: String? = null
+    ): Loaded {
         val sources = loadAll(packageName)
-        val selected = if (sourceId == null) sources.first() else
-            sources.firstOrNull { it.id == sourceId }
-                ?: error("Selected source ID is not available in extension")
+        val selected = if (sourceId == null) {
+            sources.first()
+        } else {
+            sources.firstOrNull { it.id == sourceId } ?: run {
+                // A source ID restored from local approval metadata can become
+                // stale after a process restart or extension/source ABI change.
+                // Only Source settings may supply an already-approved name/lang.
+                // Never silently switch to another source or the first source.
+                if (approvedName.isNullOrBlank() || approvedLanguage.isNullOrBlank()) {
+                    error("Selected source ID is not available in extension")
+                }
+                sources.filter {
+                    it.name == approvedName && it.lang == approvedLanguage
+                }.singleOrNull()
+                    ?: error("Approved source identity not found or ambiguous")
+            }
+        }
         return Loaded(selected, sources.size)
     }
 

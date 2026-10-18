@@ -6,7 +6,7 @@ The complete development history is in [CHANGELOG.md](CHANGELOG.md). These notes
 - Preserve AndroidX Preference classes and JVM methods in R8-minified APKs. Installed Anikku/Aniyomi extensions reference these APIs dynamically.
 - The beta34.55 AniWaves.ru [Ext] Source settings test failed at `settings_build_screen` with `NoSuchMethodError: getContext` in `AniWaves.setupPreferenceScreen`. Upstream source calls `screen.context` to create preferences; this fix targets the likely missing/renamed host method.
 - Existing Source settings UI already supports source-declared lists, multiple-choice lists and toggles. This beta does not hardcode AniWaves options or modify the playback/player/subtitle code.
-- Version `1.4.9-beta34.56+66`. **APK build and device behavior remain to be verified.** Test settings open/save/reopen and AniWaves playback.
+- Version `1.4.9-beta34.56+66`. **Device-tested:** AniWaves.ru [Ext] settings opens with ten options; the prior `getContext` failure is no longer observed. Settings save immediately without a global confirmation button. **Remaining issue:** after closing, reopening settings may return `settings_load_source / IllegalStateException (invalid_source_state)` until extension sources are refreshed/re-enabled; the precise affected source needs confirmation. Persistence after restart and unrelated extension playback not verified for this build.
 
 ## v1.4.9-beta34.55 — Fix Dart compilation of Aniyomi hoster labels
 - Restore a complete Dart `RegExp` for structured quality/hoster labels and correct the interrupted `getStreams()` implementation.

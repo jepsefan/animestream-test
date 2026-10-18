@@ -122,6 +122,8 @@ class MainActivity: FlutterActivity() {
                 "listExtensionSourcePreferences", "updateExtensionSourcePreference" -> {
                     val pkg = call.argument<String>("packageName")
                     val sourceId = call.argument<Number>("sourceId")?.toLong()
+                    val approvedName = call.argument<String>("sourceName")
+                    val approvedLanguage = call.argument<String>("sourceLanguage")
                     if (pkg.isNullOrBlank() || sourceId == null ||
                         listInstalledAnimeExtensions().none { it["packageName"] == pkg }) {
                         result.error("INVALID_SOURCE", "Select an installed extension source", null)
@@ -130,11 +132,13 @@ class MainActivity: FlutterActivity() {
                             val response = try {
                                 val host = ExtensionSourcePreferences(this)
                                 if (call.method == "listExtensionSourcePreferences")
-                                    host.list(pkg, sourceId)
+                                    host.list(pkg, sourceId,
+                                        approvedName, approvedLanguage)
                                 else
                                     host.change(pkg, sourceId,
                                         call.argument<String>("key").orEmpty(),
-                                        call.argument<Any>("value"))
+                                        call.argument<Any>("value"),
+                                        approvedName, approvedLanguage)
                             } catch (e: Throwable) {
                                 ExtensionLinkageDiagnostics.describeDiscovery(e)
                             }

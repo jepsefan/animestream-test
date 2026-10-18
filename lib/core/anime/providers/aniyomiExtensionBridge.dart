@@ -61,9 +61,13 @@ class AniyomiExtensionBridge {
   }
   /// Runs an installed extension's search code only after explicit user consent.
   static Future<Map<String, dynamic>> testExtensionSearch(
-      String packageName, String query, {int? sourceId}) async {
+      String packageName, String query,
+      {int? sourceId, String? sourceName, String? sourceLanguage}) async {
     final raw = await _channel.invokeMethod<Map<dynamic, dynamic>>(
-      'testExtensionSearch', {'packageName': packageName, 'query': query, 'sourceId': sourceId});
+      'testExtensionSearch', {
+        'packageName': packageName, 'query': query, 'sourceId': sourceId,
+        'sourceName': sourceName, 'sourceLanguage': sourceLanguage,
+      });
     final response = Map<String, dynamic>.from(raw ?? const {});
     // Yuzono AnimeOnsen uses a website-provided Meilisearch token for
     // search.animeonsen.xyz. If THAT endpoint rejects the extension with 403,
@@ -116,13 +120,16 @@ class AniyomiExtensionBridge {
 
   /// Loads episode metadata for one user-selected extension search result.
   static Future<Map<String, dynamic>> testExtensionEpisodes(
-      String packageName, String sourceUrl, String sourceTitle, {int? sourceId}) async {
+      String packageName, String sourceUrl, String sourceTitle,
+      {int? sourceId, String? sourceName, String? sourceLanguage}) async {
     final raw = await _channel.invokeMethod<Map<dynamic, dynamic>>(
         'testExtensionEpisodes', {
       'packageName': packageName,
       'sourceUrl': sourceUrl,
       'sourceTitle': sourceTitle,
       'sourceId': sourceId,
+      'sourceName': sourceName,
+      'sourceLanguage': sourceLanguage,
     });
     return Map<String, dynamic>.from(raw ?? const {});
   }
@@ -130,13 +137,16 @@ class AniyomiExtensionBridge {
   /// Opt-in stream resolution for a selected episode. Returns sanitized metadata.
   /// No media URL, signed query parameters or authorization headers are exposed.
   static Future<Map<String, dynamic>> testExtensionStreams(
-      String packageName, String episodeUrl, String episodeName, {int? sourceId}) async {
+      String packageName, String episodeUrl, String episodeName,
+      {int? sourceId, String? sourceName, String? sourceLanguage}) async {
     final raw = await _channel.invokeMethod<Map<dynamic, dynamic>>(
         'testExtensionStreams', {
       'packageName': packageName,
       'episodeUrl': episodeUrl,
       'episodeName': episodeName,
       'sourceId': sourceId,
+      'sourceName': sourceName,
+      'sourceLanguage': sourceLanguage,
     });
     return Map<String, dynamic>.from(raw ?? const {});
   }
@@ -144,13 +154,16 @@ class AniyomiExtensionBridge {
   /// Return the streams for an explicitly selected episode to the player.
   /// The response can contain credentials in media URLs and headers. Never log it.
   static Future<Map<String, dynamic>> resolveExtensionStreams(
-      String packageName, String episodeUrl, String episodeName, {int? sourceId}) async {
+      String packageName, String episodeUrl, String episodeName,
+      {int? sourceId, String? sourceName, String? sourceLanguage}) async {
     final raw = await _channel.invokeMethod<Map<dynamic, dynamic>>(
         'resolveExtensionStreams', {
       'packageName': packageName,
       'episodeUrl': episodeUrl,
       'episodeName': episodeName,
       'sourceId': sourceId,
+      'sourceName': sourceName,
+      'sourceLanguage': sourceLanguage,
     });
     return Map<String, dynamic>.from(raw ?? const {});
   }

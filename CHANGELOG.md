@@ -2,6 +2,12 @@
 
 Complete development history. Published GitHub Releases use the concise [RELEASE_NOTES.md](RELEASE_NOTES.md) for the latest three beta versions. Older entries remain here for reference.
 
+## v1.4.9-beta34.58 — OLED pause-dimming delay to 20 seconds
+- Increase the `Watch` screen OLED Pause Protection timer from 8 to **20 seconds** after playback is paused (`lib/ui/pages/watch.dart`).
+- Keep the existing dark overlay opacity and fade animation, immediate restoration on resume, and timer cancellation while playing or buffering.
+- This is **not** a network, buffer, stream resolution or video initialization timeout change; playback controllers and extensions are untouched.
+- Version `1.4.9-beta34.58+68`. **Build and device testing pending.** Verify the image dims after ~20 seconds of continuous pause and clears immediately on resume.
+
 ## v1.4.9-beta34.57 — Restore Source settings after app restart
 - User report: after restarting AnimeStream, **all** approved extension Source settings fail with `settings_load_source` / `IllegalStateException` (`invalid_source_state`). Disabling and re-enabling the sources restores access.
 - During Source settings only, if a previously approved source ID is no longer found among the loaded APK's sources, resolve the user-approved source using an exact and unique source name + language match. No fallback to an arbitrary or first source; if validation fails, keep the existing safe error rather than selecting another source.

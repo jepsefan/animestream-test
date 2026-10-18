@@ -19,12 +19,17 @@ import uy.kohesive.injekt.api.TypeReference
  * or playback. This does NOT guess an episode list from an AniList entry.
  */
 internal class ExtensionEpisodeProbe(private val context: Context) {
-    fun load(packageName: String, sourceUrl: String, sourceTitle: String, sourceId: Long? = null): Map<String, Any?> {
+    fun load(
+        packageName: String, sourceUrl: String, sourceTitle: String,
+        sourceId: Long? = null, approvedName: String? = null,
+        approvedLanguage: String? = null
+    ): Map<String, Any?> {
         if (sourceUrl.isBlank() || sourceTitle.isBlank()) {
             return mapOf("status" to "invalid_selection")
         }
         return try {
-            perform(packageName, sourceUrl, sourceTitle, sourceId)
+            perform(packageName, sourceUrl, sourceTitle, sourceId,
+                approvedName, approvedLanguage)
         } catch (error: Throwable) {
             val errors = mutableListOf<String>()
             val seen = java.util.Collections.newSetFromMap(
@@ -45,7 +50,10 @@ internal class ExtensionEpisodeProbe(private val context: Context) {
         }
     }
 
-    private fun perform(packageName: String, sourceUrl: String, sourceTitle: String, sourceId: Long?): Map<String, Any?> {
+    private fun perform(
+        packageName: String, sourceUrl: String, sourceTitle: String,
+        sourceId: Long?, approvedName: String?, approvedLanguage: String?
+    ): Map<String, Any?> {
         val app = context.applicationContext as? Application
             ?: return mapOf("status" to "missing_application")
         val helper = NetworkHelper.initialize(app)
@@ -61,7 +69,9 @@ internal class ExtensionEpisodeProbe(private val context: Context) {
                 override val type: java.lang.reflect.Type = Json::class.java
             }, Json { ignoreUnknownKeys = true; explicitNulls = false })
         }
-        val source = ExtensionHostRuntime(context).load(packageName, sourceId).source
+        val source = ExtensionHostRuntime(context).load(
+            packageName, sourceId, approvedName, approvedLanguage
+        ).source
         val anime = SAnime.create().apply {
             url = sourceUrl
             title = sourceTitle
@@ -84,13 +94,17 @@ internal class ExtensionEpisodeProbe(private val context: Context) {
         )
     }
     fun loadStreams(
-        packageName: String, episodeUrl: String, episodeName: String, sourceId: Long? = null
+        packageName: String, episodeUrl: String, episodeName: String,
+        sourceId: Long? = null, approvedName: String? = null,
+        approvedLanguage: String? = null
     ): Map<String, Any?> {
         if (episodeUrl.isBlank() || episodeName.isBlank()) {
             return mapOf("status" to "invalid_episode_selection")
         }
         return try {
-            performStreams(packageName, episodeUrl, episodeName, sourceId = sourceId)
+            performStreams(packageName, episodeUrl, episodeName,
+                sourceId = sourceId, approvedName = approvedName,
+                approvedLanguage = approvedLanguage)
         } catch (error: Throwable) {
             ExtensionLinkageDiagnostics.describe(error)
         }
@@ -102,13 +116,17 @@ internal class ExtensionEpisodeProbe(private val context: Context) {
      * Never include those values in diagnostic output or log messages.
      */
     fun resolvePlaybackStreams(
-        packageName: String, episodeUrl: String, episodeName: String, sourceId: Long? = null
+        packageName: String, episodeUrl: String, episodeName: String,
+        sourceId: Long? = null, approvedName: String? = null,
+        approvedLanguage: String? = null
     ): Map<String, Any?> {
         if (episodeUrl.isBlank() || episodeName.isBlank()) {
             return mapOf("status" to "invalid_episode_selection")
         }
         return try {
-            performStreams(packageName, episodeUrl, episodeName, sourceId = sourceId, forPlayback = true)
+            performStreams(packageName, episodeUrl, episodeName,
+                sourceId = sourceId, forPlayback = true,
+                approvedName = approvedName, approvedLanguage = approvedLanguage)
         } catch (error: Throwable) {
             ExtensionLinkageDiagnostics.describe(error)
         }
@@ -116,7 +134,8 @@ internal class ExtensionEpisodeProbe(private val context: Context) {
 
     private fun performStreams(
         packageName: String, episodeUrl: String, episodeName: String,
-        sourceId: Long? = null, forPlayback: Boolean = false
+        sourceId: Long? = null, forPlayback: Boolean = false,
+        approvedName: String? = null, approvedLanguage: String? = null
     ): Map<String, Any?> {
         val app = context.applicationContext as? Application
             ?: return mapOf("status" to "missing_application")
@@ -134,7 +153,9 @@ internal class ExtensionEpisodeProbe(private val context: Context) {
             }, Json { ignoreUnknownKeys = true; explicitNulls = false })
         }
         val source = try {
-            ExtensionHostRuntime(context).load(packageName, sourceId).source
+            ExtensionHostRuntime(context).load(
+                packageName, sourceId, approvedName, approvedLanguage
+            ).source
         } catch (failure: Throwable) {
             throw ExtensionStreamStageFailure("load_source", failure)
         }

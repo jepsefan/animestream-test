@@ -40,7 +40,10 @@ class AniyomiExtensionProvider extends AnimeProvider {
         .where((variant) => variant.isNotEmpty).toList();
     for (final variant in variants) {
       final response = await AniyomiExtensionBridge.testExtensionSearch(
-          extension.packageName, variant, sourceId: selectedSource?.id);
+          extension.packageName, variant,
+          sourceId: selectedSource?.id,
+          sourceName: selectedSource?.name,
+          sourceLanguage: selectedSource?.language);
       final status = (response['status'] ?? '').toString();
       if (status != 'search_completed' &&
           status != 'search_completed_unverified') {
@@ -75,7 +78,10 @@ class AniyomiExtensionProvider extends AnimeProvider {
     final sourceUrl = parts.first;
     final sourceTitle = parts.length > 1 ? parts.sublist(1).join('\u001f') : sourceUrl;
     final response = await AniyomiExtensionBridge.testExtensionEpisodes(
-        extension.packageName, sourceUrl, sourceTitle, sourceId: selectedSource?.id);
+        extension.packageName, sourceUrl, sourceTitle,
+        sourceId: selectedSource?.id,
+        sourceName: selectedSource?.name,
+        sourceLanguage: selectedSource?.language);
     if (response['status'] != 'episode_list_completed') {
       throw StateError('Aniyomi episodes: ${response['status']}');
     }
@@ -112,7 +118,10 @@ class AniyomiExtensionProvider extends AnimeProvider {
       String episodeId, void Function(List<VideoStream>, bool) update,
       {bool dub = false, String? metadata}) async {
     final response = await AniyomiExtensionBridge.resolveExtensionStreams(
-        extension.packageName, episodeId, metadata ?? 'Episode', sourceId: selectedSource?.id);
+        extension.packageName, episodeId, metadata ?? 'Episode',
+        sourceId: selectedSource?.id,
+        sourceName: selectedSource?.name,
+        sourceLanguage: selectedSource?.language);
     if (response['status'] != 'stream_list_completed') {
       final safeError = response['error']?.toString() ?? '';
       final diagnosis = response['diagnosis']?.toString() ?? '';

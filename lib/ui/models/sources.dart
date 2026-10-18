@@ -55,6 +55,17 @@ class SourceManager {
   static const _approvedStore = 'aniyomi_installed_source_approvals_v3';
   final Map<String, List<AniyomiExtensionSourceInfo>> _approvedSources = {};
 
+  /// Identity verified against installed APK signer/version on restoration.
+  /// Used only for user-triggered Source settings relinking after restart.
+  AniyomiExtensionSourceInfo? approvedExtensionSource(
+      String packageName, int sourceId) {
+    for (final source in
+        _approvedSources[packageName] ?? const <AniyomiExtensionSourceInfo>[]) {
+      if (source.id == sourceId) return source;
+    }
+    return null;
+  }
+
   String? _apkSignature(AniyomiExtensionInfo ext) {
     final values = ext.signingFingerprints.map((s) => s.toLowerCase()).toList()..sort();
     if (values.isEmpty ||

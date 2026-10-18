@@ -314,7 +314,7 @@ class _WatchState extends State<Watch> with WidgetsBindingObserver {
 
     if (_oledPauseDimmed || _oledPauseProtectionTimer != null) return;
 
-    _oledPauseProtectionTimer = Timer(const Duration(seconds: 8), () {
+    _oledPauseProtectionTimer = Timer(const Duration(seconds: 20), () {
       _oledPauseProtectionTimer = null;
       if (!mounted) return;
       if (!(controller.isPlaying ?? false) && !(controller.isBuffering ?? false)) {

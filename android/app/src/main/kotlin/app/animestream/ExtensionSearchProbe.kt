@@ -17,10 +17,13 @@ import org.jsoup.Jsoup
 
 /** Explicit opt-in test only. Loads third-party extension code and may make network calls. */
 internal class ExtensionSearchProbe(private val context: Context) {
-    fun search(packageName: String, query: String, sourceId: Long? = null): Map<String, Any?> {
+    fun search(
+        packageName: String, query: String, sourceId: Long? = null,
+        approvedName: String? = null, approvedLanguage: String? = null
+    ): Map<String, Any?> {
         if (query.isBlank()) return mapOf("status" to "invalid_query")
         return try {
-            runSearch(packageName, query.trim(), sourceId)
+            runSearch(packageName, query.trim(), sourceId, approvedName, approvedLanguage)
         } catch (error: Throwable) {
             val chain = mutableListOf<String>()
             val visited = java.util.Collections.newSetFromMap(
@@ -55,7 +58,10 @@ internal class ExtensionSearchProbe(private val context: Context) {
         }
     }
 
-    private fun runSearch(packageName: String, query: String, sourceId: Long?): Map<String, Any?> {
+    private fun runSearch(
+        packageName: String, query: String, sourceId: Long?,
+        approvedName: String?, approvedLanguage: String?
+    ): Map<String, Any?> {
         val requiredRuntime = listOf(
             "uy.kohesive.injekt.InjektKt",
             "kotlinx.serialization.json.JsonObjectBuilder",
@@ -103,7 +109,9 @@ internal class ExtensionSearchProbe(private val context: Context) {
                 explicitNulls = false
             })
         }
-        val source = ExtensionHostRuntime(context).load(packageName, sourceId).source
+        val source = ExtensionHostRuntime(context).load(
+            packageName, sourceId, approvedName, approvedLanguage
+        ).source
         val entry = source.javaClass.name
         val catalogue = source as? eu.kanade.tachiyomi.animesource.AnimeCatalogueSource
             ?: return mapOf("status" to "not_catalogue_source", "className" to entry)

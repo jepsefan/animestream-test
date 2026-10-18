@@ -206,10 +206,19 @@ class _PluginPageState extends State<PluginPage> {
 
   Future<void> _showSourceSettings(
       AniyomiExtensionInfo ext, int sourceId, String sourceName) async {
+    final approved = SourceManager.instance.approvedExtensionSource(
+        ext.packageName, sourceId);
+    if (approved == null) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text('Source approval not found. Refresh installed sources.'),
+      ));
+      return;
+    }
     setState(() => _busyId = ext.packageName);
     try {
       final response = await AniyomiExtensionBridge.listSourcePreferences(
-          ext.packageName, sourceId);
+          ext.packageName, sourceId,
+          sourceName: approved.name, sourceLanguage: approved.language);
       if (!mounted) return;
       if (response['status'] != 'ok') {
         // Linkage diagnostics are sanitized on Android: no URLs or tokens.
@@ -237,6 +246,7 @@ class _PluginPageState extends State<PluginPage> {
       final items = ((response['preferences'] as List?) ?? const [])
           .whereType<Map>()
           .map((item) => Map<String, dynamic>.from(item)).toList();
+      String? savedLabel;
       await showModalBottomSheet<void>(
         context: context,
         isScrollControlled: true,
@@ -246,8 +256,22 @@ class _PluginPageState extends State<PluginPage> {
               shrinkWrap: true,
               padding: const EdgeInsets.all(16),
               children: [
-                Text('$sourceName settings',
-                    style: Theme.of(ctx).textTheme.titleLarge),
+                Row(
+                  children: [
+                    Expanded(child: Text('$sourceName settings',
+                        style: Theme.of(ctx).textTheme.titleLarge)),
+                    TextButton(
+                      onPressed: () => Navigator.pop(ctx),
+                      child: const Text('Done'),
+                    ),
+                  ],
+                ),
+                if (savedLabel != null)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    child: Text('✓ Saved: $savedLabel',
+                        style: TextStyle(color: Theme.of(ctx).colorScheme.primary)),
+                  ),
                 if (items.isEmpty)
                   const ListTile(title: Text('No supported source settings')),
                 for (final item in items)
@@ -282,10 +306,11 @@ class _PluginPageState extends State<PluginPage> {
                         );
                         if (selected == null) return;
                         final result = await AniyomiExtensionBridge.updateSourcePreference(
-                            ext.packageName, sourceId, item['key'].toString(), selected);
+                            ext.packageName, sourceId, item['key'].toString(), selected,
+                            sourceName: approved.name, sourceLanguage: approved.language);
                         if (!ctx.mounted) return;
                         if (result['status'] == 'updated') {
-                          refresh(() => item['value'] = selected);
+                          refresh(() { item['value'] = selected; savedLabel = item['title']?.toString() ?? 'setting'; });
                         } else {
                           ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(
                               content: Text('Save failed: ${result['status']}')));
@@ -350,10 +375,11 @@ class _PluginPageState extends State<PluginPage> {
                         );
                         if (selected == null) return;
                         final result = await AniyomiExtensionBridge.updateSourcePreference(
-                            ext.packageName, sourceId, item['key'].toString(), selected);
+                            ext.packageName, sourceId, item['key'].toString(), selected,
+                            sourceName: approved.name, sourceLanguage: approved.language);
                         if (!ctx.mounted) return;
                         if (result['status'] == 'updated') {
-                          refresh(() => item['value'] = selected);
+                          refresh(() { item['value'] = selected; savedLabel = item['title']?.toString() ?? 'setting'; });
                         } else {
                           ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(
                             content: Text('Save failed: ${result['status']}'),
@@ -367,10 +393,11 @@ class _PluginPageState extends State<PluginPage> {
                       value: item['value'] == true,
                       onChanged: (value) async {
                         final result = await AniyomiExtensionBridge.updateSourcePreference(
-                            ext.packageName, sourceId, item['key'].toString(), value);
+                            ext.packageName, sourceId, item['key'].toString(), value,
+                            sourceName: approved.name, sourceLanguage: approved.language);
                         if (!ctx.mounted) return;
                         if (result['status'] == 'updated') {
-                          refresh(() => item['value'] = value);
+                          refresh(() { item['value'] = value; savedLabel = item['title']?.toString() ?? 'setting'; });
                         } else {
                           ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(
                               content: Text('Save failed: ${result['status']}')));

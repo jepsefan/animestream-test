@@ -157,18 +157,22 @@ class AniyomiExtensionBridge {
 
   /// User-triggered source settings. Avoid logging preference values.
   static Future<Map<String, dynamic>> listSourcePreferences(
-      String packageName, int sourceId) async {
+      String packageName, int sourceId,
+      {required String sourceName, required String sourceLanguage}) async {
     final raw = await _channel.invokeMethod<Map<dynamic, dynamic>>(
       'listExtensionSourcePreferences',
-      {'packageName': packageName, 'sourceId': sourceId});
+      {'packageName': packageName, 'sourceId': sourceId,
+       'sourceName': sourceName, 'sourceLanguage': sourceLanguage});
     return Map<String, dynamic>.from(raw ?? const {});
   }
 
   static Future<Map<String, dynamic>> updateSourcePreference(
-      String packageName, int sourceId, String key, Object value) async {
+      String packageName, int sourceId, String key, Object value,
+      {required String sourceName, required String sourceLanguage}) async {
     final raw = await _channel.invokeMethod<Map<dynamic, dynamic>>(
       'updateExtensionSourcePreference',
       {'packageName': packageName, 'sourceId': sourceId,
+       'sourceName': sourceName, 'sourceLanguage': sourceLanguage,
        'key': key, 'value': value});
     return Map<String, dynamic>.from(raw ?? const {});
   }

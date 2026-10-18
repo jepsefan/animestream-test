@@ -169,7 +169,10 @@ class MainActivity: FlutterActivity() {
                         result.error("INVALID_SEARCH", "Missing packageName or query", null)
                     } else {
                         Thread {
-                            val data = ExtensionSearchProbe(this).search(pkg, query, call.argument<Number>("sourceId")?.toLong())
+                            val data = ExtensionSearchProbe(this).search(
+                                pkg, query, call.argument<Number>("sourceId")?.toLong(),
+                                call.argument<String>("sourceName"),
+                                call.argument<String>("sourceLanguage"))
                             runOnUiThread { result.success(data) }
                         }.start()
                     }
@@ -182,7 +185,10 @@ class MainActivity: FlutterActivity() {
                         result.error("INVALID_EPISODE", "Missing package, episode URL or name", null)
                     } else {
                         Thread {
-                            val data = ExtensionEpisodeProbe(this).resolvePlaybackStreams(pkg, url, name, call.argument<Number>("sourceId")?.toLong())
+                            val data = ExtensionEpisodeProbe(this).resolvePlaybackStreams(
+                                pkg, url, name, call.argument<Number>("sourceId")?.toLong(),
+                                call.argument<String>("sourceName"),
+                                call.argument<String>("sourceLanguage"))
                             runOnUiThread { result.success(data) }
                         }.start()
                     }
@@ -195,7 +201,10 @@ class MainActivity: FlutterActivity() {
                         result.error("INVALID_EPISODE", "Missing package, episode URL or name", null)
                     } else {
                         Thread {
-                            val response = ExtensionEpisodeProbe(this).loadStreams(pkg, url, name, call.argument<Number>("sourceId")?.toLong())
+                            val response = ExtensionEpisodeProbe(this).loadStreams(
+                                pkg, url, name, call.argument<Number>("sourceId")?.toLong(),
+                                call.argument<String>("sourceName"),
+                                call.argument<String>("sourceLanguage"))
                             runOnUiThread { result.success(response) }
                         }.start()
                     }
@@ -208,7 +217,10 @@ class MainActivity: FlutterActivity() {
                         result.error("INVALID_SELECTION", "Missing package name, URL or title", null)
                     } else {
                         Thread {
-                            val response = ExtensionEpisodeProbe(this).load(pkg, url, title, call.argument<Number>("sourceId")?.toLong())
+                            val response = ExtensionEpisodeProbe(this).load(
+                                pkg, url, title, call.argument<Number>("sourceId")?.toLong(),
+                                call.argument<String>("sourceName"),
+                                call.argument<String>("sourceLanguage"))
                             runOnUiThread { result.success(response) }
                         }.start()
                     }

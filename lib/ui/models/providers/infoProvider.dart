@@ -18,6 +18,7 @@ import 'package:animestream/core/database/handler/handler.dart';
 import 'package:animestream/core/database/types.dart';
 import 'package:animestream/ui/models/snackBar.dart';
 import 'package:animestream/ui/models/sources.dart';
+import 'package:animestream/core/anime/providers/externalAssPreferences.dart';
 
 class InfoProvider extends ChangeNotifier {
   int id;
@@ -68,6 +69,13 @@ class InfoProvider extends ChangeNotifier {
   bool _infoPage = true;
   bool _infoLoadError = false;
   bool _preferDubs = false;
+  bool _externalAssEnabled = false;
+  bool get externalAssEnabled => _externalAssEnabled;
+  Future<void> setExternalAssEnabled(bool enabled) async {
+    _externalAssEnabled = enabled;
+    notifyListeners();
+    await ExternalAssPreferences.setEnabled(id, enabled);
+  }
 
   // Getters
   bool get infoLoadError => _infoLoadError;
@@ -185,6 +193,7 @@ class InfoProvider extends ChangeNotifier {
 
     // Load manualsearch query and last watch
     final asp = await getAnimeSpecificPreference(id.toString());
+    _externalAssEnabled = await ExternalAssPreferences.enabled(id);
     _lastWatchedDurationMap = asp?.lastWatchDuration ?? {};
     _manualSearchQuery = asp?.manualSearchQuery;
     _extensionSelections = Map<String, String>.from(asp?.extensionSelections ?? const {});

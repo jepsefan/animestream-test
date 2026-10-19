@@ -7,6 +7,9 @@ import android.os.Build
 import dalvik.system.DexFile
 import eu.kanade.tachiyomi.animesource.AnimeSource
 import eu.kanade.tachiyomi.animesource.model.SAnime
+import eu.kanade.tachiyomi.animesource.online.AnimeHttpSource
+import okhttp3.HttpUrl
+import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import eu.kanade.tachiyomi.network.NetworkHelper
 import java.io.File
 import java.util.concurrent.TimeUnit
@@ -50,6 +53,17 @@ internal class ExtensionEpisodeProbe(private val context: Context) {
         }
     }
 
+    /** Resolve extension-provided episode artwork without making network requests.
+     * Supports absolute, protocol-relative and relative preview URLs. Invalid
+     * schemes are ignored; missing previews remain empty for Flutter fallback.
+     */
+    private fun episodePreviewUrl(preview: String?, baseUrl: HttpUrl?): String {
+        val raw = preview?.trim()?.takeIf { it.isNotEmpty() && it.length <= 4096 }
+            ?: return ""
+        return (raw.toHttpUrlOrNull() ?: baseUrl?.resolve(raw))
+            ?.toString().orEmpty()
+    }
+
     private fun perform(
         packageName: String, sourceUrl: String, sourceTitle: String,
         sourceId: Long?, approvedName: String?, approvedLanguage: String?
@@ -77,6 +91,10 @@ internal class ExtensionEpisodeProbe(private val context: Context) {
             title = sourceTitle
         }
         val episodes = ExtensionSourceCalls.episodes(source, anime)
+        // Prefer the current extension domain; a fallback to an absolute
+        // selected series URL also works for non-HTTP catalogue sources.
+        val artworkBase = (source as? AnimeHttpSource)?.baseUrl?.toHttpUrlOrNull()
+            ?: sourceUrl.toHttpUrlOrNull()
         return mapOf(
             "status" to "episode_list_completed",
             "sourceTitle" to sourceTitle,
@@ -86,7 +104,7 @@ internal class ExtensionEpisodeProbe(private val context: Context) {
                     "name" to it.name,
                     "url" to it.url,
                     "number" to it.episode_number,
-                    "preview" to (it.preview_url ?: "")
+                    "preview" to episodePreviewUrl(it.preview_url, artworkBase)
                 )
             },
             "truncated" to (episodes.size > 100),

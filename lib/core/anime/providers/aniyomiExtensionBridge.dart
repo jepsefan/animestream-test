@@ -62,14 +62,11 @@ class AniyomiExtensionBridge {
   /// Runs an installed extension's search code only after explicit user consent.
   static Future<Map<String, dynamic>> testExtensionSearch(
       String packageName, String query,
-      {int? sourceId, String? sourceName, String? sourceLanguage,
-       int page = 1}) async {
-    if (page < 1 || page > 10) throw RangeError.range(page, 1, 10, 'page');
+      {int? sourceId, String? sourceName, String? sourceLanguage}) async {
     final raw = await _channel.invokeMethod<Map<dynamic, dynamic>>(
       'testExtensionSearch', {
         'packageName': packageName, 'query': query, 'sourceId': sourceId,
         'sourceName': sourceName, 'sourceLanguage': sourceLanguage,
-        'page': page,
       });
     final response = Map<String, dynamic>.from(raw ?? const {});
     // Yuzono AnimeOnsen uses a website-provided Meilisearch token for
@@ -85,8 +82,7 @@ class AniyomiExtensionBridge {
               entry['path'] == '/indexes/content/search' &&
               entry['status']?.toString() == '403';
         });
-    // The first-page fallback cannot claim pagination support.
-    if (page != 1 || packageName != animeOnsenPackage || !deniedSearch) return response;
+    if (packageName != animeOnsenPackage || !deniedSearch) return response;
     try {
       final builtIn = AnimeOnsen();
       await builtIn.checkAndUpdateToken();
@@ -111,7 +107,6 @@ class AniyomiExtensionBridge {
             'Episode and stream loading still use AnimeOnsen [Ext].',
         'resultCount': results.length,
         'results': results,
-        'hasNextPage': false,
         'networkDiagnostics': response['networkDiagnostics'] ?? const [],
       };
     } catch (fallbackError) {

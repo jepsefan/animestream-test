@@ -349,6 +349,17 @@ class WatchSection extends StatelessWidget {
                         Expanded(
                           child: SizedBox(),
                         ),
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text('Ext sub', style: TextStyle(
+                              color: appTheme.textMainColor, fontSize: 12)),
+                          Switch.adaptive(
+                            value: provider.externalAssEnabled,
+                            onChanged: (value) => provider.setExternalAssEnabled(value),
+                          ),
+                        ],
+                      ),
                       Container(
                         decoration: BoxDecoration(
                           color: appTheme.textMainColor.withAlpha(15),

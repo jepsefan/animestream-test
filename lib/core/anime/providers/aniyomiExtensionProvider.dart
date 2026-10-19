@@ -69,6 +69,37 @@ class AniyomiExtensionProvider extends AnimeProvider {
     return <Map<String, String?>>[];
   }
 
+  /// Manual Search only: request a specific page without changing automatic matching.
+  Future<({List<Map<String, String?>> results, bool hasNextPage})> searchPage(
+      String query, int page) async {
+    if (page < 1 || page > 10) throw RangeError.range(page, 1, 10, 'page');
+    final response = await AniyomiExtensionBridge.testExtensionSearch(
+        extension.packageName, query,
+        sourceId: selectedSource?.id,
+        sourceName: selectedSource?.name,
+        sourceLanguage: selectedSource?.language,
+        page: page);
+    final status = response['status']?.toString();
+    if (status != 'search_completed' && status != 'search_completed_unverified') {
+      throw StateError('Aniyomi manual search failed: $status');
+    }
+    final results = <Map<String, String?>>[];
+    for (final item in ((response['results'] as List?) ?? const []).whereType<Map>()) {
+      final url = item['url']?.toString() ?? '';
+      final title = item['title']?.toString() ?? '';
+      if (url.isEmpty || title.isEmpty) continue;
+      results.add({
+        'name': title,
+        'alias': '${url}\u001f${title}',
+        'imageUrl': item['cover']?.toString(),
+        'image': item['cover']?.toString(),
+      });
+    }
+    return (
+      results: results,
+      hasNextPage: page < 10 && response['hasNextPage'] == true,
+    );
+  }
   @override
   Future<List<Map<String, dynamic>>> getAnimeEpisodeLink(String aliasId,
       {bool dub = false}) async {

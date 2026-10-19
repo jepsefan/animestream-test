@@ -10,7 +10,8 @@ Complete development history. Published GitHub Releases use the concise [RELEASE
 - Match the exact normalized anime name uniquely, or reuse a previously manually confirmed source alias; require an unambiguous episode number. Never execute unapproved sources, guess unrelated matches, or switch video sources. Failure uses the original video source subtitles and is visible as a diagnostic in subtitle selection.
 - Carry source-specific subtitle request headers into ASS rendering and content format inspection. The new subtitles are obtained automatically only with Ext sub enabled, while playback startup does not wait on network searches.
 - Keep beta34.62 episode artwork, Discover 50/80/50, rolled-back pagination and 20-second pause dim. README is untouched.
-- Version `1.4.9-beta34.63+73`. **No Flutter build or device validation yet**; HLS compatibility and cross-source subtitle matching need real-device testing (especially KickAssAnime and AniWaves).
+- **Build correction:** The initial beta34.63 release build failed in `playerProvider.dart` because `dispose()` was accidentally declared on `PlayerProviderState`, which is not a `ChangeNotifier` and has no `_audioBridge`. Moved disposal into `PlayerProvider` without changing playback or subtitle behavior. Rebuild still pending.
+- Version `1.4.9-beta34.63+73`. **No successful Flutter build or device validation yet**; HLS compatibility and cross-source subtitle matching need real-device testing (especially KickAssAnime and AniWaves).
  
 ## v1.4.9-beta34.62 — Extension episode thumbnails
 - Use an extension's `SEpisode.preview_url` image for both graphical episode tile layouts, including the grid layout that previously always displayed the series cover.

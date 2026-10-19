@@ -2,6 +2,14 @@
 
 Complete development history. Published GitHub Releases use the concise [RELEASE_NOTES.md](RELEASE_NOTES.md) for the latest three beta versions. Older entries remain here for reference.
 
+## v1.4.9-beta34.61 — Double Discover lists
+- Discover / **Recently Updated** requests 50 airing schedule entries instead of 25, with the existing country/adult filters and ID deduplication preserved. Actual displayed titles may be fewer than 50 when entries repeat or are filtered.
+- Discover / **Recommended** requests 50 AniList recommendations instead of 25; skip empty media recommendations gracefully.
+- Discover / **This Season** loads up to 80 titles by requesting two pages of 40. Keep Home / Aired This Season at its original 40 results and avoid mixing its cards into Discover's independent seasonal list.
+- Clear the two other Discover lists on refresh before rebuilding cards, avoiding duplicate accumulated entries.
+- Keep trending, player behavior, extensions and the 20-second OLED pause protection unchanged. Based on beta34.60.
+- Version `1.4.9-beta34.61+71`. **Not yet APK-built or device-tested.** Verify all three horizontal Discover lists, refresh behavior and that Home is unchanged.
+
 ## v1.4.9-beta34.60 — Manual Search pagination for Anikku extensions
 - Support bounded search pages 1–10 in modern suspend and legacy Rx Anikku Host API calls. Automatic AniList matching continues using the existing first-page search flow.
 - Manual Search can request extra pages when an extension reports `hasNextPage`. Additional source results append without duplicate URLs/aliases; only the user can confirm a manual match.

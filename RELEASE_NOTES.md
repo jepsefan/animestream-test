@@ -1,6 +1,12 @@
 # AnimeStream — Latest three beta development versions
 
-The complete development history is in [CHANGELOG.md](CHANGELOG.md). These notes cover beta34.60, beta34.59 and beta34.58; older versions remain in the changelog.
+The full development history is in [CHANGELOG.md](CHANGELOG.md). These notes cover beta34.61, beta34.60 and beta34.59; older versions remain in the changelog.
+
+## v1.4.9-beta34.61 — More titles in Discover
+- Double the requested **Recently Updated** schedules (25 → 50) and **Recommended** entries (25 → 50). Filtering, duplicates and AniList availability can reduce the final number of visible cards.
+- Expand **This Season** from 40 to up to 80 results using two AniList pages while leaving Home / Aired This Season unchanged at 40.
+- Reset the Discover horizontal lists on refresh to avoid accumulating duplicates; preserve beta34.60 Manual Search pagination and playback behavior.
+- Version `1.4.9-beta34.61+71`. **Build/device validation pending.**
 
 ## v1.4.9-beta34.60 — Manual Search pagination
 - Add Anikku search page selection (pages 1–10) and Manual Search Load more for sources reporting `hasNextPage`.
@@ -12,11 +18,6 @@ The complete development history is in [CHANGELOG.md](CHANGELOG.md). These notes
 - Forward the approved source's name and language during series-page search, episode retrieval and playback, allowing the already-implemented exact/unique identity fallback when its saved ID is stale after restart.
 - Preserve existing AniList title matching, playback and subtitle handling; keep beta34.58's 20-second OLED dimming unchanged.
 - Version `1.4.9-beta34.59+69`. **User-confirmed on device:** extension results now work in the series view after the source-identity change. Separate playback and pause-dimming regression checks have not yet been reported.
-
-## v1.4.9-beta34.58 — OLED pause-dimming after 20 seconds
-- Delay the existing dark OLED Pause Protection overlay from 8 seconds to 20 seconds after the video is paused.
-- Keep the same overlay strength and fade animation. The dimming is cancelled on playback or buffering; no video network/startup timeouts were changed.
-- Version `1.4.9-beta34.58+68`. **Build/device verification pending.**
 
 ### Known limitations
 - Some possibly Arabic subtitle characters display as squares with crosses. Logged and deferred by request; no font/rendering change.

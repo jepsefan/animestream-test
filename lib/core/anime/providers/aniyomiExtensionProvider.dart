@@ -97,12 +97,20 @@ class AniyomiExtensionProvider extends AnimeProvider {
       final ordinal = (number != null && number > 0)
           ? number.round()
           : (episodes.length - result.length);
+      // The native host resolves relative preview URLs against the selected
+      // extension domain. Reject unsupported schemes before displaying them.
+      final preview = item['preview']?.toString().trim() ?? '';
+      final previewUri = Uri.tryParse(preview);
+      final thumbnail = previewUri != null &&
+              previewUri.hasAuthority &&
+              (previewUri.scheme == 'https' || previewUri.scheme == 'http')
+          ? previewUri.toString()
+          : null;
       result.add({
         'episodeLink': url,
         'episodeNumber': ordinal,
         'episodeTitle': (item['name'] ?? 'Episode $ordinal').toString(),
-        'thumbnail': (item['preview']?.toString().isNotEmpty ?? false)
-            ? item['preview'].toString() : null,
+        'thumbnail': thumbnail,
         'hasDub': dub,
         'metadata': (item['name'] ?? 'Episode $ordinal').toString(),
       });

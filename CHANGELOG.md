@@ -2,6 +2,16 @@
 
 Complete development history. Published GitHub Releases use the concise [RELEASE_NOTES.md](RELEASE_NOTES.md) for the latest three beta versions. Older entries remain here for reference.
 
+## v1.4.9-beta34.63 — HLS audio + cross-source ASS subtitles (experimental)
+- Add an Android-local, loopback-only HLS master manifest bridge: for an extension returning a video-only HLS variant with external audio renditions, connect the video URL and reported audio tracks so native ExoPlayer can select audio. Original media/segment URLs are not proxied; bind only to 127.0.0.1 and restrict cleartext networking to the loopback domain. On bridge preparation failure, use the original video URL.
+- Skip quality/track overrides that target the original variant after the alternate local HLS manifest is loaded. Apply the bridge to initial playback, server switching and preloaded next episode.
+- Add global Primary/Secondary ASS source selectors and preferred language to Player Settings. Only enabled installed extensions are offered; configuration is saved locally.
+- Add an **Ext sub** switch in the Episodes header, independent of Sub/Dub, off by default and saved per anime. When on, attempt external ASS loading asynchronously after playback begins. A manual Primary/Secondary selection in the player's subtitle menu becomes the preferred source next time for that anime.
+- Match the exact normalized anime name uniquely, or reuse a previously manually confirmed source alias; require an unambiguous episode number. Never execute unapproved sources, guess unrelated matches, or switch video sources. Failure uses the original video source subtitles and is visible as a diagnostic in subtitle selection.
+- Carry source-specific subtitle request headers into ASS rendering and content format inspection. The new subtitles are obtained automatically only with Ext sub enabled, while playback startup does not wait on network searches.
+- Keep beta34.62 episode artwork, Discover 50/80/50, rolled-back pagination and 20-second pause dim. README is untouched.
+- Version `1.4.9-beta34.63+73`. **No Flutter build or device validation yet**; HLS compatibility and cross-source subtitle matching need real-device testing (especially KickAssAnime and AniWaves).
+ 
 ## v1.4.9-beta34.62 — Extension episode thumbnails
 - Use an extension's `SEpisode.preview_url` image for both graphical episode tile layouts, including the grid layout that previously always displayed the series cover.
 - Resolve absolute, protocol-relative and relative episode image references in the native Anikku bridge against the installed source's HTTP base domain (or an absolute selected series URL). Only HTTP(S) URLs are passed to Flutter.

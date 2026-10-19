@@ -1,4 +1,7 @@
 import 'package:animestream/core/app/runtimeDatas.dart';
+import 'package:animestream/core/anime/providers/externalAssPreferences.dart';
+import 'package:animestream/core/anime/providers/aniyomiExtensionProvider.dart';
+import 'package:animestream/ui/models/sources.dart';
 import 'package:animestream/core/data/settings.dart';
 import 'package:animestream/core/data/types.dart';
 import 'package:animestream/ui/models/widgets/slider.dart';
@@ -35,6 +38,9 @@ class PlayerSettingState extends State<PlayerSetting> {
   late double megaSkipDurationSliderValue;
 
   bool loaded = false;
+  String assPrimary = '';
+  String assSecondary = '';
+  String assLanguage = 'en';
 
   String? preferredQuality;
 
@@ -47,8 +53,14 @@ class PlayerSettingState extends State<PlayerSetting> {
 
   Future<void> readSettings() async {
     final settings = await Settings().getSettings();
+    final primary = await ExternalAssPreferences.primary();
+    final secondary = await ExternalAssPreferences.secondary();
+    final language = await ExternalAssPreferences.language();
     loaded = true;
     setState(() {
+      assPrimary = primary;
+      assSecondary = secondary;
+      assLanguage = language;
       skipDuration = settings.skipDuration ?? 15;
       megaSkipDuration = settings.megaSkipDuration ?? 85;
       preferredQuality = settings.preferredQuality;
@@ -84,6 +96,62 @@ class PlayerSettingState extends State<PlayerSetting> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     settingPagesTitleHeader(context, "Player"),
+                    item(child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('External ASS Subtitles', style: textStyle()),
+                        const SizedBox(height: 8),
+                        for (final selector in ['primary', 'secondary'])
+                          DropdownButtonFormField<String>(
+                            isExpanded: true,
+                            decoration: InputDecoration(labelText:
+                                selector == 'primary' ? 'Primary ASS Source' : 'Secondary ASS Source'),
+                            value: SourceManager.instance.sources.any((s) =>
+                                s.identifier == (selector == 'primary' ? assPrimary : assSecondary))
+                                ? (selector == 'primary' ? assPrimary : assSecondary) : '',
+                            items: [
+                              const DropdownMenuItem(value: '', child: Text('None')),
+                              ...SourceManager.instance.sources
+                                  .where((s) => AniyomiExtensionProvider.isExtensionId(s.identifier))
+                                  .map((s) => DropdownMenuItem(
+                                      value: s.identifier,
+                                      child: Text(s.name, overflow: TextOverflow.ellipsis))),
+                            ],
+                            onChanged: (value) async {
+                              if (value == null) return;
+                              await ExternalAssPreferences.configure(
+                                primary: selector == 'primary' ? value : null,
+                                secondary: selector == 'secondary' ? value : null);
+                              if (mounted) setState(() {
+                                if (selector == 'primary') assPrimary = value;
+                                else assSecondary = value;
+                              });
+                            },
+                          ),
+                        DropdownButtonFormField<String>(
+                          decoration: const InputDecoration(labelText: 'Preferred ASS Language'),
+                          value: assLanguage,
+                          items: const [
+                            DropdownMenuItem(value: 'sv', child: Text('Swedish')),
+                            DropdownMenuItem(value: 'en', child: Text('English')),
+                            DropdownMenuItem(value: 'ja', child: Text('Japanese')),
+                            DropdownMenuItem(value: 'de', child: Text('German')),
+                            DropdownMenuItem(value: 'fr', child: Text('French')),
+                            DropdownMenuItem(value: 'es', child: Text('Spanish')),
+                            DropdownMenuItem(value: 'ar', child: Text('Arabic')),
+                            DropdownMenuItem(value: 'any', child: Text('Any language')),
+                          ],
+                          onChanged: (value) async {
+                            if (value == null) return;
+                            await ExternalAssPreferences.configure(language: value);
+                            if (mounted) setState(() => assLanguage = value);
+                          },
+                        ),
+                        const Text('Enable Ext sub for each anime in Episodes. '
+                            'Last used Primary/Secondary is remembered per anime.'),
+                      ],
+                    )),
+
                     Container(
                       // padding: EdgeInsets.only(left: 20, right: 20, top: 0),
                       child: Column(

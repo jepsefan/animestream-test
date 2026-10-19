@@ -1,6 +1,12 @@
 # AnimeStream — Latest three beta development versions
 
-The full development history is in [CHANGELOG.md](CHANGELOG.md). These notes cover beta34.62, beta34.61 and beta34.60; older entries remain in the changelog.
+Complete history: [CHANGELOG.md](CHANGELOG.md). These notes cover beta34.63, beta34.62 and beta34.61.
+
+## v1.4.9-beta34.63 — HLS external audio / ASS from another extension
+- Experimental HLS audio bridge: present the selected extension video and its external audio rendition(s) to Android's native player using a local-only HLS master playlist; do not change the original remote media URLs. Video falls back to its original link if bridge preparation fails.
+- Under Player Settings, configure Primary ASS Source, Secondary ASS Source and language. On each anime's Episodes page, **Ext sub** enables automatic cross-source ASS lookup. The last successfully used source for that anime is remembered.
+- Strict unique show/episode matching or an already-confirmed saved source alias. Search is asynchronous and does not block startup; matching failures leave normal subtitles available. Player subtitle menu offers manual Primary/Secondary lookups.
+- Version `1.4.9-beta34.63+73`. **Not yet APK-built or tested on device**; no guarantee that all HLS variants, ASS services and source-specific headers are compatible.
 
 ## v1.4.9-beta34.62 — Extension episode artwork
 - Load and show the episode's own `preview_url` image, when provided, in both image-based episode layouts.
@@ -13,11 +19,6 @@ The full development history is in [CHANGELOG.md](CHANGELOG.md). These notes cov
 - Expand **This Season** from 40 to up to 80 results using two AniList pages while leaving Home / Aired This Season unchanged at 40.
 - Reset Discover lists on refresh to avoid accumulated duplicates. Manual Search Pagination has been rolled back to beta34.59; playback behavior is retained.
 - Version `1.4.9-beta34.61+71`. **Build/device validation pending.**
-
-## v1.4.9-beta34.60 — Manual Search pagination (reverted)
-- Pagination was implemented experimentally in beta34.60.
-- **Not included in beta34.61**: Manual Search, Host API search calls and related UI have been restored to the beta34.59 behavior.
-- The expanded Discover sections introduced in beta34.61 remain enabled.
 
 ### Known limitations
 - Some possibly Arabic subtitle characters display as squares with crosses. Logged and deferred by request; no font/rendering change.

@@ -1,5 +1,7 @@
 import 'package:animestream/core/anime/providers/aniyomiExtensionProvider.dart';
 import 'package:animestream/core/anime/providers/types.dart';
+import 'package:animestream/core/data/hive.dart';
+import 'package:animestream/core/data/types.dart';
 import 'package:animestream/ui/models/sources.dart';
 import 'package:hive/hive.dart';
 
@@ -65,6 +67,7 @@ class ExternalAssLookup {
   /// title result. Episode numbers must be unambiguous and equal.
   static Future<({ExternalSubtitleTrack track, Map<String, String> headers})?> find({
     required String sourceId,
+    required int animeId,
     required String title,
     required int episodeNumber,
     required String language,
@@ -75,13 +78,19 @@ class ExternalAssLookup {
     if (!SourceManager.instance.sources.any((source) => source.identifier == sourceId)) {
       return null;
     }
-    final matches = await SourceManager.instance.searchInSource(sourceId, title);
-    final exact = matches.where((m) =>
-        _normalize(m['name'] ?? '') == _normalize(title) &&
-        (m['alias']?.isNotEmpty ?? false)).toList();
-    if (exact.length != 1) return null;
+    final saved = await getAnimeSpecificPreference(animeId.toString());
+    final savedAlias = saved?.extensionSelections?[sourceId];
+    String? alias = savedAlias;
+    if (alias == null || alias.isEmpty) {
+      final matches = await SourceManager.instance.searchInSource(sourceId, title);
+      final exact = matches.where((m) =>
+          _normalize(m['name'] ?? '') == _normalize(title) &&
+          (m['alias']?.isNotEmpty ?? false)).toList();
+      if (exact.length != 1) return null;
+      alias = exact.single['alias']!;
+    }
     final episodes = await SourceManager.instance.getAnimeEpisodes(
-        sourceId, exact.single['alias']!);
+        sourceId, alias);
     final chosen = episodes.where((e) => e.episodeNumber == episodeNumber).toList();
     if (chosen.length != 1) return null;
     final streams = <VideoStream>[];

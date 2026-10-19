@@ -3,7 +3,6 @@ import 'dart:io';
 import 'dart:math';
 
 import 'package:animestream/core/anime/providers/types.dart';
-import 'package:flutter/foundation.dart';
 
 /// Supplies ExoPlayer with a small local HLS *master* manifest when an
 /// extension returns a video-only HLS variant and a separate AUDIO rendition.
@@ -29,9 +28,9 @@ class HlsAudioManifestBridge {
 
   Future<String> prepare(VideoStream stream) async {
     final video = stream.url;
-    if (kIsWeb || !Platform.isAndroid ||
-        !Uri.tryParse(video)!.path.toLowerCase().endsWith('.m3u8') ||
-        !_validUrl(video) || stream.externalAudioTracks.isEmpty) {
+    if (!Platform.isAndroid || !_validUrl(video) ||
+        !Uri.parse(video).path.toLowerCase().endsWith('.m3u8') ||
+        stream.externalAudioTracks.isEmpty) {
       return video;
     }
     final tracks = stream.externalAudioTracks
@@ -73,7 +72,7 @@ class HlsAudioManifestBridge {
     unawaited(() async {
       try {
         await for (final request in server) {
-          final name = request.uri.pathSegments.lastOrNull ?? '';
+          final name = request.uri.pathSegments.isEmpty ? '' : request.uri.pathSegments.last;
           final key = name.endsWith('.m3u8')
               ? name.substring(0, name.length - 5) : '';
           final body = request.uri.pathSegments.length == 2 &&

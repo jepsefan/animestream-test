@@ -1,6 +1,6 @@
 import 'package:animestream/core/anime/providers/aniyomiExtensionProvider.dart';
 import 'package:animestream/core/anime/providers/types.dart';
-import 'package:animestream/core/data/hive.dart';
+import 'package:animestream/core/data/animeSpecificPreference.dart';
 import 'package:animestream/core/data/types.dart';
 import 'package:animestream/ui/models/sources.dart';
 import 'package:hive/hive.dart';

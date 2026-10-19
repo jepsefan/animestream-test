@@ -28,18 +28,28 @@ class _ManualSearchSheetState extends State<ManualSearchSheet> {
   bool searching = false;
   String? searchFailureType;
   List<Widget> searchResults = [];
-  final Set<String> _seenAliases = {};
-  String _activeQuery = '';
-  int _currentPage = 1;
-  int _generation = 0;
-  bool _hasMorePages = false;
-  bool _loadingMore = false;
-  String? _pageFailureType;
 
-  void _appendResults(List<Map<String, String?>> res, String searchTerm) {
+  Future<void> search(String searchTerm) async {
+    if (mounted)
+      setState(() {
+        searchResults = [];
+        searching = true;
+        searchFailureType = null;
+      });
+    try {
+      var res = await SourceManager.instance.searchInSource(widget.source, searchTerm);
+      // An extension can index a season by the base series title instead.
+      // Display those candidates for manual confirmation only.
+      if (res.isEmpty && AniyomiExtensionProvider.isExtensionId(widget.source)) {
+        final suffix = RegExp(
+            r'\s*(?:season|part|cour)\s*\d+\s*' + r'$',
+            caseSensitive: false);
+        final shortened = searchTerm.replaceAll(suffix, '').trim();
+        if (shortened.isNotEmpty && shortened != searchTerm) {
+          res = await SourceManager.instance.searchInSource(widget.source, shortened);
+        }
+      }
       for (final item in res) {
-        final key = item['alias'] ?? item['name'] ?? '';
-        if (key.isEmpty || !_seenAliases.add(key)) continue;
         searchResults.add(
           GestureDetector(
             onTap: () async {
@@ -85,97 +95,14 @@ class _ManualSearchSheetState extends State<ManualSearchSheet> {
           ),
         );
       }
-  }
-
-  Future<void> search(String searchTerm) async {
-    final generation = ++_generation;
-    setState(() {
-      searchResults.clear();
-      _seenAliases.clear();
-      searching = true;
-      _loadingMore = false;
-      _hasMorePages = false;
-      _pageFailureType = null;
-      _currentPage = 1;
-      _activeQuery = searchTerm.trim();
-      searchFailureType = null;
-    });
-    try {
-      List<Map<String, String?>> res;
-      var active = searchTerm.trim();
-      var hasMore = false;
-      if (AniyomiExtensionProvider.isExtensionId(widget.source)) {
-        var result = await SourceManager.instance.searchExtensionPage(
-            widget.source, active, 1);
-        res = result.results;
-        hasMore = result.hasNextPage;
-        // A source may index a season under its base title.
-        if (res.isEmpty) {
-          final suffix = RegExp(
-              r'\s*(?:season|part|cour)\s*\d+\s*' + r'$',
-              caseSensitive: false);
-          final shorter = active.replaceAll(suffix, '').trim();
-          if (shorter.isNotEmpty && shorter != active) {
-            active = shorter;
-            result = await SourceManager.instance.searchExtensionPage(
-                widget.source, active, 1);
-            res = result.results;
-            hasMore = result.hasNextPage;
-          }
-        }
-      } else {
-        res = await SourceManager.instance.searchInSource(
-            widget.source, searchTerm);
-      }
-      if (!mounted || generation != _generation) return;
-      setState(() {
-        _activeQuery = active;
-        _hasMorePages = hasMore;
-        _appendResults(res, searchTerm);
-      });
     } catch (err) {
-      if (!mounted || generation != _generation) return;
-      setState(() => searchFailureType = err.runtimeType.toString());
-    } finally {
-      if (mounted && generation == _generation) {
-        setState(() => searching = false);
-      }
+      // Do not expose signed URLs or headers from a third-party error.
+      searchFailureType = err.runtimeType.toString();
     }
-  }
-
-  Future<void> _loadMore() async {
-    if (searching || _loadingMore || !_hasMorePages || _currentPage >= 10) return;
-    final generation = _generation;
-    final nextPage = _currentPage + 1;
-    setState(() {
-      _loadingMore = true;
-      _pageFailureType = null;
-    });
-    try {
-      final next = await SourceManager.instance.searchExtensionPage(
-          widget.source, _activeQuery, nextPage);
-      if (!mounted || generation != _generation) return;
+    if (mounted)
       setState(() {
-        _appendResults(next.results, _activeQuery);
-        _currentPage = nextPage;
-        _hasMorePages = next.hasNextPage;
+        searching = false;
       });
-    } catch (error) {
-      if (!mounted || generation != _generation) return;
-      setState(() => _pageFailureType = error.runtimeType.toString());
-    } finally {
-      if (mounted && generation == _generation) {
-        setState(() => _loadingMore = false);
-      }
-    }
-  }
-
-  @override
-  void dispose() {
-    ++_generation;
-    searchBarController.dispose();
-    searchBarFocusNode.dispose();
-    super.dispose();
   }
 
   @override
@@ -254,22 +181,7 @@ class _ManualSearchSheetState extends State<ManualSearchSheet> {
                           },
                         ),
             ),
-          ),
-          if (AniyomiExtensionProvider.isExtensionId(widget.source) &&
-              _hasMorePages && !searching)
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 6),
-              child: _loadingMore
-                  ? const CircularProgressIndicator()
-                  : TextButton.icon(
-                      onPressed: _loadMore,
-                      icon: const Icon(Icons.expand_more),
-                      label: const Text('Load more'),
-                    ),
-            ),
-          if (_pageFailureType != null)
-            Text('Could not load more ($_pageFailureType)',
-                style: TextStyle(color: Theme.of(context).colorScheme.error)),
+          )
         ],
       ),
     );

@@ -118,13 +118,16 @@ class _WatchState extends State<Watch> with WidgetsBindingObserver {
       final mediaPath = Uri.tryParse(dataProvider.state.currentStream.url)
           ?.path.toLowerCase() ?? '';
       if (!mediaPath.endsWith('.mpd') && !mediaPath.endsWith('.dash')) {
-        controller.setQuality(q);
+        if (!context.read<PlayerProvider>().usingExternalAudioManifest) {
+          controller.setQuality(q);
+        }
       }
 
       // Fetch those skips
       dataProvider.getSkipTimesForCurrentEpisode(videoDuration: (controller.duration ?? 0).toDouble());
 
-      if (dataProvider.state.audioTracks.isNotEmpty) {
+      if (!context.read<PlayerProvider>().usingExternalAudioManifest &&
+          dataProvider.state.audioTracks.isNotEmpty) {
         // gamble on this setting :)
         dataProvider.updateCurrentAudioTrack(dataProvider.state.audioTracks.first);
         controller.setAudioTrack(dataProvider.state.currentAudioTrack);

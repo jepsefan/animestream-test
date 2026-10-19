@@ -21,9 +21,12 @@ import 'package:window_manager/window_manager.dart';
 class PlayerProvider extends ChangeNotifier {
   final VideoController _controller;
   final HlsAudioManifestBridge _audioBridge = HlsAudioManifestBridge();
+  bool _usingExternalAudioManifest = false;
+  bool get usingExternalAudioManifest => _usingExternalAudioManifest;
 
   Future<void> initiateStream(VideoStream stream) async {
     final url = await _audioBridge.prepare(stream);
+    _usingExternalAudioManifest = url != stream.url;
     await _controller.initiateVideo(url, headers: stream.customHeaders);
   }
 
@@ -220,7 +223,8 @@ class PlayerProvider extends ChangeNotifier {
       // Start the video and set the preffered quality
       await initiateStream(src);
 
-      controller.setQuality(q);
+      if (!usingExternalAudioManifest) controller.setQuality(q);
+      await dataProvider.loadCrossSourceAss();
       dataProvider.getSkipTimesForCurrentEpisode(videoDuration: (controller.duration ?? 0).toDouble());
     } else {
       Logs.player.log("No preloaded sources found!");

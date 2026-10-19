@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:animestream/core/anime/providers/types.dart';
+import 'package:animestream/core/anime/providers/externalAssPreferences.dart';
 import 'package:animestream/core/app/logging.dart';
 import 'package:animestream/core/app/runtimeDatas.dart';
 import 'package:animestream/core/commons/extractQuality.dart';
@@ -58,6 +59,53 @@ class PlayerDataProvider extends ChangeNotifier {
           preferredServer: selectedSource,
           sliderValue: 0,
         );
+
+  ExternalSubtitleTrack? _crossSourceAss;
+  bool _crossSourceLoading = false;
+  String? crossSourceError;
+  String? _crossSourceSlot;
+  Map<String, String>? crossSourceHeaders;
+  bool get crossSourceLoading => _crossSourceLoading;
+  bool get hasCrossSourceAss => _crossSourceAss != null;
+
+  Future<void> loadCrossSourceAss({String? selectedSlot}) async {
+    _crossSourceLoading = true;
+    crossSourceError = null;
+    notifyListeners();
+    try {
+      if (!await ExternalAssPreferences.enabled(showId)) {
+        _crossSourceAss = null;
+        return;
+      }
+      final slot = selectedSlot ?? await ExternalAssPreferences.lastUsed(showId);
+      final sourceId = slot == 'secondary'
+          ? await ExternalAssPreferences.secondary()
+          : await ExternalAssPreferences.primary();
+      if (sourceId.isEmpty) {
+        crossSourceError = 'Select an ASS extension in Player Settings';
+        return;
+      }
+      final track = await ExternalAssLookup.find(
+          sourceId: sourceId, title: showTitle,
+          episodeNumber: epLinks[_state.currentEpIndex].episodeNumber,
+          language: await ExternalAssPreferences.language());
+      if (track != null) {
+        _crossSourceAss = track;
+        _crossSourceSlot = slot;
+        crossSourceHeaders = null;
+        await ExternalAssPreferences.setLastUsed(showId, slot);
+      } else {
+        _crossSourceAss = null;
+        crossSourceError = 'No unambiguous ASS match for this episode';
+      }
+    } catch (error) {
+      _crossSourceAss = null;
+      crossSourceError = 'External ASS lookup failed: ${error.runtimeType}';
+    } finally {
+      _crossSourceLoading = false;
+      notifyListeners();
+    }
+  }
 
   // Keep track preference for this playback session. Rebind by language when
   // the player switches server or episode (URLs are not interchangeable).
@@ -163,6 +211,11 @@ class PlayerDataProvider extends ChangeNotifier {
 
 
   List<ExternalSubtitleTrack> get availableSubtitleTracks {
+    if (_crossSourceAss != null) return [_crossSourceAss!, ..._nativeSubtitleTracks];
+    return _nativeSubtitleTracks;
+  }
+
+  List<ExternalSubtitleTrack> get _nativeSubtitleTracks {
     final stream = _state.currentStream;
     if (stream.subtitleTracks.isNotEmpty) return stream.subtitleTracks;
     final url = stream.subtitle;
@@ -180,6 +233,7 @@ class PlayerDataProvider extends ChangeNotifier {
   ExternalSubtitleTrack? get selectedSubtitleTrack {
     final tracks = availableSubtitleTracks;
     if (tracks.isEmpty) return null;
+    if (_crossSourceAss != null) return _crossSourceAss;
     if (_selectedSubtitleStreamUrl == _state.currentStream.url &&
         _selectedSubtitleUrl != null) {
       for (final track in tracks) {
@@ -197,6 +251,9 @@ class PlayerDataProvider extends ChangeNotifier {
 
   Future<void> selectSubtitleTrack(ExternalSubtitleTrack track) async {
     if (!availableSubtitleTracks.any((item) => item.url == track.url)) return;
+    if (_crossSourceAss != null && track.url != _crossSourceAss!.url) {
+      _crossSourceAss = null;
+    }
     _selectedSubtitleStreamUrl = _state.currentStream.url;
     _selectedSubtitleUrl = track.url;
     _preferredSubtitleLanguage = track.language;

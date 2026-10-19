@@ -127,6 +127,7 @@ class InfoPageEpisodeGrid extends StatelessWidget {
   }
 
   Widget _episodeGridTileDesktop(ValueNotifier<bool> hovered, int index, BuildContext context) {
+    final episode = provider.visibleEpList[provider.currentPageIndex][index]['epLink'] as EpisodeDetails;
     final episodeNumber = provider.visibleEpList[provider.currentPageIndex][index]['realIndex'] + 1;
 
     return ClipRRect(
@@ -142,12 +143,7 @@ class InfoPageEpisodeGrid extends StatelessWidget {
                 padding: EdgeInsets.all(5),
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(8),
-                  child: Image.network(
-                    provider.extensionCover ?? provider.data.cover,
-                    fit: BoxFit.cover,
-                    color: hovered.value ? Colors.black.withAlpha(100) : null,
-                    colorBlendMode: BlendMode.darken,
-                  ),
+                  child: _episodeArtwork(episode, hovered.value),
                 ),
               ),
               AnimatedOpacity(
@@ -196,8 +192,6 @@ class InfoPageEpisodeGrid extends StatelessWidget {
   Widget _episodeTileDesktop(ValueNotifier<bool> hovered, int index, BuildContext context) {
     final episode = provider.visibleEpList[provider.currentPageIndex][index]['epLink'] as EpisodeDetails;
     final episodeNumber = episode.episodeNumber;
-    final thumbnail = (episode.thumbnail?.isNotEmpty == true
-            ? episode.thumbnail : null) ?? provider.extensionCover ?? provider.data.cover;
     final title = episode.episodeTitle != null && episode.episodeTitle!.isNotEmpty
         ? "$episodeNumber: ${episode.episodeTitle}"
         : 'Episode $episodeNumber';
@@ -215,24 +209,7 @@ class InfoPageEpisodeGrid extends StatelessWidget {
               // overflow: Overflow.hidden,
             ),
             clipBehavior: Clip.antiAlias,
-            child: Image.network(
-              thumbnail,
-              fit: BoxFit.cover,
-              width: double.infinity,
-              height: double.infinity,
-              color: hovered.value ? Colors.black.withAlpha(100) : null,
-              colorBlendMode: BlendMode.darken,
-              errorBuilder: (context, error, stackTrace) {
-                return Image.network(
-                  provider.data.cover,
-                  fit: BoxFit.cover,
-                  width: double.infinity,
-                  height: double.infinity,
-                  color: hovered.value ? Colors.black.withAlpha(100) : null,
-                  colorBlendMode: BlendMode.darken,
-                );
-              },
-            ),
+            child: _episodeArtwork(episode, hovered.value),
           ),
           Positioned.fill(
             child: Container(
@@ -311,6 +288,43 @@ class InfoPageEpisodeGrid extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  /// Display the actual episode preview when supplied by the source.
+  /// Fall back to source cover and AniList cover if missing or unavailable.
+  /// Do not assume third-party preview links always respond successfully.
+  Widget _episodeArtwork(EpisodeDetails episode, bool hovered) {
+    final imageUrls = <String>[
+      if (episode.thumbnail != null) episode.thumbnail!,
+      if (provider.extensionCover != null) provider.extensionCover!,
+      provider.data.cover,
+    ].where((url) {
+      final uri = Uri.tryParse(url.trim());
+      return uri != null &&
+          (uri.scheme == 'https' || uri.scheme == 'http') &&
+          uri.hasAuthority;
+    }).toSet().toList();
+
+    Widget image = Container(
+      color: appTheme.backgroundSubColor,
+      alignment: Alignment.center,
+      child: Icon(Icons.image_not_supported_outlined,
+          color: appTheme.textMainColor.withAlpha(120)),
+    );
+    // Compose error fallbacks from the last URL to the first.
+    for (final url in imageUrls.reversed) {
+      final fallback = image;
+      image = Image.network(
+        url,
+        fit: BoxFit.cover,
+        width: double.infinity,
+        height: double.infinity,
+        color: hovered ? Colors.black.withAlpha(100) : null,
+        colorBlendMode: BlendMode.darken,
+        errorBuilder: (context, error, stackTrace) => fallback,
+      );
+    }
+    return image;
   }
 
   void _showDownloadDialog(BuildContext context, InfoProvider provider, int index) {

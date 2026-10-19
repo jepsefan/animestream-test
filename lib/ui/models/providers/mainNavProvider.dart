@@ -205,6 +205,7 @@ class MainNavProvider extends ChangeNotifier {
   Future<void> getRecommended() async {
     final list = await AnilistQueries().getRecommendedAnimes();
     _recommendedListData = list;
+    recommendedList.clear();
     for (final item in list) {
       final title = item.title['english'] ?? item.title['romaji'] ?? '';
       recommendedList.add(
@@ -223,7 +224,9 @@ class MainNavProvider extends ChangeNotifier {
   /// Fetch the recently updated list from Anilist API
   Future<void> getRecentlyUpdated() async {
     final list = await Anilist().recentlyUpdated();
-    //to filter out the dupes
+    recentlyUpdatedList.clear();
+    recentlyUpdatedListData.clear();
+    // Filter out different episodes of the same title.
     Set<int> ids = {};
     for (final elem in list) {
       if (!ids.contains(elem.id)) {
@@ -309,7 +312,6 @@ class MainNavProvider extends ChangeNotifier {
     if (currentlyAiringResponse.isEmpty) return;
 
     currentlyAiring.items = [];
-    _thisSeasonData = currentlyAiringResponse;
     currentlyAiringResponse.forEach((item) {
       currentlyAiring.items.add(
         HomePageList(
@@ -322,15 +324,6 @@ class MainNavProvider extends ChangeNotifier {
       );
       currentlyAiring.state = LoadingState.loaded;
 
-      final title = item.title['english'] ?? item.title['romaji'] ?? '';
-      thisSeason.add(
-        Cards.animeCard(
-          item.id,
-          (currentUserSettings?.nativeTitle ?? false) ? item.title['native'] ?? title : title,
-          item.cover,
-          rating: item.rating,
-        ),
-      );
     });
 
     if (userName != null) {
@@ -366,12 +359,45 @@ class MainNavProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Discover shows twice as many seasonal titles as the Home carousel.
+  /// AniList pages are capped, so request two pages of 40 independently.
+  Future<void> getDiscoverThisSeason() async {
+    final pages = await Future.wait([
+      Anilist().getCurrentlyAiringAnime(page: 1),
+      Anilist().getCurrentlyAiringAnime(page: 2),
+    ]);
+    final seen = <int>{};
+    final all = <CurrentlyAiringResult>[];
+    for (final page in pages) {
+      for (final item in page) {
+        if (seen.add(item.id)) all.add(item);
+      }
+    }
+    _thisSeasonData = all;
+    thisSeason.clear();
+    for (final item in all) {
+      final title = item.title['english'] ?? item.title['romaji'] ?? '';
+      thisSeason.add(
+        Cards.animeCard(
+          item.id,
+          (currentUserSettings?.nativeTitle ?? false)
+              ? item.title['native'] ?? title
+              : title,
+          item.cover,
+          rating: item.rating,
+        ),
+      );
+    }
+    notifyListeners();
+  }
+
   /// Load the items list for the Discover page
   Future<void> loadDiscoverItems() async {
     try {
       await Future.wait([
         getTrendingList(),
         getRecentlyUpdated(),
+        getDiscoverThisSeason(),
         getRecommended(),
       ]);
       discoverDataLoaded = true;

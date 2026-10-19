@@ -146,6 +146,7 @@ class _WatchState extends State<Watch> with WidgetsBindingObserver {
 
     // Resolve the selected track's real format before creating an overlay.
     // Previously an empty format was always treated as ASS.
+    await dataProvider.loadCrossSourceAss();
     await dataProvider.inspectAvailableSubtitleTracks();
     if (mounted) context.read<PlayerProvider>().toggleSubs(
         action: dataProvider.selectedSubtitleTrack != null &&

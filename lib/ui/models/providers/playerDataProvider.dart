@@ -86,7 +86,7 @@ class PlayerDataProvider extends ChangeNotifier {
         return;
       }
       final track = await ExternalAssLookup.find(
-          sourceId: sourceId, title: showTitle,
+          sourceId: sourceId, animeId: showId, title: showTitle,
           episodeNumber: epLinks[_state.currentEpIndex].episodeNumber,
           language: await ExternalAssPreferences.language());
       if (track != null) {
@@ -158,7 +158,9 @@ class PlayerDataProvider extends ChangeNotifier {
     try {
       final request = await client.getUrl(uri).timeout(const Duration(seconds: 10));
       request.headers.set(HttpHeaders.rangeHeader, 'bytes=0-8191');
-      for (final entry in (_state.currentStream.customHeaders ?? {}).entries) {
+      for (final entry in (track.url == _crossSourceAss?.url
+          ? (crossSourceHeaders ?? const <String, String>{})
+          : (_state.currentStream.customHeaders ?? const <String, String>{})).entries) {
         // Request-specific headers may be necessary for extension subtitles.
         if (entry.key.toLowerCase() != 'range') {
           request.headers.set(entry.key, entry.value);

@@ -63,7 +63,7 @@ class ExternalAssLookup {
 
   /// Never guess a different series: accept only a unique exact normalized
   /// title result. Episode numbers must be unambiguous and equal.
-  static Future<ExternalSubtitleTrack?> find({
+  static Future<({ExternalSubtitleTrack track, Map<String, String> headers})?> find({
     required String sourceId,
     required String title,
     required int episodeNumber,
@@ -87,10 +87,15 @@ class ExternalAssLookup {
     final streams = <VideoStream>[];
     await SourceManager.instance.getStreams(sourceId, chosen.single.episodeLink,
         (batch, _) => streams.addAll(batch), metadata: chosen.single.metadata);
-    final tracks = streams.expand((stream) => stream.subtitleTracks)
-        .where((track) => _isAss(track) && _language(track, language))
-        .toList();
-    final urls = tracks.map((t) => t.url).toSet();
-    return urls.length == 1 ? tracks.first : null;
+    final pairs = <({ExternalSubtitleTrack track, Map<String, String> headers})>[];
+    for (final stream in streams) {
+      for (final track in stream.subtitleTracks) {
+        if (_isAss(track) && _language(track, language)) {
+          pairs.add((track: track, headers: stream.customHeaders ?? const {}));
+        }
+      }
+    }
+    final urls = pairs.map((pair) => pair.track.url).toSet();
+    return urls.length == 1 ? pairs.first : null;
   }
 }

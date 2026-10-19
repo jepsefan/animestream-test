@@ -72,10 +72,11 @@ class ExternalAssLookup {
     required int episodeNumber,
     required String language,
   }) async {
-    if (!AniyomiExtensionProvider.isExtensionId(sourceId) || episodeNumber < 1) {
+    if (episodeNumber < 1) {
       return null;
     }
-    if (!SourceManager.instance.sources.any((source) => source.identifier == sourceId)) {
+    if (!SourceManager.instance.sources.any((source) => source.identifier == sourceId) &&
+        !SourceManager.instance.inbuiltSources.any((source) => source.identifier == sourceId)) {
       return null;
     }
     final saved = await getAnimeSpecificPreference(animeId.toString());
@@ -98,7 +99,14 @@ class ExternalAssLookup {
         (batch, _) => streams.addAll(batch), metadata: chosen.single.metadata);
     final pairs = <({ExternalSubtitleTrack track, Map<String, String> headers})>[];
     for (final stream in streams) {
-      for (final track in stream.subtitleTracks) {
+      final nativeTracks = stream.subtitleTracks.isNotEmpty
+          ? stream.subtitleTracks
+          : (stream.subtitle != null && stream.subtitle!.isNotEmpty
+              ? [ExternalSubtitleTrack(url: stream.subtitle!,
+                  language: sourceId == 'animeonsen_inbuilt' ? 'en' : 'Unknown',
+                  label: 'Default', format: stream.subtitleFormat ?? '')]
+              : <ExternalSubtitleTrack>[]);
+      for (final track in nativeTracks) {
         if (_isAss(track) && _language(track, language)) {
           pairs.add((track: track, headers: stream.customHeaders ?? const {}));
         }

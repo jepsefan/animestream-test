@@ -112,7 +112,7 @@ class PlayerSettingState extends State<PlayerSetting> {
                             items: [
                               const DropdownMenuItem(value: '', child: Text('None')),
                               ...SourceManager.instance.sources
-                                  .where((s) => AniyomiExtensionProvider.isExtensionId(s.identifier))
+                                  .where((s) => AniyomiExtensionProvider.isExtensionId(s.identifier) || s.identifier.endsWith('_inbuilt'))
                                   .map((s) => DropdownMenuItem(
                                       value: s.identifier,
                                       child: Text(s.name, overflow: TextOverflow.ellipsis))),

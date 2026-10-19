@@ -37,14 +37,13 @@ internal object ExtensionSourceCalls {
             (cause is IllegalStateException && cause.message == "Not used")
     }
 
-    fun search(source: AnimeCatalogueSource, query: String, page: Int = 1): AnimesPage {
-        require(page in 1..10) { "Invalid search page" }
+    fun search(source: AnimeCatalogueSource, query: String): AnimesPage {
         val filters = source.getFilterList()
         return try {
-            runBlocking { withTimeout(WAIT_MS) { source.getSearchAnime(page, query, filters) } }
+            runBlocking { withTimeout(WAIT_MS) { source.getSearchAnime(1, query, filters) } }
         } catch (e: Throwable) {
             if (!unsupported(e)) throw e
-            source.fetchSearchAnime(page, query, filters).toBlocking()
+            source.fetchSearchAnime(1, query, filters).toBlocking()
                 .toFuture().get(WAIT_MS, TimeUnit.MILLISECONDS)
         }
     }

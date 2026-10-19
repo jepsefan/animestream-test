@@ -716,7 +716,9 @@ class _WatchState extends State<Watch> with WidgetsBindingObserver {
                         key: ValueKey(playerDataProvider.selectedSubtitleTrack!.url),
                         controller: controller,
                         subtitleSource: playerDataProvider.selectedSubtitleTrack!.url,
-                        headers: playerDataProvider.state.currentStream.customHeaders ?? const {},
+                        headers: playerDataProvider.hasCrossSourceAss
+                            ? (playerDataProvider.crossSourceHeaders ?? const {})
+                            : (playerDataProvider.state.currentStream.customHeaders ?? const {}),
                         isOffline: widget.localSource,
                       )
                     else
@@ -728,7 +730,9 @@ class _WatchState extends State<Watch> with WidgetsBindingObserver {
                                 playerDataProvider.selectedSubtitleTrack!)),
                         subtitleSource: playerDataProvider.selectedSubtitleTrack!.url,
                         settings: playerDataProvider.subtitleSettings,
-                        headers: playerDataProvider.state.currentStream.customHeaders,
+                        headers: playerDataProvider.hasCrossSourceAss
+                            ? playerDataProvider.crossSourceHeaders
+                            : playerDataProvider.state.currentStream.customHeaders,
                         isOffline: widget.localSource,
                       ),
                   IgnorePointer(

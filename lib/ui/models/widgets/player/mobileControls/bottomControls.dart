@@ -149,6 +149,33 @@ class _BottomControlsState extends State<BottomControls> {
                               Navigator.of(sheetContext).pop();
                             },
                           ),
+                          if (dataProvider.hasCrossSourceAss ||
+                              dataProvider.crossSourceError != null ||
+                              dataProvider.crossSourceLoading)
+                            ListTile(
+                              title: const Text('External ASS'),
+                              subtitle: Text(dataProvider.crossSourceLoading
+                                  ? 'Searching external subtitle source...'
+                                  : (dataProvider.crossSourceError ?? 'Active')),
+                            ),
+                          for (final slot in ['primary', 'secondary'])
+                            ListTile(
+                              leading: const Icon(Icons.closed_caption_outlined),
+                              title: Text('Load ${slot == 'primary' ? 'Primary' : 'Secondary'} ASS'),
+                              onTap: () async {
+                                await dataProvider.loadCrossSourceAss(selectedSlot: slot);
+                                if (!sheetContext.mounted) return;
+                                if (dataProvider.hasCrossSourceAss) {
+                                  playerProvider.toggleSubs(action: true);
+                                  Navigator.of(sheetContext).pop();
+                                } else {
+                                  ScaffoldMessenger.of(sheetContext).showSnackBar(
+                                    SnackBar(content: Text(dataProvider.crossSourceError ??
+                                        'No matching external ASS found')),
+                                  );
+                                }
+                              },
+                            ),
                           for (final track in tracks)
                             ListTile(
                               leading: Icon(

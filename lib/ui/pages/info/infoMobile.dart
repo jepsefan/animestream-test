@@ -371,21 +371,50 @@ class _InfoMobileState extends State<InfoMobile> {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Container(
-                        padding: EdgeInsets.only(left: 20),
+                    Flexible(
+                      child: Padding(
+                        padding: const EdgeInsets.only(left: 16, right: 4),
                         child: Text(
                           "Episodes",
-                          style: TextStyle(
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
                             fontSize: 22,
                             fontWeight: FontWeight.bold,
                             fontFamily: "Rubik",
                           ),
-                        )),
+                        ),
+                      ),
+                    ),
                     if (provider.foundName != null)
                       Row(
+                        mainAxisSize: MainAxisSize.min,
                         crossAxisAlignment: CrossAxisAlignment.center,
-                        mainAxisAlignment: MainAxisAlignment.end,
                         children: [
+                          Tooltip(
+                            message: 'Automatically load external ASS subtitles for this anime',
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text('Ext sub', style: TextStyle(
+                                    color: appTheme.textMainColor,
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 12)),
+                                SizedBox(
+                                  width: 43,
+                                  height: 36,
+                                  child: FittedBox(
+                                    fit: BoxFit.contain,
+                                    child: Switch.adaptive(
+                                      value: provider.externalAssEnabled,
+                                      onChanged: provider.setExternalAssEnabled,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 4),
                           InkWell(
                             onTap: () => provider.preferDubs = !provider.preferDubs,
                             child: Container(

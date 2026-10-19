@@ -193,7 +193,7 @@ class AnilistQueries {
 
   Future<List<AnilistRecommendations>> getRecommendedAnimes() async {
     final String query = '''{
-  Page(perPage: 25) {
+  Page(perPage: 50) {
     recommendations(onList: true) {
       mediaRecommendation {
         id
@@ -218,6 +218,7 @@ class AnilistQueries {
     List<AnilistRecommendations> recommendationList = [];
     for (final item in recommendations) {
       final rec = item['mediaRecommendation'];
+      if (rec == null) continue;
       recommendationList.add(
         AnilistRecommendations(
           cover: rec['coverImage']['large'],

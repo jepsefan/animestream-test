@@ -11,6 +11,7 @@ Complete development history. Published GitHub Releases use the concise [RELEASE
 - Carry source-specific subtitle request headers into ASS rendering and content format inspection. The new subtitles are obtained automatically only with Ext sub enabled, while playback startup does not wait on network searches.
 - Keep beta34.62 episode artwork, Discover 50/80/50, rolled-back pagination and 20-second pause dim. README is untouched.
 - **Build correction:** The initial beta34.63 release build failed in `playerProvider.dart` because `dispose()` was accidentally declared on `PlayerProviderState`, which is not a `ChangeNotifier` and has no `_audioBridge`. Moved disposal into `PlayerProvider` without changing playback or subtitle behavior. Rebuild still pending.
+- **Android release lint correction:** Explicitly declare `includeSubdomains="false"` for `127.0.0.1` and `localhost` in `animestream_loopback_security.xml` to resolve two fatal NetworkSecurityConfig lint errors; no lint checks disabled. Rebuild required.
 - Version `1.4.9-beta34.63+73`. **No successful Flutter build or device validation yet**; HLS compatibility and cross-source subtitle matching need real-device testing (especially KickAssAnime and AniWaves).
  
 ## v1.4.9-beta34.62 — Extension episode thumbnails

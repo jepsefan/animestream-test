@@ -1,6 +1,11 @@
 # AnimeStream — Latest three beta development versions
 
-The complete development history is in [CHANGELOG.md](CHANGELOG.md). This file covers beta34.59, beta34.58 and beta34.57; older versions remain in the changelog.
+The complete development history is in [CHANGELOG.md](CHANGELOG.md). These notes cover beta34.60, beta34.59 and beta34.58; older versions remain in the changelog.
+
+## v1.4.9-beta34.60 — Manual Search pagination
+- Add Anikku search page selection (pages 1–10) and Manual Search Load more for sources reporting `hasNextPage`.
+- Preserve automatic AniList matching and existing playback, subtitles, source approvals and OLED dimming behavior.
+- Version `1.4.9-beta34.60+70`. **Build and device tests pending**.
 
 ## v1.4.9-beta34.59 — Restore extension results in series pages
 - The Manage Providers probe can resolve streams while the series page reports missing results because they use different source-selection paths; the probe normally omits a source ID, while the series view uses the saved approved ID.
@@ -12,12 +17,6 @@ The complete development history is in [CHANGELOG.md](CHANGELOG.md). This file c
 - Delay the existing dark OLED Pause Protection overlay from 8 seconds to 20 seconds after the video is paused.
 - Keep the same overlay strength and fade animation. The dimming is cancelled on playback or buffering; no video network/startup timeouts were changed.
 - Version `1.4.9-beta34.58+68`. **Build/device verification pending.**
-
-## v1.4.9-beta34.57 — Restart-safe Source settings
-- Attempt exact, unique name/language re-linking of the *already approved* extension source when its stored source ID no longer matches the installed runtime following an app restart. A missing or ambiguous match still fails safely.
-- Keep source approvals, per-source preferences, APK signing/version checks, video playback and the built-in providers unchanged.
-- Show an inline Saved confirmation for successful changes and a Done button in Source settings. Source-defined multi-select Save/Cancel is unchanged.
-- Version `1.4.9-beta34.57+67`. **Build and device tests pending**; verify reopening AniWaves and other extensions after restart without disabling/re-enabling, and confirm persisted options and video playback.
 
 ### Known limitations
 - Some possibly Arabic subtitle characters display as squares with crosses. Logged and deferred by request; no font/rendering change.

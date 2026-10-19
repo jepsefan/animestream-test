@@ -7,6 +7,7 @@ Complete history: [CHANGELOG.md](CHANGELOG.md). These notes cover beta34.63, bet
 - Under Player Settings, configure Primary ASS Source, Secondary ASS Source and language. On each anime's Episodes page, **Ext sub** enables automatic cross-source ASS lookup. The last successfully used source for that anime is remembered.
 - Strict unique show/episode matching or an already-confirmed saved source alias. Search is asynchronous and does not block startup; matching failures leave normal subtitles available. Player subtitle menu offers manual Primary/Secondary lookups.
 - **Build fix:** Move the HLS manifest bridge `dispose()` override to the `PlayerProvider` `ChangeNotifier`; it had been placed in `PlayerProviderState` and caused two Dart compiler errors. APK rebuild pending.
+- **Android lint fix:** Add missing `includeSubdomains="false"` attributes to the loopback-only network security config, resolving the reported `lintVitalRelease` failures. Rebuild pending.
 - Version `1.4.9-beta34.63+73`. **Not yet successfully APK-built or tested on device**; no guarantee that all HLS variants, ASS services and source-specific headers are compatible.
 
 ## v1.4.9-beta34.62 — Extension episode artwork

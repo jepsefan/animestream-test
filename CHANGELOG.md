@@ -2,6 +2,13 @@
 
 Complete development history. Published GitHub Releases use the concise [RELEASE_NOTES.md](RELEASE_NOTES.md) for the latest three beta versions. Older entries remain here for reference.
 
+## v1.4.9-beta34.62 — Extension episode thumbnails
+- Use an extension's `SEpisode.preview_url` image for both graphical episode tile layouts, including the grid layout that previously always displayed the series cover.
+- Resolve absolute, protocol-relative and relative episode image references in the native Anikku bridge against the installed source's HTTP base domain (or an absolute selected series URL). Only HTTP(S) URLs are passed to Flutter.
+- When the episode thumbnail is missing or fails to load, fall back to the extension's series cover, then AniList cover, then a neutral placeholder; preserve card size and image crop.
+- Do not change compact number-only tiles, source title matching, episode retrieval, player, subtitles, Discover counts or the reverted Manual Search Pagination.
+- Version `1.4.9-beta34.62+72`. **Not build- or device-tested.** Verify an extension that returns `preview_url`, another that omits it, and a broken image URL. Confirm playback still works.
+
 ## v1.4.9-beta34.61 — Double Discover lists
 - Discover / **Recently Updated** requests 50 airing schedule entries instead of 25, with the existing country/adult filters and ID deduplication preserved. Actual displayed titles may be fewer than 50 when entries repeat or are filtered.
 - Discover / **Recommended** requests 50 AniList recommendations instead of 25; skip empty media recommendations gracefully.

@@ -19,11 +19,13 @@ import org.jsoup.Jsoup
 internal class ExtensionSearchProbe(private val context: Context) {
     fun search(
         packageName: String, query: String, sourceId: Long? = null,
-        approvedName: String? = null, approvedLanguage: String? = null
+        approvedName: String? = null, approvedLanguage: String? = null,
+        page: Int = 1
     ): Map<String, Any?> {
         if (query.isBlank()) return mapOf("status" to "invalid_query")
+        if (page !in 1..10) return mapOf("status" to "invalid_page")
         return try {
-            runSearch(packageName, query.trim(), sourceId, approvedName, approvedLanguage)
+            runSearch(packageName, query.trim(), sourceId, approvedName, approvedLanguage, page)
         } catch (error: Throwable) {
             val chain = mutableListOf<String>()
             val visited = java.util.Collections.newSetFromMap(
@@ -60,7 +62,7 @@ internal class ExtensionSearchProbe(private val context: Context) {
 
     private fun runSearch(
         packageName: String, query: String, sourceId: Long?,
-        approvedName: String?, approvedLanguage: String?
+        approvedName: String?, approvedLanguage: String?, pageNumber: Int
     ): Map<String, Any?> {
         val requiredRuntime = listOf(
             "uy.kohesive.injekt.InjektKt",
@@ -115,7 +117,7 @@ internal class ExtensionSearchProbe(private val context: Context) {
         val entry = source.javaClass.name
         val catalogue = source as? eu.kanade.tachiyomi.animesource.AnimeCatalogueSource
             ?: return mapOf("status" to "not_catalogue_source", "className" to entry)
-        val page = ExtensionSourceCalls.search(catalogue, query)
+        val page = ExtensionSourceCalls.search(catalogue, query, pageNumber)
         val animes = read(page, "getAnimes", "getAnimeList") as? List<*>
             ?: return mapOf("status" to "unexpected_page_type",
                 "pageClass" to page.javaClass.name)
@@ -161,6 +163,7 @@ internal class ExtensionSearchProbe(private val context: Context) {
         return mapOf(
             "status" to if (noDirectMatch) "search_completed_unverified" else "search_completed",
             "query" to query, "sourceClass" to entry,
+            "page" to pageNumber,
             "resultCount" to animes.size, "results" to results,
             "titleMatchCount" to matches,
             "resultRelevance" to relevance,

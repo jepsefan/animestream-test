@@ -7,15 +7,13 @@ Complete development history. Published GitHub Releases use the concise [RELEASE
 - Discover / **Recommended** requests 50 AniList recommendations instead of 25; skip empty media recommendations gracefully.
 - Discover / **This Season** loads up to 80 titles by requesting two pages of 40. Keep Home / Aired This Season at its original 40 results and avoid mixing its cards into Discover's independent seasonal list.
 - Clear the two other Discover lists on refresh before rebuilding cards, avoiding duplicate accumulated entries.
-- Keep trending, player behavior, extensions and the 20-second OLED pause protection unchanged. Based on beta34.60.
+- Keep trending, player behavior, extension search and the 20-second OLED pause protection unchanged. The Manual Search Pagination experiment from beta34.60 was rolled back to beta34.59 behavior.
 - Version `1.4.9-beta34.61+71`. **Not yet APK-built or device-tested.** Verify all three horizontal Discover lists, refresh behavior and that Home is unchanged.
 
-## v1.4.9-beta34.60 — Manual Search pagination for Anikku extensions
-- Support bounded search pages 1–10 in modern suspend and legacy Rx Anikku Host API calls. Automatic AniList matching continues using the existing first-page search flow.
-- Manual Search can request extra pages when an extension reports `hasNextPage`. Additional source results append without duplicate URLs/aliases; only the user can confirm a manual match.
-- Keep the searched title consistent across pages and cancel stale search UI results. The existing AnimeOnsen 403 built-in fallback remains first-page-only.
-- No changes to the player, subtitles, 20-second OLED pause dimming, approvals, source settings or local extension catalogues.
-- Version `1.4.9-beta34.60+70`. **APK build and device tests pending.** Test AniWaves/Animenosub Manual Search with multi-page results, selecting episodes, and unchanged automatic AniList lookup.
+## v1.4.9-beta34.60 — Manual Search pagination (rolled back in beta34.61)
+- Historical beta34.60 experiment added paged Anikku Manual Search and a Load more button.
+- **Rolled back in beta34.61** at the user's request; the seven affected search/bridge/UI source files were restored to the user-verified beta34.59 implementation.
+- beta34.61 keeps the expanded Discover lists, but **does not include Manual Search Pagination**.
 
 ## v1.4.9-beta34.59 — Extension series-page source relinking
 - User-confirmed regression in the beta34.58 family: **Manage Providers** can find source episodes/streams (e.g. AnimeOnsen [Ext], HTTP 200, one DASH video and nine subtitle tracks) while the series page reports no matching results for installed extensions.

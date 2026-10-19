@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:animestream/ui/models/playerControllers/hlsAudioManifestBridge.dart';
 
 import 'package:animestream/core/anime/providers/types.dart';
 import 'package:animestream/core/app/logging.dart';
@@ -19,6 +20,12 @@ import 'package:window_manager/window_manager.dart';
 /// Handle the core player stuff
 class PlayerProvider extends ChangeNotifier {
   final VideoController _controller;
+  final HlsAudioManifestBridge _audioBridge = HlsAudioManifestBridge();
+
+  Future<void> initiateStream(VideoStream stream) async {
+    final url = await _audioBridge.prepare(stream);
+    await _controller.initiateVideo(url, headers: stream.customHeaders);
+  }
 
   final bool _isOffline;
 
@@ -65,7 +72,11 @@ class PlayerProvider extends ChangeNotifier {
       seekTime = _controller.position ?? 0;
       await _controller.pause();
     }
-    await _controller.initiateVideo(url, headers: currentStream.customHeaders, offline: offline);
+    if (offline) {
+      await _controller.initiateVideo(url, headers: currentStream.customHeaders, offline: true);
+    } else {
+      await initiateStream(currentStream);
+    }
 
     if (seekTime != null) await _controller.seekTo(Duration(milliseconds: seekTime));
   }
@@ -207,7 +218,7 @@ class PlayerProvider extends ChangeNotifier {
       dataProvider.updateCurrentQuality(q);
 
       // Start the video and set the preffered quality
-      await controller.initiateVideo(src.url, headers: src.customHeaders);
+      await initiateStream(src);
 
       controller.setQuality(q);
       dataProvider.getSkipTimesForCurrentEpisode(videoDuration: (controller.duration ?? 0).toDouble());
@@ -290,4 +301,10 @@ class PlayerProviderState {
       pip: pip ?? this.pip,
     );
   }
+  @override
+  void dispose() {
+    _audioBridge.close();
+    super.dispose();
+  }
+
 }

@@ -1,6 +1,12 @@
 # AnimeStream — Latest three beta development versions
 
-Complete history: [CHANGELOG.md](CHANGELOG.md). These notes cover beta34.63, beta34.62 and beta34.61.
+Complete history: [CHANGELOG.md](CHANGELOG.md). These notes cover beta34.64, beta34.63 and beta34.62.
+
+## v1.4.9-beta34.64 — Mobile Ext sub / built-in ASS providers
+- Place **Ext sub** toggle in the actual mobile Episodes header; keep the desktop/TV toggle. Per-anime setting controls automatic external ASS lookup.
+- Add AnimeOnsen, AniZone, Anikoto and Animegg as global Primary/Secondary source choices beside approved extensions. Support both legacy built-in subtitle URLs and extension subtitle tracks, with strict ASS verification and selected language filtering.
+- Preserve working beta34.63 HLS external audio behavior, episode art and Discover behavior.
+- Version `1.4.9-beta34.64+74`; no APK or device verification yet.
 
 ## v1.4.9-beta34.63 — HLS external audio / ASS from another extension
 - Experimental HLS audio bridge: present the selected extension video and its external audio rendition(s) to Android's native player using a local-only HLS master playlist; do not change the original remote media URLs. Video falls back to its original link if bridge preparation fails.
@@ -15,12 +21,6 @@ Complete history: [CHANGELOG.md](CHANGELOG.md). These notes cover beta34.63, bet
 - Resolve relative preview URLs against the installed extension's base domain; reject unsupported schemes. Fallback order is episode preview, source series cover, AniList cover, neutral placeholder.
 - Keep series matching, streaming, subtitles, Discover counts and beta34.61's rollback of Manual Search Pagination unchanged.
 - Version `1.4.9-beta34.62+72`. **Build/device validation pending**.
-
-## v1.4.9-beta34.61 — More titles in Discover
-- Double the requested **Recently Updated** schedules (25 → 50) and **Recommended** entries (25 → 50). Filtering, duplicates and AniList availability can reduce the final number of visible cards.
-- Expand **This Season** from 40 to up to 80 results using two AniList pages while leaving Home / Aired This Season unchanged at 40.
-- Reset Discover lists on refresh to avoid accumulated duplicates. Manual Search Pagination has been rolled back to beta34.59; playback behavior is retained.
-- Version `1.4.9-beta34.61+71`. **Build/device validation pending.**
 
 ### Known limitations
 - Some possibly Arabic subtitle characters display as squares with crosses. Logged and deferred by request; no font/rendering change.

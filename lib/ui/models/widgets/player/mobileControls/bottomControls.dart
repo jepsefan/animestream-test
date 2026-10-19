@@ -158,7 +158,8 @@ class _BottomControlsState extends State<BottomControls> {
                                   ? 'Searching external subtitle source...'
                                   : (dataProvider.crossSourceError ?? 'Active')),
                             ),
-                          for (final slot in ['primary', 'secondary'])
+                          if (dataProvider.externalAssEnabled)
+                            for (final slot in ['primary', 'secondary'])
                             ListTile(
                               leading: const Icon(Icons.closed_caption_outlined),
                               title: Text('Load ${slot == 'primary' ? 'Primary' : 'Secondary'} ASS'),
@@ -435,7 +436,7 @@ class _BottomControlsState extends State<BottomControls> {
                     IconButton(
                       focusNode: _subtitleFocusNode,
                       onPressed: () {
-                        if (dataProvider.availableSubtitleTracks.length > 1) {
+                        if (dataProvider.availableSubtitleTracks.length > 1 || dataProvider.externalAssEnabled) {
                           _showSubtitleTracks(context, dataProvider, playerProvider);
                         } else {
                           playerProvider.toggleSubs();

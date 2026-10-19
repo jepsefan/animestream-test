@@ -5,13 +5,13 @@ The full development history is in [CHANGELOG.md](CHANGELOG.md). These notes cov
 ## v1.4.9-beta34.61 — More titles in Discover
 - Double the requested **Recently Updated** schedules (25 → 50) and **Recommended** entries (25 → 50). Filtering, duplicates and AniList availability can reduce the final number of visible cards.
 - Expand **This Season** from 40 to up to 80 results using two AniList pages while leaving Home / Aired This Season unchanged at 40.
-- Reset the Discover horizontal lists on refresh to avoid accumulating duplicates; preserve beta34.60 Manual Search pagination and playback behavior.
+- Reset Discover lists on refresh to avoid accumulated duplicates. Manual Search Pagination has been rolled back to beta34.59; playback behavior is retained.
 - Version `1.4.9-beta34.61+71`. **Build/device validation pending.**
 
-## v1.4.9-beta34.60 — Manual Search pagination
-- Add Anikku search page selection (pages 1–10) and Manual Search Load more for sources reporting `hasNextPage`.
-- Preserve automatic AniList matching and existing playback, subtitles, source approvals and OLED dimming behavior.
-- Version `1.4.9-beta34.60+70`. **Build and device tests pending**.
+## v1.4.9-beta34.60 — Manual Search pagination (reverted)
+- Pagination was implemented experimentally in beta34.60.
+- **Not included in beta34.61**: Manual Search, Host API search calls and related UI have been restored to the beta34.59 behavior.
+- The expanded Discover sections introduced in beta34.61 remain enabled.
 
 ## v1.4.9-beta34.59 — Restore extension results in series pages
 - The Manage Providers probe can resolve streams while the series page reports missing results because they use different source-selection paths; the probe normally omits a source ID, while the series view uses the saved approved ID.

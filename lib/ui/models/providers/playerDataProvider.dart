@@ -62,6 +62,9 @@ class PlayerDataProvider extends ChangeNotifier {
 
   ExternalSubtitleTrack? _crossSourceAss;
   bool _crossSourceLoading = false;
+  bool _externalAssEnabled = false;
+  int _crossSourceGeneration = 0;
+  bool get externalAssEnabled => _externalAssEnabled;
   String? crossSourceError;
   String? _crossSourceSlot;
   Map<String, String>? crossSourceHeaders;
@@ -69,14 +72,17 @@ class PlayerDataProvider extends ChangeNotifier {
   bool get hasCrossSourceAss => _crossSourceAss != null;
 
   Future<void> loadCrossSourceAss({String? selectedSlot}) async {
+    final generation = ++_crossSourceGeneration;
+    final episodeNumber = epLinks[_state.currentEpIndex].episodeNumber;
     _crossSourceLoading = true;
+    _crossSourceAss = null;
     crossSourceError = null;
     notifyListeners();
     try {
-      if (!await ExternalAssPreferences.enabled(showId)) {
-        _crossSourceAss = null;
-        return;
-      }
+      final enabled = await ExternalAssPreferences.enabled(showId);
+      if (generation != _crossSourceGeneration) return;
+      _externalAssEnabled = enabled;
+      if (!enabled) return;
       final slot = selectedSlot ?? await ExternalAssPreferences.lastUsed(showId);
       final sourceId = slot == 'secondary'
           ? await ExternalAssPreferences.secondary()
@@ -87,23 +93,34 @@ class PlayerDataProvider extends ChangeNotifier {
       }
       final track = await ExternalAssLookup.find(
           sourceId: sourceId, animeId: showId, title: showTitle,
-          episodeNumber: epLinks[_state.currentEpIndex].episodeNumber,
+          episodeNumber: episodeNumber,
           language: await ExternalAssPreferences.language());
-      if (track != null) {
-        _crossSourceAss = track.track;
-        _crossSourceSlot = slot;
-        crossSourceHeaders = track.headers;
-        await ExternalAssPreferences.setLastUsed(showId, slot);
-      } else {
-        _crossSourceAss = null;
+      if (generation != _crossSourceGeneration ||
+          epLinks[_state.currentEpIndex].episodeNumber != episodeNumber) return;
+      if (track == null) {
         crossSourceError = 'No unambiguous ASS match for this episode';
+        return;
       }
+      _crossSourceAss = track.track;
+      crossSourceHeaders = track.headers;
+      await inspectSubtitleTrack(track.track);
+      if (subtitleFormatFor(track.track) != 'ass') {
+        _crossSourceAss = null;
+        crossSourceError = 'External subtitle is not a verified ASS file';
+        return;
+      }
+      if (generation != _crossSourceGeneration) return;
+      _crossSourceSlot = slot;
+      await ExternalAssPreferences.setLastUsed(showId, slot);
     } catch (error) {
+      if (generation != _crossSourceGeneration) return;
       _crossSourceAss = null;
       crossSourceError = 'External ASS lookup failed: ${error.runtimeType}';
     } finally {
-      _crossSourceLoading = false;
-      notifyListeners();
+      if (generation == _crossSourceGeneration) {
+        _crossSourceLoading = false;
+        notifyListeners();
+      }
     }
   }
 

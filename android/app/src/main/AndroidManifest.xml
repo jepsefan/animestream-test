@@ -25,7 +25,7 @@
         android:banner="@drawable/banner"
         android:requestLegacyExternalStorage="true"
         android:allowBackup="false"
-        android:usesCleartextTraffic="true">
+        android:networkSecurityConfig="@xml/animestream_loopback_security">
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.extensionfileprovider"

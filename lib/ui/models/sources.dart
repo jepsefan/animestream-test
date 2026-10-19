@@ -191,18 +191,6 @@ class SourceManager {
     return searchResults;
   }
 
-  /// Paged search is only available for approved installed extensions.
-  Future<({List<Map<String, String?>> results, bool hasNextPage})>
-      searchExtensionPage(String identifier, String query, int page) async {
-    final source = await _getProvider(identifier);
-    if (source is! AniyomiExtensionProvider) {
-      throw StateError('Paged search requires an installed extension source');
-    }
-    if (query.trim().isEmpty) {
-      return (results: <Map<String, String?>>[], hasNextPage: false);
-    }
-    return source.searchPage(query.trim(), page);
-  }
   Future<List<EpisodeDetails>> getAnimeEpisodes(String source, String link, {bool dub = false}) async {
     final info = await (await _getProvider(source)).getAnimeEpisodeLink(link, dub: dub);
 

@@ -2,6 +2,13 @@
 
 Complete development history. Published GitHub Releases use the concise [RELEASE_NOTES.md](RELEASE_NOTES.md) for the latest three beta versions. Older entries remain here for reference.
 
+## v1.4.9-beta34.60 — Manual Search pagination for Anikku extensions
+- Support bounded search pages 1–10 in modern suspend and legacy Rx Anikku Host API calls. Automatic AniList matching continues using the existing first-page search flow.
+- Manual Search can request extra pages when an extension reports `hasNextPage`. Additional source results append without duplicate URLs/aliases; only the user can confirm a manual match.
+- Keep the searched title consistent across pages and cancel stale search UI results. The existing AnimeOnsen 403 built-in fallback remains first-page-only.
+- No changes to the player, subtitles, 20-second OLED pause dimming, approvals, source settings or local extension catalogues.
+- Version `1.4.9-beta34.60+70`. **APK build and device tests pending.** Test AniWaves/Animenosub Manual Search with multi-page results, selecting episodes, and unchanged automatic AniList lookup.
+
 ## v1.4.9-beta34.59 — Extension series-page source relinking
 - User-confirmed regression in the beta34.58 family: **Manage Providers** can find source episodes/streams (e.g. AnimeOnsen [Ext], HTTP 200, one DASH video and nine subtitle tracks) while the series page reports no matching results for installed extensions.
 - Cause under investigation: Manage Providers probes historically omit `sourceId` and use the first source; series-page searches, episodes and streams specify a persisted approved source ID. Beta34.57 added safe name/language fallback only to Source Settings, not to the series playback path.

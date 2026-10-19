@@ -261,6 +261,13 @@ class PlayerProvider extends ChangeNotifier {
     windowManager.setAlignment(Alignment.bottomRight);
     Provider.of<AppProvider>(AppWrapper.navKey.currentContext!, listen: false).showTitleBar = true;
   }
+
+  @override
+  void dispose() {
+    // Close only the local manifest server owned by this player instance.
+    _audioBridge.close();
+    super.dispose();
+  }
 }
 
 class PlayerProviderState {
@@ -305,10 +312,4 @@ class PlayerProviderState {
       pip: pip ?? this.pip,
     );
   }
-  @override
-  void dispose() {
-    _audioBridge.close();
-    super.dispose();
-  }
-
 }

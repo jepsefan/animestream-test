@@ -172,8 +172,7 @@ class MainActivity: FlutterActivity() {
                             val data = ExtensionSearchProbe(this).search(
                                 pkg, query, call.argument<Number>("sourceId")?.toLong(),
                                 call.argument<String>("sourceName"),
-                                call.argument<String>("sourceLanguage"),
-                                call.argument<Number>("page")?.toInt() ?: 1)
+                                call.argument<String>("sourceLanguage"))
                             runOnUiThread { result.success(data) }
                         }.start()
                     }

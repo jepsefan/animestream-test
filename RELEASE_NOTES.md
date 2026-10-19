@@ -6,7 +6,7 @@ The complete development history is in [CHANGELOG.md](CHANGELOG.md). This file c
 - The Manage Providers probe can resolve streams while the series page reports missing results because they use different source-selection paths; the probe normally omits a source ID, while the series view uses the saved approved ID.
 - Forward the approved source's name and language during series-page search, episode retrieval and playback, allowing the already-implemented exact/unique identity fallback when its saved ID is stale after restart.
 - Preserve existing AniList title matching, playback and subtitle handling; keep beta34.58's 20-second OLED dimming unchanged.
-- Version `1.4.9-beta34.59+69`. **APK build and on-device regression test pending.**
+- Version `1.4.9-beta34.59+69`. **User-confirmed on device:** extension results now work in the series view after the source-identity change. Separate playback and pause-dimming regression checks have not yet been reported.
 
 ## v1.4.9-beta34.58 — OLED pause-dimming after 20 seconds
 - Delay the existing dark OLED Pause Protection overlay from 8 seconds to 20 seconds after the video is paused.

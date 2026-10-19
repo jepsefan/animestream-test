@@ -2,6 +2,14 @@
 
 Complete development history. Published GitHub Releases use the concise [RELEASE_NOTES.md](RELEASE_NOTES.md) for the latest three beta versions. Older entries remain here for reference.
 
+## v1.4.9-beta34.64 — Mobile Ext sub toggle + built-in ASS sources
+- Fix missing **Ext sub** toggle on mobile by adding it to `infoMobile.dart`'s actual Episodes header (beside Sub/Dub and view toggle), with a compact control preserving the episode title.
+- Include installed, user-approved extension sources and all four built-in provider options (AnimeOnsen, AniZone, Anikoto, Animegg) in global Primary/Secondary ASS selectors, even when a built-in is not in the currently active source list.
+- Permit built-in providers in cross-source subtitle lookups and handle their legacy `VideoStream.subtitle/subtitleFormat` fields alongside extension `subtitleTracks`. Require a verified ASS format and matching preferred language; built-ins without ASS remain selectable but may yield no eligible subtitles.
+- Preserve opt-in automatic lookup per anime, last successfully used Primary/Secondary, strict series/episode matching, and fallback to video-source subtitles.
+- Preserve confirmed beta34.63 HLS audio playback integration unchanged. README untouched.
+- Version `1.4.9-beta34.64+74`. APK build and device tests pending.
+
 ## v1.4.9-beta34.63 — HLS audio + cross-source ASS subtitles (experimental)
 - Add an Android-local, loopback-only HLS master manifest bridge: for an extension returning a video-only HLS variant with external audio renditions, connect the video URL and reported audio tracks so native ExoPlayer can select audio. Original media/segment URLs are not proxied; bind only to 127.0.0.1 and restrict cleartext networking to the loopback domain. On bridge preparation failure, use the original video URL.
 - Skip quality/track overrides that target the original variant after the alternate local HLS manifest is loaded. Apply the bridge to initial playback, server switching and preloaded next episode.

@@ -111,8 +111,7 @@ class _WatchState extends State<Watch> with WidgetsBindingObserver {
 
       dataProvider.updateCurrentQuality(q);
 
-      await controller.initiateVideo(dataProvider.state.currentStream.url,
-          headers: dataProvider.state.currentStream.customHeaders);
+      await context.read<PlayerProvider>().initiateStream(dataProvider.state.currentStream);
 
       // MPEG-DASH has its own track selection in ExoPlayer. Avoid applying
       // an HLS-derived quality before DASH tracks have finished loading.

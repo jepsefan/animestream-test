@@ -90,9 +90,9 @@ class PlayerDataProvider extends ChangeNotifier {
           episodeNumber: epLinks[_state.currentEpIndex].episodeNumber,
           language: await ExternalAssPreferences.language());
       if (track != null) {
-        _crossSourceAss = track;
+        _crossSourceAss = track.track;
         _crossSourceSlot = slot;
-        crossSourceHeaders = null;
+        crossSourceHeaders = track.headers;
         await ExternalAssPreferences.setLastUsed(showId, slot);
       } else {
         _crossSourceAss = null;

@@ -190,9 +190,10 @@ class Anilist extends Database {
     return convertToIAnimeDetails();
   }
 
-  Future<List<CurrentlyAiringResult>> getCurrentlyAiringAnime() async {
+  Future<List<CurrentlyAiringResult>> getCurrentlyAiringAnime({int page = 1}) async {
+    if (page < 1 || page > 2) throw RangeError.range(page, 1, 2, 'page');
     final query = '''{
-            Page(perPage: 40) {
+            Page(page: $page, perPage: 40) {
               media(sort: [START_DATE_DESC], type: ANIME, format: TV, status: RELEASING) {
                 id
                 status
@@ -243,7 +244,7 @@ class Anilist extends Database {
   Future<List<RecentlyUpdatedResult>> recentlyUpdated() async {
     final timeMs = (new DateTime.now().millisecondsSinceEpoch ~/ 1000) - 10000;
     final query = '''{
-        Page(perPage: 25) {
+        Page(perPage: 50) {
     airingSchedules (airingAt_greater: 0, airingAt_lesser: $timeMs, sort: TIME_DESC) {
       episode
       media {

@@ -106,16 +106,24 @@ class PlayerSettingState extends State<PlayerSetting> {
                             isExpanded: true,
                             decoration: InputDecoration(labelText:
                                 selector == 'primary' ? 'Primary ASS Source' : 'Secondary ASS Source'),
-                            value: SourceManager.instance.sources.any((s) =>
-                                s.identifier == (selector == 'primary' ? assPrimary : assSecondary))
+                            value: [
+                              ...SourceManager.instance.inbuiltSources,
+                              ...SourceManager.instance.sources.where((s) =>
+                                  AniyomiExtensionProvider.isExtensionId(s.identifier)),
+                            ].any((s) => s.identifier ==
+                                (selector == 'primary' ? assPrimary : assSecondary))
                                 ? (selector == 'primary' ? assPrimary : assSecondary) : '',
                             items: [
                               const DropdownMenuItem(value: '', child: Text('None')),
-                              ...SourceManager.instance.sources
-                                  .where((s) => AniyomiExtensionProvider.isExtensionId(s.identifier) || s.identifier.endsWith('_inbuilt'))
-                                  .map((s) => DropdownMenuItem(
-                                      value: s.identifier,
-                                      child: Text(s.name, overflow: TextOverflow.ellipsis))),
+                              ...[
+                                ...SourceManager.instance.inbuiltSources,
+                                ...SourceManager.instance.sources.where((s) =>
+                                    AniyomiExtensionProvider.isExtensionId(s.identifier)),
+                              ].map((s) => DropdownMenuItem(
+                                  value: s.identifier,
+                                  child: Text(s.identifier.endsWith('_inbuilt')
+                                      ? '${s.name} [Built-in]' : s.name,
+                                      overflow: TextOverflow.ellipsis))),
                             ],
                             onChanged: (value) async {
                               if (value == null) return;

@@ -70,12 +70,41 @@ class PlayerDataProvider extends ChangeNotifier {
   Map<String, String>? crossSourceHeaders;
   bool get crossSourceLoading => _crossSourceLoading;
   bool get hasCrossSourceAss => _crossSourceAss != null;
+  int _externalAssDelayMs = 0;
+  int get externalAssDelayMs => _externalAssDelayMs;
+  bool _editingExternalAssDelay = false;
+  bool get editingExternalAssDelay => _editingExternalAssDelay;
+
+  Future<void> loadExternalAssDelay() async {
+    _externalAssDelayMs = await ExternalAssPreferences.delayMs(showId);
+    notifyListeners();
+  }
+
+  Future<void> setExternalAssDelayMs(int value) async {
+    _externalAssDelayMs = ((value / 50).round() * 50).clamp(-30000, 30000).toInt();
+    notifyListeners();
+    await ExternalAssPreferences.setDelayMs(showId, _externalAssDelayMs);
+  }
+
+  void beginExternalAssDelayEdit() {
+    if (!hasCrossSourceAss) return;
+    _editingExternalAssDelay = true;
+    notifyListeners();
+  }
+
+  void finishExternalAssDelayEdit() {
+    if (!_editingExternalAssDelay) return;
+    _editingExternalAssDelay = false;
+    notifyListeners();
+  }
+
 
   Future<void> loadCrossSourceAss({String? selectedSlot}) async {
     final generation = ++_crossSourceGeneration;
     final episodeNumber = epLinks[_state.currentEpIndex].episodeNumber;
     _crossSourceLoading = true;
     _crossSourceAss = null;
+    _editingExternalAssDelay = false;
     crossSourceError = null;
     notifyListeners();
     try {
@@ -272,6 +301,7 @@ class PlayerDataProvider extends ChangeNotifier {
     if (!availableSubtitleTracks.any((item) => item.url == track.url)) return;
     if (_crossSourceAss != null && track.url != _crossSourceAss!.url) {
       _crossSourceAss = null;
+      _editingExternalAssDelay = false;
     }
     _selectedSubtitleStreamUrl = _state.currentStream.url;
     _selectedSubtitleUrl = track.url;

@@ -124,7 +124,10 @@ internal class ExtensionEpisodeProbe(private val context: Context) {
                 sourceId = sourceId, approvedName = approvedName,
                 approvedLanguage = approvedLanguage)
         } catch (error: Throwable) {
-            ExtensionLinkageDiagnostics.describe(error)
+            val result = ExtensionLinkageDiagnostics.describe(error).toMutableMap()
+            val failedHost = NetworkHelper.requireInstance().streamFailureHost()
+            if (!failedHost.isNullOrBlank()) result["failedDnsHost"] = failedHost
+            result
         }
     }
 

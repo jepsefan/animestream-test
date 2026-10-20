@@ -1,6 +1,13 @@
 # AnimeStream — Latest three beta development versions
 
-Complete history: [CHANGELOG.md](CHANGELOG.md). These notes cover beta34.64, beta34.63 and beta34.62.
+Complete history: [CHANGELOG.md](CHANGELOG.md). These notes cover beta34.65, beta34.64 and beta34.63.
+
+## v1.4.9-beta34.65 — Re:ANIME Hoster and DNS diagnostics
+- For installed modern extensions declaring getHosterList, do not silently fall back to legacy episode getVideoList when the modern call fails; show the real hoster-list failure stage.
+- Report the hostname of DNS lookup failures observed by the shared OkHttp client during an explicitly requested stream test. Do not expose full URLs, paths, headers, tokens or cookies.
+- Distinguish hoster-list failures, hoster-video-list failures and legacy episode-video-list failures in Stream test results.
+- Preserve beta34.64 mobile Ext sub, inbuilt subtitle providers and working beta34.63 separate HLS audio. README unchanged.
+- Version `1.4.9-beta34.65+75`. Not yet APK built or tested on device; further Re:ANIME API and host compatibility work may be needed.
 
 ## v1.4.9-beta34.64 — Mobile Ext sub / built-in ASS providers
 - Place **Ext sub** toggle in the actual mobile Episodes header; keep the desktop/TV toggle. Per-anime setting controls automatic external ASS lookup.
@@ -15,12 +22,6 @@ Complete history: [CHANGELOG.md](CHANGELOG.md). These notes cover beta34.64, bet
 - **Build fix:** Move the HLS manifest bridge `dispose()` override to the `PlayerProvider` `ChangeNotifier`; it had been placed in `PlayerProviderState` and caused two Dart compiler errors. APK rebuild pending.
 - **Android lint fix:** Add missing `includeSubdomains="false"` attributes to the loopback-only network security config, resolving the reported `lintVitalRelease` failures. Rebuild pending.
 - Version `1.4.9-beta34.63+73`. **Not yet successfully APK-built or tested on device**; no guarantee that all HLS variants, ASS services and source-specific headers are compatible.
-
-## v1.4.9-beta34.62 — Extension episode artwork
-- Load and show the episode's own `preview_url` image, when provided, in both image-based episode layouts.
-- Resolve relative preview URLs against the installed extension's base domain; reject unsupported schemes. Fallback order is episode preview, source series cover, AniList cover, neutral placeholder.
-- Keep series matching, streaming, subtitles, Discover counts and beta34.61's rollback of Manual Search Pagination unchanged.
-- Version `1.4.9-beta34.62+72`. **Build/device validation pending**.
 
 ### Known limitations
 - Some possibly Arabic subtitle characters display as squares with crosses. Logged and deferred by request; no font/rendering change.

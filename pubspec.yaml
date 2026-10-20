@@ -2,7 +2,7 @@ name: animestream
 description: "A app made to stream and download anime!"
 publish_to: "none" #Dont remove this!
 
-version: 1.4.9-beta34.71+81
+version: 1.4.9-beta34.72+82
 
 environment:
   sdk: ">=3.2.0 <4.0.0"
@@ -57,7 +57,7 @@ dependencies:
   better_player:
     git:
       url: https://github.com/jepsefan/betterplayer-test.git
-      ref: subtitle-renderer-test
+      ref: hls-audio-label-selection-reanime
 
   fvp: 
     # path: "../../fvp"

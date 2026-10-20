@@ -24,10 +24,29 @@ class NetworkHelper(private val application: Application) {
     private val streamHistory = ArrayDeque<Map<String, Any?>>()
     @Volatile private var streamProbeActive = false
 
+    /** The DNS host is captured from OkHttp's request, never from exception text.
+     * This excludes signed paths, queries, credentials and cookies. */
+    @Volatile private var lastStreamFailureHost: String? = null
+    fun streamFailureHost(): String? = lastStreamFailureHost
+    private fun recordDnsHost(request: Request, failure: IOException) {
+        var current: Throwable? = failure
+        val seen = mutableSetOf<Throwable>()
+        while (current != null && seen.add(current)) {
+            if (current is java.net.UnknownHostException) {
+                if (streamProbeActive) {
+                    lastStreamFailureHost = request.url.host.take(180)
+                }
+                return
+            }
+            current = current.cause
+        }
+    }
+
     /** Opt-in stream probe: include cache hits from the application interceptor. */
     fun beginStreamDiagnostics() {
         synchronized(diagnosticLock) {
             streamHistory.clear()
+            lastStreamFailureHost = null
             streamProbeActive = true
         }
     }
@@ -186,6 +205,7 @@ class NetworkHelper(private val application: Application) {
                     recordStreamRequest(request, response)
                     response
                 } catch (error: IOException) {
+                    recordDnsHost(request, error)
                     recordStreamRequest(request, null)
                     throw error
                 }

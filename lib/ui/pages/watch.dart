@@ -465,6 +465,12 @@ class _WatchState extends State<Watch> with WidgetsBindingObserver {
       return KeyEventResult.ignored;
     }
 
+    if (playerDataProvider.editingExternalAssDelay) {
+      // While tuning external ASS timing, arrow keys must not seek the video.
+      // The visible +/- buttons remain usable with touch or TV focus.
+      return KeyEventResult.ignored;
+    }
+
     final skip = currentUserSettings?.skipDuration ?? 10;
 
     if (event.logicalKey == LogicalKeyboardKey.select ||
@@ -561,8 +567,13 @@ class _WatchState extends State<Watch> with WidgetsBindingObserver {
       onKeyEvent: (node, event) =>
           _handleTvSeekKey(event, playerProvider, playerDataProvider),
       child: PopScope(
-      canPop: !playerProvider.state.controlsVisible,
+      canPop: !playerProvider.state.controlsVisible &&
+          !playerDataProvider.editingExternalAssDelay,
       onPopInvokedWithResult: (didPop, result) async {
+        if (!didPop && playerDataProvider.editingExternalAssDelay) {
+          playerDataProvider.finishExternalAssDelayEdit();
+          return;
+        }
         if (!didPop && playerProvider.state.controlsVisible) {
           playerProvider.toggleControlsVisibility(action: false);
           _controlsTimer?.cancel();

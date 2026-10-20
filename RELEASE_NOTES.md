@@ -1,6 +1,13 @@
 # AnimeStream — Latest three beta development versions
 
-Complete history: [CHANGELOG.md](CHANGELOG.md). These notes cover beta34.71, beta34.70 and beta34.69.
+Complete history: [CHANGELOG.md](CHANGELOG.md). These notes cover beta34.72, beta34.71 and beta34.70.
+
+## v1.4.9-beta34.72 — Re:ANIME Sub/Dub audio selection
+- Re:ANIME legitimately returns HD-1 and HD-2 Hoster entries per [Sub] and [Dub]; the HLS playlist may expose multiple language renditions within each host.
+- Prefer Japanese audio as the default HLS rendition when the selected server is [Sub] and English audio when it is [Dub], if those languages exist. Preserve the original order when no matching language is available.
+- Pin the paired Better Player fork `hls-audio-label-selection-reanime`: Android matches ExoPlayer audio renditions by label rather than wrongly equating HLS rendition index with renderer group index. Requests made before ExoPlayer discovers tracks are retried when tracks change.
+- Preserve external ASS timing editor with 0.05/0.5/1s step, per-anime/per-provider delay isolation, HLS proxy, subtitles and MKV entry.
+- Version `1.4.9-beta34.72+82`. APK build and on-device audio switching not yet verified; server content and language labels may differ.
 
 ## v1.4.9-beta34.71 — Adjustable external ASS delay step
 - Add a **Step** button at the far left of the in-player external ASS sync toolbar. Each tap cycles the +/- increment through 0.05 s → 0.50 s → 1.00 s → 0.05 s.
@@ -16,14 +23,6 @@ Complete history: [CHANGELOG.md](CHANGELOG.md). These notes cover beta34.71, bet
 - Display extension-provided HLS AUDIO renditions in the mobile and TV/desktop audio selectors when the legacy HLS parser returns no list (including Re:ANIME loopback proxy paths). Prevent crashes when the player reports no native HLS audio tracks.
 - Keep working KickAssAnime audio, Re:ANIME API support and beta34.69 proxy handling; README unchanged.
 - Version `1.4.9-beta34.70+80`. APK compilation and device playback have not yet been verified.
-
-## v1.4.9-beta34.69 — Re:ANIME local proxy HLS external audio
-- Re:ANIME now returns four playable candidates, with two external audio tracks on each HLS video variant and a separate direct 1080p MKV candidate.
-- Fix HLS external audio manifest wrapping for the known Re:ANIME FlixCloud loopback proxy URL shape `127.0.0.1:<port>/proxy?url=...&w_payload=...`. The proxy serves HLS but its path lacks `.m3u8`; older detection bypassed the audio bridge and played silent video.
-- Keep the fallback narrow: ordinary HTTP files, including direct MKV, are not wrapped, and existing `.m3u8` HLS sources such as KickAssAnime are unaffected.
-- Prevent manual quality selection from bypassing the synthesized HLS master/audio renditions. Choose a different video quality via the server picker rather than raw-variant quality overrides.
-- Preserve working Hoster/Video source-api ABI, external ASS and earlier features. README unchanged.
-- Version `1.4.9-beta34.69+79`. No successful APK build or device verification yet. Re:ANIME proxy audio playback and native track selection need testing.
 
 ### Known limitations
 - Some possibly Arabic subtitle characters display as squares with crosses. Logged and deferred by request; no font/rendering change.

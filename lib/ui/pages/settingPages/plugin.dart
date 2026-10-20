@@ -729,6 +729,8 @@ class _PluginPageState extends State<PluginPage> {
         if (data['error'] != null) 'Error: ${data['error']}',
         if (data['failureStage'] != null)
           'Failure stage: ${data['failureStage']}',
+        if (data['failedDnsHost'] != null)
+          'DNS lookup failed for host: ${data['failedDnsHost']}',
         if (data['missingClasses'] is List &&
             (data['missingClasses'] as List).isNotEmpty)
           'Missing host/API classes: ${(data['missingClasses'] as List).join(', ')}',

@@ -58,12 +58,33 @@ internal object ExtensionSourceCalls {
         }
     }
 
+    /** A modern extension must never be silently routed through the legacy
+     * URL builder when its own Hoster API throws an implementation error.
+     * A legacy fallback can manufacture a malformed host from baseUrl + slug.
+     */
+    private fun declaresHosterList(source: AnimeSource): Boolean {
+        var type: Class<*>? = source.javaClass
+        while (type != null && type != AnimeHttpSource::class.java &&
+            type != Any::class.java) {
+            if (type.declaredMethods.any { method ->
+                method.name == "getHosterList" &&
+                    method.parameterTypes.size == 2 &&
+                    method.parameterTypes[0] == SEpisode::class.java &&
+                    method.parameterTypes[1].name == "kotlin.coroutines.Continuation"
+            }) return true
+            type = type.superclass
+        }
+        return false
+    }
+
     fun videos(source: AnimeSource, episode: SEpisode): List<ExtensionVideoCandidate> {
         // Extensions-lib 1.6+: obtain available hosters, then resolve each.
         val hosters: List<Hoster>? = try {
             runBlocking { withTimeout(WAIT_MS) { source.getHosterList(episode) } }
         } catch (e: Throwable) {
-            if (!unsupported(e)) throw e
+            if (declaresHosterList(source) || !unsupported(e)) {
+                throw ExtensionStreamStageFailure("hoster_list", e)
+            }
             null
         }
         if (hosters != null) {
@@ -85,7 +106,9 @@ internal object ExtensionSourceCalls {
                     lastFailure = failure
                 }
             }
-            if (collected.isEmpty() && lastFailure != null) throw lastFailure
+            if (collected.isEmpty() && lastFailure != null) {
+                throw ExtensionStreamStageFailure("hoster_video_list", lastFailure)
+            }
             return resolveLazyVideos(source, collected)
         }
 
@@ -93,9 +116,15 @@ internal object ExtensionSourceCalls {
         val direct = try {
             runBlocking { withTimeout(WAIT_MS) { source.getVideoList(episode) } }
         } catch (e: Throwable) {
-            if (!unsupported(e)) throw e
-            source.fetchVideoList(episode).toBlocking()
-                .toFuture().get(WAIT_MS, TimeUnit.MILLISECONDS)
+            if (!unsupported(e)) {
+                throw ExtensionStreamStageFailure("legacy_episode_video_list", e)
+            }
+            try {
+                source.fetchVideoList(episode).toBlocking()
+                    .toFuture().get(WAIT_MS, TimeUnit.MILLISECONDS)
+            } catch (fallbackFailure: Throwable) {
+                throw ExtensionStreamStageFailure("legacy_episode_video_list", fallbackFailure)
+            }
         }
         return resolveLazyVideos(
             source, direct.map { ExtensionVideoCandidate(it) }

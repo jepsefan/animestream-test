@@ -54,6 +54,25 @@ class HlsAudioManifestBridge {
         .where((track) => _validUrl(track.url))
         .take(12).toList();
     if (tracks.isEmpty) return video;
+    // Re:ANIME labels the HOSTER as [Sub] or [Dub]. The same HLS video
+    // master may contain multiple audio renditions. Prefer the language that
+    // matches the chosen hoster rather than always picking its first audio.
+    final server = stream.server.toLowerCase();
+    final preferred = server.contains('[dub]')
+        ? RegExp(r'^(en|eng|english)([-_ ]|$)', caseSensitive: false)
+        : server.contains('[sub]')
+            ? RegExp(r'^(ja|jpn|jp|japanese)([-_ ]|$)', caseSensitive: false)
+            : null;
+    final ordered = [...tracks];
+    if (preferred != null) {
+      ordered.sort((a, b) {
+        final aMatch = preferred.hasMatch(a.language.trim()) ||
+            preferred.hasMatch(a.label.trim());
+        final bMatch = preferred.hasMatch(b.language.trim()) ||
+            preferred.hasMatch(b.label.trim());
+        return aMatch == bMatch ? 0 : (aMatch ? -1 : 1);
+      });
+    }
     try {
       _server ??= await HttpServer.bind(InternetAddress.loopbackIPv4, 0,
           shared: false);
@@ -63,13 +82,13 @@ class HlsAudioManifestBridge {
       final token = List<int>.generate(16, (_) => Random.secure().nextInt(256))
           .map((byte) => byte.toRadixString(16).padLeft(2, '0')).join();
       final buffer = StringBuffer('#EXTM3U\n#EXT-X-VERSION:3\n');
-      for (var i = 0; i < tracks.length; i++) {
-        final lang = _safeLabel(tracks[i].language);
-        final label = _safeLabel(tracks[i].label.isEmpty ? lang : tracks[i].label);
+      for (var i = 0; i < ordered.length; i++) {
+        final lang = _safeLabel(ordered[i].language);
+        final label = _safeLabel(ordered[i].label.isEmpty ? lang : tracks[i].label);
         buffer.writeln('#EXT-X-MEDIA:TYPE=AUDIO,GROUP-ID="ext-audio",'
             'NAME="${label}_${i + 1}",LANGUAGE="$lang",'
             'DEFAULT=${i == 0 ? 'YES' : 'NO'},AUTOSELECT=YES,'
-            'URI="${tracks[i].url}"');
+            'URI="${ordered[i].url}"');
       }
       // A variant playlist carries video segments, while the AUDIO group
       // supplies the separate sound segments as native HLS renditions.

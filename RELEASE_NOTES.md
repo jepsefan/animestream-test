@@ -1,6 +1,14 @@
 # AnimeStream — Latest three beta development versions
 
-Complete history: [CHANGELOG.md](CHANGELOG.md). These notes cover beta34.68, beta34.67 and beta34.66.
+Complete history: [CHANGELOG.md](CHANGELOG.md). These notes cover beta34.69, beta34.68 and beta34.67.
+
+## v1.4.9-beta34.69 — Re:ANIME local proxy HLS external audio
+- Re:ANIME now returns four playable candidates, with two external audio tracks on each HLS video variant and a separate direct 1080p MKV candidate.
+- Fix HLS external audio manifest wrapping for the known Re:ANIME FlixCloud loopback proxy URL shape `127.0.0.1:<port>/proxy?url=...&w_payload=...`. The proxy serves HLS but its path lacks `.m3u8`; older detection bypassed the audio bridge and played silent video.
+- Keep the fallback narrow: ordinary HTTP files, including direct MKV, are not wrapped, and existing `.m3u8` HLS sources such as KickAssAnime are unaffected.
+- Prevent manual quality selection from bypassing the synthesized HLS master/audio renditions. Choose a different video quality via the server picker rather than raw-variant quality overrides.
+- Preserve working Hoster/Video source-api ABI, external ASS and earlier features. README unchanged.
+- Version `1.4.9-beta34.69+79`. No successful APK build or device verification yet. Re:ANIME proxy audio playback and native track selection need testing.
 
 ## v1.4.9-beta34.68 — Re:ANIME Video JVM ABI
 - Beta34.67 successfully passed Hoster construction and exposed a new getVideoList failure: Video Kotlin default-arguments constructor was missing.
@@ -14,13 +22,6 @@ Complete history: [CHANGELOG.md](CHANGELOG.md). These notes cover beta34.68, bet
 - Retain an older four-field constructor, including its Kotlin default-arguments mask overload, for already-compiled extensions. Preserve optional legacy six-field compatibility and both copy shapes.
 - Keep HLS audio, external ASS and all earlier source/Discover changes.
 - Version `1.4.9-beta34.67+77`. Flutter APK build and device playback not yet verified; any additional missing Host API method will need its own targeted correction.
-
-## v1.4.9-beta34.66 — Re:ANIME missing JVM method diagnostics
-- Re:ANIME in beta34.65 fails with `NoSuchMethodError` inside `getHosterList` while playing in Anikku on the same phone. The root method is not yet identified, so do not change working playback host classes speculatively.
-- Report the **innermost** stream stage (e.g. `hoster_list`) instead of the generic `resolve_videos` wrapper.
-- Extract only a validated Java method name, owning public class and JVM type descriptor from Android `NoSuchMethodError` into Stream test results. Never display arbitrary exception messages, full URLs, tokens, cookies or headers.
-- Keep beta34.65 hoster routing diagnostics, beta34.64 mobile ASS toggle, and beta34.63 confirmed HLS audio.
-- Version `1.4.9-beta34.66+76`; APK build and device check pending.
 
 ### Known limitations
 - Some possibly Arabic subtitle characters display as squares with crosses. Logged and deferred by request; no font/rendering change.

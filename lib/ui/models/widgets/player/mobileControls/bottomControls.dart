@@ -549,7 +549,7 @@ class _BottomControlsState extends State<BottomControls> {
                                   ),
                                 ),
                                   ListView.builder(
-                                    itemCount: dataProvider.state.audioTracks.length,
+                                    itemCount: dataProvider.availableAudioTracks.length,
                                     shrinkWrap: true,
                                     itemBuilder: (BuildContext context, index) {
                                       return Container(
@@ -557,8 +557,18 @@ class _BottomControlsState extends State<BottomControls> {
                                         child: ElevatedButton(
                                           onPressed: () async {
                                             // final src = dataProvider.state.qualities[index].url;
-                                            dataProvider.updateCurrentAudioTrack(dataProvider.state.audioTracks[index]);
-                                            playerProvider.controller.setAudioTrack(dataProvider.state.currentAudioTrack);
+                                            dataProvider.updateCurrentAudioTrack(dataProvider.availableAudioTracks[index]);
+                                            try {
+                                              await playerProvider.controller.setAudioTrack(
+                                                dataProvider.state.currentAudioTrack);
+                                            } catch (_) {
+                                              if (context.mounted) {
+                                                ScaffoldMessenger.of(context).showSnackBar(
+                                                  const SnackBar(content: Text(
+                                                    'Audio rendition is not yet available in the player')),
+                                                );
+                                              }
+                                            }
                                             // selectedQuality = dataProvider.state.qualities[index]['quality'] ?? '720';
                                             // dataProvider.updateCurrentQuality(dataProvider.state.qualities[index]);
                                             // playerProvider.playVideo(src,
@@ -571,15 +581,15 @@ class _BottomControlsState extends State<BottomControls> {
                                               borderRadius: BorderRadius.circular(10),
                                               // side: BorderSide(color: Colors.white)
                                             ),
-                                            backgroundColor: dataProvider.state.audioTracks[index].url ==
+                                            backgroundColor: dataProvider.availableAudioTracks[index].url ==
                                                     dataProvider.state.currentAudioTrack.url
                                                 ? appTheme.accentColor
                                                 : appTheme.backgroundSubColor,
                                           ),
                                           child: Text(
-                                            "${dataProvider.state.audioTracks[index].name} (${dataProvider.state.audioTracks[index].language})",
+                                            "${dataProvider.availableAudioTracks[index].name} (${dataProvider.availableAudioTracks[index].language})",
                                             style: TextStyle(
-                                              color: dataProvider.state.audioTracks[index].url ==
+                                              color: dataProvider.availableAudioTracks[index].url ==
                                                       dataProvider.state.currentAudioTrack.url
                                                   ? appTheme.onAccent
                                                   : appTheme.accentColor,

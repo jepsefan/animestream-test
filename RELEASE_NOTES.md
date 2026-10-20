@@ -1,6 +1,14 @@
 # AnimeStream — Latest three beta development versions
 
-Complete history: [CHANGELOG.md](CHANGELOG.md). These notes cover beta34.69, beta34.68 and beta34.67.
+Complete history: [CHANGELOG.md](CHANGELOG.md). These notes cover beta34.70, beta34.69 and beta34.68.
+
+## v1.4.9-beta34.70 — In-player external ASS sync and audio tracks
+- Add per-anime subtitle timing offset for *cross-source ASS only*, stored locally with the existing external ASS preferences. A positive delay shows the text later, and a negative delay shows it sooner, in 50 ms steps.
+- When an external ASS track is active, the subtitle menu offers **Edit sub delay**. It closes the subtitle sheet, leaves the ASS visible and shows a top-of-player edit strip with minus, signed time, plus, Reset and Done. Existing controls are hidden during editing; Back exits the editor.
+- Apply the offset to libass's rendering clock without modifying the original subtitle file, video position, original ASS/VTT streams or the HLS/audio pipeline.
+- Display extension-provided HLS AUDIO renditions in the mobile and TV/desktop audio selectors when the legacy HLS parser returns no list (including Re:ANIME loopback proxy paths). Prevent crashes when the player reports no native HLS audio tracks.
+- Keep working KickAssAnime audio, Re:ANIME API support and beta34.69 proxy handling; README unchanged.
+- Version `1.4.9-beta34.70+80`. APK compilation and device playback have not yet been verified.
 
 ## v1.4.9-beta34.69 — Re:ANIME local proxy HLS external audio
 - Re:ANIME now returns four playable candidates, with two external audio tracks on each HLS video variant and a separate direct 1080p MKV candidate.
@@ -16,12 +24,6 @@ Complete history: [CHANGELOG.md](CHANGELOG.md). These notes cover beta34.69, bet
 - Retain older 12-field Video constructor/copy signatures, legacy URL-first overloads, and videoPageUrl storage. Keep video/audio/subtitle metadata intact through native video resolution.
 - Hoster ABI fix, HLS audio, external ASS, and other providers unchanged.
 - Version `1.4.9-beta34.68+78`. APK build/device tests not yet verified.
-
-## v1.4.9-beta34.67 — Re:ANIME Hoster constructor ABI compatibility
-- Resolve the exact beta34.66 failure: Re:ANIME requires Kotlin Hoster(String, String, List, String, boolean, int, DefaultConstructorMarker). Add the upstream-compatible five-field primary Hoster constructor with lazy support.
-- Retain an older four-field constructor, including its Kotlin default-arguments mask overload, for already-compiled extensions. Preserve optional legacy six-field compatibility and both copy shapes.
-- Keep HLS audio, external ASS and all earlier source/Discover changes.
-- Version `1.4.9-beta34.67+77`. Flutter APK build and device playback not yet verified; any additional missing Host API method will need its own targeted correction.
 
 ### Known limitations
 - Some possibly Arabic subtitle characters display as squares with crosses. Logged and deferred by request; no font/rendering change.

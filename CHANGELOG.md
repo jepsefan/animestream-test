@@ -2,6 +2,13 @@
 
 Complete development history. Published GitHub Releases use the concise [RELEASE_NOTES.md](RELEASE_NOTES.md) for the latest three beta versions. Older entries remain here for reference.
 
+## v1.4.9-beta34.72 — Re:ANIME Sub/Dub audio selection
+- Re:ANIME legitimately returns HD-1 and HD-2 Hoster entries per [Sub] and [Dub]; the HLS playlist may expose multiple language renditions within each host.
+- Prefer Japanese audio as the default HLS rendition when the selected server is [Sub] and English audio when it is [Dub], if those languages exist. Preserve the original order when no matching language is available.
+- Pin the paired Better Player fork `hls-audio-label-selection-reanime`: Android matches ExoPlayer audio renditions by label rather than wrongly equating HLS rendition index with renderer group index. Requests made before ExoPlayer discovers tracks are retried when tracks change.
+- Preserve external ASS timing editor with 0.05/0.5/1s step, per-anime/per-provider delay isolation, HLS proxy, subtitles and MKV entry.
+- Version `1.4.9-beta34.72+82`. APK build and on-device audio switching not yet verified; server content and language labels may differ.
+
 ## v1.4.9-beta34.71 — Adjustable external ASS delay step
 - Add a **Step** button at the far left of the in-player external ASS sync toolbar. Each tap cycles the +/- increment through 0.05 s → 0.50 s → 1.00 s → 0.05 s.
 - Minus and plus apply the selected step immediately. The signed total delay and Reset/Done remain unchanged, and the saved offset stays isolated by anime and video provider. The step itself resets to 0.05 s per player session.

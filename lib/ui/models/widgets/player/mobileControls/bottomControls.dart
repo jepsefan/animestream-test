@@ -559,7 +559,7 @@ class _BottomControlsState extends State<BottomControls> {
                                             // final src = dataProvider.state.qualities[index].url;
                                             dataProvider.updateCurrentAudioTrack(dataProvider.availableAudioTracks[index]);
                                             try {
-                                              await playerProvider.controller.setAudioTrack(
+                                              playerProvider.controller.setAudioTrack(
                                                 dataProvider.state.currentAudioTrack);
                                             } catch (_) {
                                               if (context.mounted) {

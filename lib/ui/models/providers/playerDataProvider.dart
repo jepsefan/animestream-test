@@ -323,6 +323,22 @@ class PlayerDataProvider extends ChangeNotifier {
         notifyListeners();
       });
 
+  /// Exposed HLS renditions from the extension when the URL is a local
+  /// proxy without a .m3u8 path. Names are metadata until BetterPlayer's
+  /// native rendition selector confirms the tracks.
+  List<AudioStream> get availableAudioTracks {
+    final native = _state.audioTracks;
+    if (native.isNotEmpty) return native;
+    if (_state.currentStream.externalAudioTracks.isEmpty) return const [];
+    return _state.currentStream.externalAudioTracks.map((t) => AudioStream(
+      url: t.url,
+      language: t.language,
+      name: t.label.isEmpty ? t.language : t.label,
+      channels: '',
+      groupId: 'ext-audio',
+    )).toList();
+  }
+
   /// Get and store the qualities and audio available for the current stream
   Future<void> extractCurrentStreamQualities() async {
     final url = _state.currentStream.url;

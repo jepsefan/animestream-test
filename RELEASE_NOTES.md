@@ -1,6 +1,13 @@
 # AnimeStream — Latest three beta development versions
 
-Complete history: [CHANGELOG.md](CHANGELOG.md). These notes cover beta34.67, beta34.66 and beta34.65.
+Complete history: [CHANGELOG.md](CHANGELOG.md). These notes cover beta34.68, beta34.67 and beta34.66.
+
+## v1.4.9-beta34.68 — Re:ANIME Video JVM ABI
+- Beta34.67 successfully passed Hoster construction and exposed a new getVideoList failure: Video Kotlin default-arguments constructor was missing.
+- Align primary Video with Anikku's 14-field constructor including mpvArgs, ffmpegStreamArgs, ffmpegVideoArgs; regenerate compatible Kotlin default-mask constructor and copy semantics.
+- Retain older 12-field Video constructor/copy signatures, legacy URL-first overloads, and videoPageUrl storage. Keep video/audio/subtitle metadata intact through native video resolution.
+- Hoster ABI fix, HLS audio, external ASS, and other providers unchanged.
+- Version `1.4.9-beta34.68+78`. APK build/device tests not yet verified.
 
 ## v1.4.9-beta34.67 — Re:ANIME Hoster constructor ABI compatibility
 - Resolve the exact beta34.66 failure: Re:ANIME requires Kotlin Hoster(String, String, List, String, boolean, int, DefaultConstructorMarker). Add the upstream-compatible five-field primary Hoster constructor with lazy support.
@@ -14,13 +21,6 @@ Complete history: [CHANGELOG.md](CHANGELOG.md). These notes cover beta34.67, bet
 - Extract only a validated Java method name, owning public class and JVM type descriptor from Android `NoSuchMethodError` into Stream test results. Never display arbitrary exception messages, full URLs, tokens, cookies or headers.
 - Keep beta34.65 hoster routing diagnostics, beta34.64 mobile ASS toggle, and beta34.63 confirmed HLS audio.
 - Version `1.4.9-beta34.66+76`; APK build and device check pending.
-
-## v1.4.9-beta34.65 — Re:ANIME Hoster and DNS diagnostics
-- For installed modern extensions declaring getHosterList, do not silently fall back to legacy episode getVideoList when the modern call fails; show the real hoster-list failure stage.
-- Report the hostname of DNS lookup failures observed by the shared OkHttp client during an explicitly requested stream test. Do not expose full URLs, paths, headers, tokens or cookies.
-- Distinguish hoster-list failures, hoster-video-list failures and legacy episode-video-list failures in Stream test results.
-- Preserve beta34.64 mobile Ext sub, inbuilt subtitle providers and working beta34.63 separate HLS audio. README unchanged.
-- Version `1.4.9-beta34.65+75`. Not yet APK built or tested on device; further Re:ANIME API and host compatibility work may be needed.
 
 ### Known limitations
 - Some possibly Arabic subtitle characters display as squares with crosses. Logged and deferred by request; no font/rendering change.

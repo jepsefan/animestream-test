@@ -729,6 +729,12 @@ class _PluginPageState extends State<PluginPage> {
         if (data['error'] != null) 'Error: ${data['error']}',
         if (data['failureStage'] != null)
           'Failure stage: ${data['failureStage']}',
+        if (data['missingMethod'] != null)
+          'Missing JVM method: ${data['missingMethod']}',
+        if (data['missingMethodOwner'] != null)
+          'Method owner: ${data['missingMethodOwner']}',
+        if (data['missingMethodDescriptor'] != null)
+          'Method signature: ${data['missingMethodDescriptor']}',
         if (data['failedDnsHost'] != null)
           'DNS lookup failed for host: ${data['failedDnsHost']}',
         if (data['missingClasses'] is List &&

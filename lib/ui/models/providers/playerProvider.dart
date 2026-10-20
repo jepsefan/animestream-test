@@ -178,7 +178,10 @@ class PlayerProvider extends ChangeNotifier {
   }
 
   Future<void> setQuality(QualityStream qs) async {
-    _controller.setQuality(qs);
+    // The extension's selected video-only variant is wrapped into a local
+    // master manifest with separate audio renditions. Switching to a raw
+    // variant here would discard its AUDIO group and produce silent playback.
+    if (!_usingExternalAudioManifest) _controller.setQuality(qs);
     notifyListeners();
   }
 

@@ -1,6 +1,13 @@
 # AnimeStream — Latest three beta development versions
 
-Complete history: [CHANGELOG.md](CHANGELOG.md). These notes cover beta34.70, beta34.69 and beta34.68.
+Complete history: [CHANGELOG.md](CHANGELOG.md). These notes cover beta34.71, beta34.70 and beta34.69.
+
+## v1.4.9-beta34.71 — Adjustable external ASS delay step
+- Add a **Step** button at the far left of the in-player external ASS sync toolbar. Each tap cycles the +/- increment through 0.05 s → 0.50 s → 1.00 s → 0.05 s.
+- Minus and plus apply the selected step immediately. The signed total delay and Reset/Done remain unchanged, and the saved offset stays isolated by anime and video provider. The step itself resets to 0.05 s per player session.
+- Focus the Step control first on Android TV and exclude obscured playback controls from keyboard navigation during editing.
+- Existing audio, HLS proxy, subtitle renderer and extension handling unchanged; README unchanged.
+- Version `1.4.9-beta34.71+81`. APK compilation/device behavior not yet verified.
 
 ## v1.4.9-beta34.70 — In-player external ASS sync and audio tracks
 - Store subtitle timing offset for *cross-source ASS only*, separately per anime **and active video provider** (e.g. Re:ANIME and Animegg have independent offsets). All episodes within the same anime/provider share one delay; old anime-only delay values are intentionally not migrated. A positive delay shows the text later, and a negative delay shows it sooner, in 50 ms steps.
@@ -17,13 +24,6 @@ Complete history: [CHANGELOG.md](CHANGELOG.md). These notes cover beta34.70, bet
 - Prevent manual quality selection from bypassing the synthesized HLS master/audio renditions. Choose a different video quality via the server picker rather than raw-variant quality overrides.
 - Preserve working Hoster/Video source-api ABI, external ASS and earlier features. README unchanged.
 - Version `1.4.9-beta34.69+79`. No successful APK build or device verification yet. Re:ANIME proxy audio playback and native track selection need testing.
-
-## v1.4.9-beta34.68 — Re:ANIME Video JVM ABI
-- Beta34.67 successfully passed Hoster construction and exposed a new getVideoList failure: Video Kotlin default-arguments constructor was missing.
-- Align primary Video with Anikku's 14-field constructor including mpvArgs, ffmpegStreamArgs, ffmpegVideoArgs; regenerate compatible Kotlin default-mask constructor and copy semantics.
-- Retain older 12-field Video constructor/copy signatures, legacy URL-first overloads, and videoPageUrl storage. Keep video/audio/subtitle metadata intact through native video resolution.
-- Hoster ABI fix, HLS audio, external ASS, and other providers unchanged.
-- Version `1.4.9-beta34.68+78`. APK build/device tests not yet verified.
 
 ### Known limitations
 - Some possibly Arabic subtitle characters display as squares with crosses. Logged and deferred by request; no font/rendering change.

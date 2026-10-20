@@ -30,6 +30,18 @@ class ExternalAssPreferences {
       (await _open()).get('enabled:$animeId', defaultValue: false) == true;
   static Future<void> setEnabled(int animeId, bool enabled) async =>
       (await _open()).put('enabled:$animeId', enabled);
+  /// Per-anime cross-source ASS offset. Positive values display subtitles later.
+  /// Clamped to ±30 seconds to protect the renderer from invalid inputs.
+  static Future<int> delayMs(int animeId) async {
+    final raw = (await _open()).get('delayMs:$animeId', defaultValue: 0);
+    final parsed = raw is num ? raw.toInt() : int.tryParse(raw.toString()) ?? 0;
+    return parsed.clamp(-30000, 30000).toInt();
+  }
+
+  static Future<void> setDelayMs(int animeId, int milliseconds) async =>
+      (await _open()).put('delayMs:$animeId',
+          milliseconds.clamp(-30000, 30000).toInt());
+
   static Future<String> lastUsed(int animeId) async =>
       (await _open()).get('last:$animeId', defaultValue: 'primary') as String;
   static Future<void> setLastUsed(int animeId, String source) async {

@@ -2,6 +2,13 @@
 
 Complete development history. Published GitHub Releases use the concise [RELEASE_NOTES.md](RELEASE_NOTES.md) for the latest three beta versions. Older entries remain here for reference.
 
+## v1.4.9-beta34.65 — Re:ANIME Hoster and DNS diagnostics
+- For installed modern extensions declaring getHosterList, do not silently fall back to legacy episode getVideoList when the modern call fails; show the real hoster-list failure stage.
+- Report the hostname of DNS lookup failures observed by the shared OkHttp client during an explicitly requested stream test. Do not expose full URLs, paths, headers, tokens or cookies.
+- Distinguish hoster-list failures, hoster-video-list failures and legacy episode-video-list failures in Stream test results.
+- Preserve beta34.64 mobile Ext sub, inbuilt subtitle providers and working beta34.63 separate HLS audio. README unchanged.
+- Version `1.4.9-beta34.65+75`. Not yet APK built or tested on device; further Re:ANIME API and host compatibility work may be needed.
+
 ## v1.4.9-beta34.64 — Mobile Ext sub toggle + built-in ASS sources
 - Fix missing **Ext sub** toggle on mobile by adding it to `infoMobile.dart`'s actual Episodes header (beside Sub/Dub and view toggle), with a compact control preserving the episode title.
 - Include installed, user-approved extension sources and all four built-in provider options (AnimeOnsen, AniZone, Anikoto, Animegg) in global Primary/Secondary ASS selectors, even when a built-in is not in the currently active source list.

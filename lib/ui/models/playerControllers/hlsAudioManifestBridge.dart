@@ -84,7 +84,7 @@ class HlsAudioManifestBridge {
       final buffer = StringBuffer('#EXTM3U\n#EXT-X-VERSION:3\n');
       for (var i = 0; i < ordered.length; i++) {
         final lang = _safeLabel(ordered[i].language);
-        final label = _safeLabel(ordered[i].label.isEmpty ? lang : tracks[i].label);
+        final label = _safeLabel(ordered[i].label.isEmpty ? lang : ordered[i].label);
         buffer.writeln('#EXT-X-MEDIA:TYPE=AUDIO,GROUP-ID="ext-audio",'
             'NAME="${label}_${i + 1}",LANGUAGE="$lang",'
             'DEFAULT=${i == 0 ? 'YES' : 'NO'},AUTOSELECT=YES,'

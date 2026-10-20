@@ -158,6 +158,19 @@ class _BottomControlsState extends State<BottomControls> {
                                   ? 'Searching external subtitle source...'
                                   : (dataProvider.crossSourceError ?? 'Active')),
                             ),
+                          if (dataProvider.hasCrossSourceAss &&
+                              playerProvider.state.showSubs)
+                            ListTile(
+                              leading: const Icon(Icons.av_timer),
+                              title: const Text('Edit sub delay'),
+                              subtitle: Text(
+                                '${dataProvider.externalAssDelayMs >= 0 ? '+' : ''}${(dataProvider.externalAssDelayMs / 1000).toStringAsFixed(2)} s',
+                              ),
+                              onTap: () {
+                                Navigator.of(sheetContext).pop();
+                                dataProvider.beginExternalAssDelayEdit();
+                              },
+                            ),
                           if (dataProvider.externalAssEnabled)
                             for (final slot in ['primary', 'secondary'])
                             ListTile(

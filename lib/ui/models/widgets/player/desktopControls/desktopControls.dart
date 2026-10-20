@@ -479,9 +479,9 @@ class _DesktopControlsState extends State<DesktopControls> {
                             },
                           ),
                           ListView.builder(
-                            itemCount: dataProvider.state.audioTracks.length,
+                            itemCount: dataProvider.availableAudioTracks.length,
                             itemBuilder: (context, index) {
-                              final audTrack = dataProvider.state.audioTracks[index];
+                              final audTrack = dataProvider.availableAudioTracks[index];
                               return GestureDetector(
                                 onTap: () {
                                   (provider.controller).setAudioTrack(audTrack);
@@ -489,16 +489,16 @@ class _DesktopControlsState extends State<DesktopControls> {
                                 },
                                 child: Container(
                                     color:
-                                        dataProvider.state.audioTracks[index].url == dataProvider.state.currentAudioTrack.url
+                                        dataProvider.availableAudioTracks[index].url == dataProvider.state.currentAudioTrack.url
                                             ? appTheme.accentColor
                                             : null,
                                     height: 40,
                                     alignment: Alignment.center,
                                     child: Text(
-                                      "${dataProvider.state.audioTracks[index].name}",
+                                      "${dataProvider.availableAudioTracks[index].name}",
                                       style: TextStyle(
                                         fontSize: 18,
-                                        color: dataProvider.state.audioTracks[index].url ==
+                                        color: dataProvider.availableAudioTracks[index].url ==
                                                 dataProvider.state.currentAudioTrack.url
                                             ? appTheme.onAccent
                                             : appTheme.textMainColor,

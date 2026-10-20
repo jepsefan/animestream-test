@@ -19,12 +19,14 @@ class ExternalAssOverlay extends StatefulWidget {
     required this.subtitleSource,
     this.headers = const {},
     this.isOffline = false,
+    this.delayMs = 0,
   });
 
   final VideoController controller;
   final String subtitleSource;
   final Map<String, String> headers;
   final bool isOffline;
+  final int delayMs;
 
   @override
   State<ExternalAssOverlay> createState() => _ExternalAssOverlayState();
@@ -197,7 +199,7 @@ class _ExternalAssOverlayState extends State<ExternalAssOverlay>
     _wasAdvancing = advancing;
   }
 
-  int? _assPosition() {
+  int? _rawAssPosition() {
     final reported = widget.controller.position;
     if (reported == null) return null;
     if (_clockAnchorPosition == null) _onPlayerUpdate();
@@ -217,6 +219,13 @@ class _ExternalAssOverlayState extends State<ExternalAssOverlay>
     return duration == null || duration <= 0
         ? interpolated
         : interpolated.clamp(0, duration);
+  }
+
+  // Positive delay means the external ASS cue appears later.
+  // Only this cross-source overlay receives a nonzero delay from the player.
+  int? _assPosition() {
+    final raw = _rawAssPosition();
+    return raw == null ? null : (raw - widget.delayMs).clamp(0, 1 << 53).toInt();
   }
 
   void _onAssFpsChanged() {

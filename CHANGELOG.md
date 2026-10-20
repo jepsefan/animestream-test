@@ -2,6 +2,14 @@
 
 Complete development history. Published GitHub Releases use the concise [RELEASE_NOTES.md](RELEASE_NOTES.md) for the latest three beta versions. Older entries remain here for reference.
 
+## v1.4.9-beta34.70 — In-player external ASS sync and audio tracks
+- Add per-anime subtitle timing offset for *cross-source ASS only*, stored locally with the existing external ASS preferences. A positive delay shows the text later, and a negative delay shows it sooner, in 50 ms steps.
+- When an external ASS track is active, the subtitle menu offers **Edit sub delay**. It closes the subtitle sheet, leaves the ASS visible and shows a top-of-player edit strip with minus, signed time, plus, Reset and Done. Existing controls are hidden during editing; Back exits the editor.
+- Apply the offset to libass's rendering clock without modifying the original subtitle file, video position, original ASS/VTT streams or the HLS/audio pipeline.
+- Display extension-provided HLS AUDIO renditions in the mobile and TV/desktop audio selectors when the legacy HLS parser returns no list (including Re:ANIME loopback proxy paths). Prevent crashes when the player reports no native HLS audio tracks.
+- Keep working KickAssAnime audio, Re:ANIME API support and beta34.69 proxy handling; README unchanged.
+- Version `1.4.9-beta34.70+80`. APK compilation and device playback have not yet been verified.
+
 ## v1.4.9-beta34.69 — Re:ANIME local proxy HLS external audio
 - Re:ANIME now returns four playable candidates, with two external audio tracks on each HLS video variant and a separate direct 1080p MKV candidate.
 - Fix HLS external audio manifest wrapping for the known Re:ANIME FlixCloud loopback proxy URL shape `127.0.0.1:<port>/proxy?url=...&w_payload=...`. The proxy serves HLS but its path lacks `.m3u8`; older detection bypassed the audio bridge and played silent video.

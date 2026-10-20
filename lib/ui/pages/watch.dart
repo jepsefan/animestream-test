@@ -91,6 +91,25 @@ class _WatchState extends State<Watch> with WidgetsBindingObserver {
     ]);
   }
 
+  // Adjustable increment for the in-player cross-source ASS delay editor.
+  // This is session-only; the actual delay remains saved per anime/source.
+  int _assDelayStepMs = 50;
+
+  void _cycleAssDelayStep() {
+    setState(() {
+      switch (_assDelayStepMs) {
+        case 50:
+          _assDelayStepMs = 500;
+          break;
+        case 500:
+          _assDelayStepMs = 1000;
+          break;
+        default:
+          _assDelayStepMs = 50;
+      }
+    });
+  }
+
   String? _playerStartError;
 
   void _initialize() async {
@@ -774,7 +793,14 @@ class _WatchState extends State<Watch> with WidgetsBindingObserver {
                           child: Stack(
                             children: [
                               IgnorePointer(ignoring: true, child: overlay()),
-                              IgnorePointer(ignoring: playerDataProvider.editingExternalAssDelay || !playerProvider.state.controlsVisible, child: Controls()),
+                              ExcludeFocus(
+                                excluding: playerDataProvider.editingExternalAssDelay,
+                                child: IgnorePointer(
+                                  ignoring: playerDataProvider.editingExternalAssDelay ||
+                                      !playerProvider.state.controlsVisible,
+                                  child: Controls(),
+                                ),
+                              ),
                             ],
                           ),
                         )
@@ -816,10 +842,24 @@ class _WatchState extends State<Watch> with WidgetsBindingObserver {
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
+                                Tooltip(
+                                  message: 'Change adjustment step: 0.05 → 0.50 → 1.00 s',
+                                  child: OutlinedButton(
+                                    autofocus: true,
+                                    onPressed: _cycleAssDelayStep,
+                                    style: OutlinedButton.styleFrom(
+                                      foregroundColor: Colors.white,
+                                      side: const BorderSide(color: Colors.white54),
+                                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                                    ),
+                                    child: Text('Step ${(_assDelayStepMs / 1000).toStringAsFixed(2)} s'),
+                                  ),
+                                ),
+                                const SizedBox(width: 6),
                                 IconButton(
-                                  tooltip: 'Subtitles earlier (-0.05 s)',
+                                  tooltip: 'Subtitles earlier (-${(_assDelayStepMs / 1000).toStringAsFixed(2)} s)',
                                   onPressed: () => playerDataProvider.setExternalAssDelayMs(
-                                      playerDataProvider.externalAssDelayMs - 50),
+                                      playerDataProvider.externalAssDelayMs - _assDelayStepMs),
                                   icon: const Icon(Icons.remove, color: Colors.white),
                                 ),
                                 Container(
@@ -832,9 +872,9 @@ class _WatchState extends State<Watch> with WidgetsBindingObserver {
                                   ),
                                 ),
                                 IconButton(
-                                  tooltip: 'Subtitles later (+0.05 s)',
+                                  tooltip: 'Subtitles later (+${(_assDelayStepMs / 1000).toStringAsFixed(2)} s)',
                                   onPressed: () => playerDataProvider.setExternalAssDelayMs(
-                                      playerDataProvider.externalAssDelayMs + 50),
+                                      playerDataProvider.externalAssDelayMs + _assDelayStepMs),
                                   icon: const Icon(Icons.add, color: Colors.white),
                                 ),
                                 TextButton(

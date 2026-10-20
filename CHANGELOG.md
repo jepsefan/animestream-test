@@ -2,6 +2,13 @@
 
 Complete development history. Published GitHub Releases use the concise [RELEASE_NOTES.md](RELEASE_NOTES.md) for the latest three beta versions. Older entries remain here for reference.
 
+## v1.4.9-beta34.71 — Adjustable external ASS delay step
+- Add a **Step** button at the far left of the in-player external ASS sync toolbar. Each tap cycles the +/- increment through 0.05 s → 0.50 s → 1.00 s → 0.05 s.
+- Minus and plus apply the selected step immediately. The signed total delay and Reset/Done remain unchanged, and the saved offset stays isolated by anime and video provider. The step itself resets to 0.05 s per player session.
+- Focus the Step control first on Android TV and exclude obscured playback controls from keyboard navigation during editing.
+- Existing audio, HLS proxy, subtitle renderer and extension handling unchanged; README unchanged.
+- Version `1.4.9-beta34.71+81`. APK compilation/device behavior not yet verified.
+
 ## v1.4.9-beta34.70 — In-player external ASS sync and audio tracks
 - Store subtitle timing offset for *cross-source ASS only*, separately per anime **and active video provider** (e.g. Re:ANIME and Animegg have independent offsets). All episodes within the same anime/provider share one delay; old anime-only delay values are intentionally not migrated. A positive delay shows the text later, and a negative delay shows it sooner, in 50 ms steps.
 - When an external ASS track is active, the subtitle menu offers **Edit sub delay**. It closes the subtitle sheet, leaves the ASS visible and shows a top-of-player edit strip with minus, signed time, plus, Reset and Done. Existing controls are hidden during editing; Back exits the editor.

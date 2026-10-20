@@ -66,10 +66,12 @@ internal object ExtensionLinkageDiagnostics {
             }
         }
 
+        // The outer resolve_videos wrapper is generic. A nested hoster_list
+        // stage carries the actual failing API and must win in diagnostics.
         val stage = if (discovery)
-            chain.filterIsInstance<ExtensionDiscoveryStageFailure>().firstOrNull()?.stageName
+            chain.filterIsInstance<ExtensionDiscoveryStageFailure>().lastOrNull()?.stageName
         else
-            chain.filterIsInstance<ExtensionStreamStageFailure>().firstOrNull()?.stageName
+            chain.filterIsInstance<ExtensionStreamStageFailure>().lastOrNull()?.stageName
         val frames = chain.asSequence().flatMap { it.stackTrace.asSequence() }
             .filter { frame ->
                 frame.className.startsWith("eu.kanade.") ||
@@ -79,15 +81,32 @@ internal object ExtensionLinkageDiagnostics {
             .map { it.className + "." + it.methodName }
             .distinct().take(6).toList()
 
-        // Only report class and method identifiers for linkage failures.
-        // The complete NoSuchMethodError text may include private data;
-        // never forward it or a stack trace to the Flutter UI.
-        val methodHint = chain.filterIsInstance<NoSuchMethodError>()
-            .asSequence()
-            .mapNotNull { issue ->
-                Regex("""(?:method|Method)\s+([A-Za-z_$][A-Za-z0-9_$]{1,90})""")
-                    .find(issue.message.orEmpty())?.groupValues?.getOrNull(1)
-            }.firstOrNull()
+        // Android's NoSuchMethodError commonly says:
+        // "No virtual method foo(Lbar/Baz;)V in class Lfoo/Host;"
+        // Parse only JVM identifiers, NEVER forward exception messages which
+        // could contain signed URLs, request headers, paths or user data.
+        val methodError = chain.filterIsInstance<NoSuchMethodError>().firstOrNull()
+        val methodText = methodError?.message.orEmpty().take(1600)
+        val missingMethodPattern = Regex(
+            """No (?:virtual|interface|static|direct) method\s+([A-Za-z_\$][A-Za-z0-9_\$]{0,90}|<init>)(\([^)]*\)[A-Za-z0-9_\$/;\[\]]+)?"""
+        )
+        val fallbackMethodPattern = Regex(
+            """(?:method|Method)\s+([A-Za-z_\$][A-Za-z0-9_\$]{0,90})"""
+        )
+        val methodMatch = missingMethodPattern.find(methodText)
+        val methodHint = methodMatch?.groupValues?.getOrNull(1)
+            ?: fallbackMethodPattern.find(methodText)?.groupValues?.getOrNull(1)
+        val rawDescriptor = methodMatch?.groupValues?.getOrNull(2).orEmpty()
+        val safeDescriptor = rawDescriptor.takeIf {
+            it.length in 3..330 &&
+                it.all { char -> char.isLetterOrDigit() ||
+                    char in "_\$/;[]()." }
+        }
+        val ownerMatch = Regex(
+            """in (?:class|interface) L([A-Za-z0-9_\$/]+);"""
+        ).find(methodText)
+        val methodOwner = ownerMatch?.groupValues?.getOrNull(1)
+            ?.let(::safeClass)
 
         return mapOf(
             "status" to if (discovery) "failed" else "stream_list_failed",
@@ -103,6 +122,8 @@ internal object ExtensionLinkageDiagnostics {
             "errorTypes" to chain.map { it.javaClass.simpleName },
             "missingClasses" to missing.toList().take(8),
             "missingMethod" to methodHint,
+            "missingMethodDescriptor" to safeDescriptor,
+            "missingMethodOwner" to methodOwner,
             "failureStage" to (stage ?: "unknown"),
             "hostFrames" to frames
         )

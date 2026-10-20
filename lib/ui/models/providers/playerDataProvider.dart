@@ -76,14 +76,19 @@ class PlayerDataProvider extends ChangeNotifier {
   bool get editingExternalAssDelay => _editingExternalAssDelay;
 
   Future<void> loadExternalAssDelay() async {
-    _externalAssDelayMs = await ExternalAssPreferences.delayMs(showId);
+    final sourceId = selectedSource;
+    final saved = await ExternalAssPreferences.delayMs(showId, sourceId);
+    if (selectedSource != sourceId) return;
+    _externalAssDelayMs = saved;
     notifyListeners();
   }
 
   Future<void> setExternalAssDelayMs(int value) async {
-    _externalAssDelayMs = ((value / 50).round() * 50).clamp(-30000, 30000).toInt();
+    final sourceId = selectedSource;
+    final adjusted = ((value / 50).round() * 50).clamp(-30000, 30000).toInt();
+    _externalAssDelayMs = adjusted;
     notifyListeners();
-    await ExternalAssPreferences.setDelayMs(showId, _externalAssDelayMs);
+    await ExternalAssPreferences.setDelayMs(showId, sourceId, adjusted);
   }
 
   void beginExternalAssDelayEdit() {

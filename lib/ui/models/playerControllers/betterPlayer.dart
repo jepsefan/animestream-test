@@ -135,6 +135,11 @@ class BetterPlayerWrapper implements VideoController {
 
   @override
   Future<void> setAudioTrack(AudioStream aud) async {
+    final renditions = controller.betterPlayerAsmsAudioTracks;
+    if (renditions == null || renditions.isEmpty) {
+      Logs.player.log('HLS audio rendition selection unavailable in player');
+      return;
+    }
     final toLang = _asToAsmsAudioTrack(aud);
     print("Setting to ${toLang.language}, ${toLang.id}");
     return controller.setAudioTrack(toLang);

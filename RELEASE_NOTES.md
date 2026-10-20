@@ -1,6 +1,13 @@
 # AnimeStream — Latest three beta development versions
 
-Complete history: [CHANGELOG.md](CHANGELOG.md). These notes cover beta34.72, beta34.71 and beta34.70.
+Complete history: [CHANGELOG.md](CHANGELOG.md). These notes cover beta34.73, beta34.72 and beta34.71.
+
+## v1.4.9-beta34.73 — Re:ANIME manual HLS audio switching
+- Beta34.72 sound works and ASS delay Step works, but changing English/Japanese in Audio Track did not switch audible language.
+- Fix wrong HLS rendition metadata after [Sub]/[Dub] sorting: audio NAME and URI now always come from the same reordered track.
+- Better Player branch hls-audio-language-selection-reanime matches Media3 track labels or language metadata instead of assuming a playlist index equals the native group index, and retains deferred track selection.
+- Preserve working default audio, proxy HLS playback, direct MKV and per-anime/source ASS delay Step.
+- Version 1.4.9-beta34.73+83. APK compilation and device track switch have not yet been verified.
 
 ## v1.4.9-beta34.72 — Re:ANIME Sub/Dub audio selection
 - Re:ANIME legitimately returns HD-1 and HD-2 Hoster entries per [Sub] and [Dub]; the HLS playlist may expose multiple language renditions within each host.
@@ -15,14 +22,6 @@ Complete history: [CHANGELOG.md](CHANGELOG.md). These notes cover beta34.72, bet
 - Focus the Step control first on Android TV and exclude obscured playback controls from keyboard navigation during editing.
 - Existing audio, HLS proxy, subtitle renderer and extension handling unchanged; README unchanged.
 - Version `1.4.9-beta34.71+81`. APK compilation/device behavior not yet verified.
-
-## v1.4.9-beta34.70 — In-player external ASS sync and audio tracks
-- Store subtitle timing offset for *cross-source ASS only*, separately per anime **and active video provider** (e.g. Re:ANIME and Animegg have independent offsets). All episodes within the same anime/provider share one delay; old anime-only delay values are intentionally not migrated. A positive delay shows the text later, and a negative delay shows it sooner, in 50 ms steps.
-- When an external ASS track is active, the subtitle menu offers **Edit sub delay**. It closes the subtitle sheet, leaves the ASS visible and shows a top-of-player edit strip with minus, signed time, plus, Reset and Done. Existing controls are hidden during editing; Back exits the editor.
-- Apply the offset to libass's rendering clock without modifying the original subtitle file, video position, original ASS/VTT streams or the HLS/audio pipeline.
-- Display extension-provided HLS AUDIO renditions in the mobile and TV/desktop audio selectors when the legacy HLS parser returns no list (including Re:ANIME loopback proxy paths). Prevent crashes when the player reports no native HLS audio tracks.
-- Keep working KickAssAnime audio, Re:ANIME API support and beta34.69 proxy handling; README unchanged.
-- Version `1.4.9-beta34.70+80`. APK compilation and device playback have not yet been verified.
 
 ### Known limitations
 - Some possibly Arabic subtitle characters display as squares with crosses. Logged and deferred by request; no font/rendering change.

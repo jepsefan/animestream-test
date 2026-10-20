@@ -26,11 +26,28 @@ class HlsAudioManifestBridge {
     return cleaned.isEmpty ? 'Audio' : cleaned.substring(0, min(60, cleaned.length));
   }
 
+  /// Re:ANIME's FlixCloud proxy deliberately uses
+  /// http://127.0.0.1:<port>/proxy?url=<encoded manifest>&w_payload=<token>
+  /// with no .m3u8 suffix. The source's own PlaylistUtils already identified
+  /// the stream as HLS and provided the external AUDIO renditions. Restrict
+  /// this fallback to that precise loopback proxy shape so ordinary files,
+  /// including direct MKV links, continue through normal playback.
+  static bool _isKnownHlsProxy(Uri uri) {
+    final isLoopback = uri.host == '127.0.0.1' ||
+        uri.host == 'localhost' || uri.host == '::1';
+    return isLoopback && uri.path == '/proxy' &&
+        uri.queryParameters.containsKey('url') &&
+        uri.queryParameters.containsKey('w_payload');
+  }
+
   Future<String> prepare(VideoStream stream) async {
     final video = stream.url;
+    final uri = Uri.tryParse(video);
+    final isHls = uri != null &&
+        (uri.path.toLowerCase().endsWith('.m3u8') ||
+            _isKnownHlsProxy(uri));
     if (!Platform.isAndroid || !_validUrl(video) ||
-        !Uri.parse(video).path.toLowerCase().endsWith('.m3u8') ||
-        stream.externalAudioTracks.isEmpty) {
+        !isHls || stream.externalAudioTracks.isEmpty) {
       return video;
     }
     final tracks = stream.externalAudioTracks

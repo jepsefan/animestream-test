@@ -149,6 +149,7 @@ class _WatchState extends State<Watch> with WidgetsBindingObserver {
 
     // Resolve the selected track's real format before creating an overlay.
     // Previously an empty format was always treated as ASS.
+    await dataProvider.loadExternalAssDelay();
     await dataProvider.inspectAvailableSubtitleTracks();
     if (mounted) context.read<PlayerProvider>().toggleSubs(
         action: dataProvider.selectedSubtitleTrack != null &&
@@ -728,6 +729,8 @@ class _WatchState extends State<Watch> with WidgetsBindingObserver {
                             ? (playerDataProvider.crossSourceHeaders ?? const {})
                             : (playerDataProvider.state.currentStream.customHeaders ?? const {}),
                         isOffline: widget.localSource,
+                        delayMs: playerDataProvider.hasCrossSourceAss
+                            ? playerDataProvider.externalAssDelayMs : 0,
                       )
                     else
                       SubViewer(
@@ -755,11 +758,12 @@ class _WatchState extends State<Watch> with WidgetsBindingObserver {
                   isInitiated
                       ? AnimatedOpacity(
                           duration: Duration(milliseconds: 150),
-                          opacity: playerProvider.state.controlsVisible ? 1 : 0,
+                          opacity: playerDataProvider.editingExternalAssDelay
+                              ? 0 : (playerProvider.state.controlsVisible ? 1 : 0),
                           child: Stack(
                             children: [
                               IgnorePointer(ignoring: true, child: overlay()),
-                              IgnorePointer(ignoring: !playerProvider.state.controlsVisible, child: Controls()),
+                              IgnorePointer(ignoring: playerDataProvider.editingExternalAssDelay || !playerProvider.state.controlsVisible, child: Controls()),
                             ],
                           ),
                         )
@@ -783,6 +787,59 @@ class _WatchState extends State<Watch> with WidgetsBindingObserver {
                               ],
                             )
                           : Container(),
+                  if (playerDataProvider.editingExternalAssDelay &&
+                      playerDataProvider.hasCrossSourceAss &&
+                      playerProvider.state.showSubs)
+                    Positioned(
+                      top: 12,
+                      left: 16,
+                      right: 16,
+                      child: SafeArea(
+                        child: Center(
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: const Color(0xED202020),
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                IconButton(
+                                  tooltip: 'Subtitles earlier (-0.05 s)',
+                                  onPressed: () => playerDataProvider.setExternalAssDelayMs(
+                                      playerDataProvider.externalAssDelayMs - 50),
+                                  icon: const Icon(Icons.remove, color: Colors.white),
+                                ),
+                                Container(
+                                  constraints: const BoxConstraints(minWidth: 100),
+                                  alignment: Alignment.center,
+                                  child: Text(
+                                    '${playerDataProvider.externalAssDelayMs >= 0 ? '+' : ''}${(playerDataProvider.externalAssDelayMs / 1000).toStringAsFixed(2)} s',
+                                    style: const TextStyle(color: Colors.white, fontSize: 19,
+                                        fontWeight: FontWeight.w700),
+                                  ),
+                                ),
+                                IconButton(
+                                  tooltip: 'Subtitles later (+0.05 s)',
+                                  onPressed: () => playerDataProvider.setExternalAssDelayMs(
+                                      playerDataProvider.externalAssDelayMs + 50),
+                                  icon: const Icon(Icons.add, color: Colors.white),
+                                ),
+                                TextButton(
+                                  onPressed: () => playerDataProvider.setExternalAssDelayMs(0),
+                                  child: const Text('Reset'),
+                                ),
+                                TextButton(
+                                  onPressed: playerDataProvider.finishExternalAssDelayEdit,
+                                  child: const Text('Done'),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
                   _buildSpeedIndicator(),
                   _skipIndicators(),
                   _buildVolumeBrightnessIndicators(),

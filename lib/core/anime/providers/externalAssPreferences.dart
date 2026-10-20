@@ -30,17 +30,28 @@ class ExternalAssPreferences {
       (await _open()).get('enabled:$animeId', defaultValue: false) == true;
   static Future<void> setEnabled(int animeId, bool enabled) async =>
       (await _open()).put('enabled:$animeId', enabled);
-  /// Per-anime cross-source ASS offset. Positive values display subtitles later.
-  /// Clamped to ±30 seconds to protect the renderer from invalid inputs.
-  static Future<int> delayMs(int animeId) async {
-    final raw = (await _open()).get('delayMs:$animeId', defaultValue: 0);
+  /// ASS sync is specific to the anime AND the video provider. The same
+  /// value is shared across episodes and server qualities inside a provider,
+  /// but never inherited by another provider (e.g. Re:ANIME vs Animegg).
+  /// The old "delayMs:<animeId>" value is intentionally not migrated:
+  /// assigning it to whichever source opens first would leak its offset.
+  static String _delayKey(int animeId, String sourceId) =>
+      'delayMs:v2:$animeId:${sourceId.trim()}';
+
+  static Future<int> delayMs(int animeId, String sourceId) async {
+    if (sourceId.trim().isEmpty) return 0;
+    final raw = (await _open()).get(_delayKey(animeId, sourceId),
+        defaultValue: 0);
     final parsed = raw is num ? raw.toInt() : int.tryParse(raw.toString()) ?? 0;
     return parsed.clamp(-30000, 30000).toInt();
   }
 
-  static Future<void> setDelayMs(int animeId, int milliseconds) async =>
-      (await _open()).put('delayMs:$animeId',
-          milliseconds.clamp(-30000, 30000).toInt());
+  static Future<void> setDelayMs(
+      int animeId, String sourceId, int milliseconds) async {
+    if (sourceId.trim().isEmpty) return;
+    await (await _open()).put(_delayKey(animeId, sourceId),
+        milliseconds.clamp(-30000, 30000).toInt());
+  }
 
   static Future<String> lastUsed(int animeId) async =>
       (await _open()).get('last:$animeId', defaultValue: 'primary') as String;

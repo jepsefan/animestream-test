@@ -159,6 +159,11 @@ data class TimeStamp(
     val type: ChapterType = ChapterType.Other
 )
 
+/** Binary-compatible Anikku 1.6 Video model.
+ * Keep the current 14-property default-arguments constructor for extension
+ * bytecode calling <init>(..., int, DefaultConstructorMarker). Also keep the
+ * old AnimeStream constructor/copy signatures for existing installed APKs.
+ */
 open class Video(
     var videoUrl: String = "",
     val videoTitle: String = "",
@@ -169,81 +174,93 @@ open class Video(
     val subtitleTracks: List<Track> = emptyList(),
     val audioTracks: List<Track> = emptyList(),
     val timestamps: List<TimeStamp> = emptyList(),
+    val mpvArgs: List<Pair<String, String>> = emptyList(),
+    val ffmpegStreamArgs: List<Pair<String, String>> = emptyList(),
+    val ffmpegVideoArgs: List<Pair<String, String>> = emptyList(),
     val internalData: String = "",
     val initialized: Boolean = false,
-    val videoPageUrl: String = ""
 ) {
+    // Older providers still rely on videoPageUrl when resolving legacy URLs.
+    private var legacyVideoPageUrl: String = ""
+    val videoPageUrl: String get() = legacyVideoPageUrl
+
     @Deprecated("Use videoTitle")
     val quality: String get() = videoTitle
-
     @Deprecated("Use videoPageUrl")
     val url: String get() = videoPageUrl
 
     @Transient @Volatile
     var status: State = State.QUEUE
-
     enum class State { QUEUE, LOAD_VIDEO, READY, ERROR }
 
-    // Aniyomi pre-1.6 legacy URL-first constructor, including tracks.
+    val memo: kotlinx.serialization.json.JsonObject
+        get() = kotlinx.serialization.json.JsonObject(emptyMap())
+
+    companion object {
+        const val MPV_ARGS_TAG = "ANIYOMI_MPV_ARGS"
+    }
+
+    // Previous AnimeStream versions used a 12-property primary constructor.
+    // HIDDEN retains its JVM ABI and generated Kotlin default-mask signature,
+    // without making Video(...) ambiguous in new Kotlin source.
+    @Deprecated("Binary compatibility: pre-1.6 Video ABI", level = DeprecationLevel.HIDDEN)
+    constructor(
+        videoUrl: String = "",
+        videoTitle: String = "",
+        resolution: Int? = null,
+        bitrate: Int? = null,
+        headers: okhttp3.Headers? = null,
+        preferred: Boolean = false,
+        subtitleTracks: List<Track> = emptyList(),
+        audioTracks: List<Track> = emptyList(),
+        timestamps: List<TimeStamp> = emptyList(),
+        internalData: String = "",
+        initialized: Boolean = false,
+        videoPageUrl: String = "",
+    ) : this(
+        videoUrl, videoTitle, resolution, bitrate, headers, preferred,
+        subtitleTracks, audioTracks, timestamps,
+        emptyList(), emptyList(), emptyList(), internalData, initialized
+    ) {
+        legacyVideoPageUrl = videoPageUrl
+    }
+
+    // Historical Aniyomi URL-first constructor.
     constructor(
         url: String,
         quality: String,
         videoUrl: String?,
         headers: okhttp3.Headers? = null,
         subtitleTracks: List<Track> = emptyList(),
-        audioTracks: List<Track> = emptyList()
+        audioTracks: List<Track> = emptyList(),
     ) : this(
-        videoUrl = videoUrl ?: "null",
-        videoTitle = quality,
-        headers = headers,
-        subtitleTracks = subtitleTracks,
-        audioTracks = audioTracks,
-        videoPageUrl = url
-    )
+        videoUrl = videoUrl ?: "null", videoTitle = quality, headers = headers,
+        subtitleTracks = subtitleTracks, audioTracks = audioTracks,
+    ) {
+        legacyVideoPageUrl = url
+    }
 
-    // Constructor from an older 10-parameter source-api version.
-    constructor(
-        videoUrl: String,
-        videoTitle: String,
-        resolution: Int?,
-        bitrate: Int?,
-        headers: okhttp3.Headers?,
-        preferred: Boolean,
-        subtitleTracks: List<Track>,
-        audioTracks: List<Track>,
-        timestamps: List<TimeStamp>,
-        internalData: String
-    ) : this(videoUrl, videoTitle, resolution, bitrate, headers, preferred,
-        subtitleTracks, audioTracks, timestamps, internalData, false, "")
-
-    @Suppress("UNUSED_PARAMETER")
-    constructor(
-        url: String,
-        quality: String,
-        videoUrl: String?,
-        uri: android.net.Uri? = null,
-        headers: okhttp3.Headers? = null
-    ) : this(url, quality, videoUrl, headers)
-
-    // Compatibility with earlier AnimeStream beta shims; these arguments
-    // have no equivalent in the pinned Anikku API.
-    val mpvArgs: List<Pair<String, String>> get() = emptyList()
-    val ffmpegStreamArgs: List<Pair<String, String>> get() = emptyList()
-    val ffmpegVideoArgs: List<Pair<String, String>> get() = emptyList()
-    val memo: kotlinx.serialization.json.JsonObject
-        get() = kotlinx.serialization.json.JsonObject(emptyMap())
-
+    // Earlier ten-property source-api constructor without mpv/ffmpeg args.
     constructor(
         videoUrl: String, videoTitle: String, resolution: Int?, bitrate: Int?,
         headers: okhttp3.Headers?, preferred: Boolean,
         subtitleTracks: List<Track>, audioTracks: List<Track>,
-        timestamps: List<TimeStamp>, mpvArgs: List<Pair<String, String>>,
-        ffmpegStreamArgs: List<Pair<String, String>>,
-        ffmpegVideoArgs: List<Pair<String, String>>,
-        internalData: String, initialized: Boolean
-    ) : this(videoUrl, videoTitle, resolution, bitrate, headers, preferred,
-        subtitleTracks, audioTracks, timestamps, internalData, initialized, "")
+        timestamps: List<TimeStamp>, internalData: String,
+    ) : this(
+        videoUrl, videoTitle, resolution, bitrate, headers, preferred,
+        subtitleTracks, audioTracks, timestamps,
+        emptyList(), emptyList(), emptyList(), internalData, false
+    )
 
+    @Suppress("UNUSED_PARAMETER")
+    constructor(
+        url: String, quality: String, videoUrl: String?,
+        uri: android.net.Uri? = null, headers: okhttp3.Headers? = null,
+    ) : this(url, quality, videoUrl, headers)
+
+    // Legacy 15-field compatibility overload (memo is not part of the
+    // upstream 14-field default-argument constructor).
+    @Suppress("UNUSED_PARAMETER")
     constructor(
         videoUrl: String, videoTitle: String, resolution: Int?, bitrate: Int?,
         headers: okhttp3.Headers?, preferred: Boolean,
@@ -252,10 +269,37 @@ open class Video(
         ffmpegStreamArgs: List<Pair<String, String>>,
         ffmpegVideoArgs: List<Pair<String, String>>,
         internalData: String, initialized: Boolean,
-        memo: kotlinx.serialization.json.JsonObject
-    ) : this(videoUrl, videoTitle, resolution, bitrate, headers, preferred,
-        subtitleTracks, audioTracks, timestamps, internalData, initialized, "")
+        memo: kotlinx.serialization.json.JsonObject,
+    ) : this(
+        videoUrl, videoTitle, resolution, bitrate, headers, preferred,
+        subtitleTracks, audioTracks, timestamps,
+        mpvArgs, ffmpegStreamArgs, ffmpegVideoArgs, internalData, initialized
+    )
 
+    // Match Anikku Video.copy / copy$default generated for the 14 fields.
+    fun copy(
+        videoUrl: String = this.videoUrl,
+        videoTitle: String = this.videoTitle,
+        resolution: Int? = this.resolution,
+        bitrate: Int? = this.bitrate,
+        headers: okhttp3.Headers? = this.headers,
+        preferred: Boolean = this.preferred,
+        subtitleTracks: List<Track> = this.subtitleTracks,
+        audioTracks: List<Track> = this.audioTracks,
+        timestamps: List<TimeStamp> = this.timestamps,
+        mpvArgs: List<Pair<String, String>> = this.mpvArgs,
+        ffmpegStreamArgs: List<Pair<String, String>> = this.ffmpegStreamArgs,
+        ffmpegVideoArgs: List<Pair<String, String>> = this.ffmpegVideoArgs,
+        internalData: String = this.internalData,
+        initialized: Boolean = this.initialized,
+    ) = Video(
+        videoUrl, videoTitle, resolution, bitrate, headers, preferred,
+        subtitleTracks, audioTracks, timestamps,
+        mpvArgs, ffmpegStreamArgs, ffmpegVideoArgs, internalData, initialized
+    ).also { it.legacyVideoPageUrl = legacyVideoPageUrl }
+
+    // Maintain the older 12-field copy$default binary signature.
+    @Deprecated("Binary compatibility: pre-1.6 Video.copy ABI", level = DeprecationLevel.HIDDEN)
     fun copy(
         videoUrl: String = this.videoUrl,
         videoTitle: String = this.videoTitle,
@@ -268,9 +312,12 @@ open class Video(
         timestamps: List<TimeStamp> = this.timestamps,
         internalData: String = this.internalData,
         initialized: Boolean = this.initialized,
-        videoPageUrl: String = this.videoPageUrl
-    ) = Video(videoUrl, videoTitle, resolution, bitrate, headers, preferred,
-        subtitleTracks, audioTracks, timestamps, internalData, initialized, videoPageUrl)
+        videoPageUrl: String = this.videoPageUrl,
+    ) = Video(
+        videoUrl, videoTitle, resolution, bitrate, headers, preferred,
+        subtitleTracks, audioTracks, timestamps,
+        emptyList(), emptyList(), emptyList(), internalData, initialized
+    ).also { it.legacyVideoPageUrl = videoPageUrl }
 }
 
 /** Match the binary constructors generated by Anikku source-api Hoster.

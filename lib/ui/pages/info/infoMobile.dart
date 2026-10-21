@@ -5,6 +5,7 @@ import 'package:animestream/core/data/watching.dart';
 import 'package:animestream/ui/models/bottomSheets/batchDownload.dart';
 import 'package:animestream/ui/models/bottomSheets/commentSection.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:animestream/ui/models/widgets/infoPageWidgets/simklEpisodeImage.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -955,7 +956,9 @@ class _InfoMobileState extends State<InfoMobile> {
                     decoration: BoxDecoration(
                       image: DecorationImage(
                           image: NetworkImage(
-                            provider.data.cover,
+                            provider.episodeThumbnail(
+                              provider.visibleEpList[provider.currentPageIndex][index]['epLink']) ??
+                                provider.data.cover,
                           ),
                           fit: BoxFit.cover),
                     ),
@@ -1077,9 +1080,10 @@ class _InfoMobileState extends State<InfoMobile> {
                               begin: Alignment.centerLeft,
                               end: Alignment.centerRight,
                             ).createShader(bounds),
-                            child: Image.network(
-                              provider.visibleEpList[provider.currentPageIndex][index]['epLink'].thumbnail ??
-                                  provider.data.cover,
+                            child: SimklEpisodeImage(
+                              url: provider.episodeThumbnail(
+                                provider.visibleEpList[provider.currentPageIndex][index]['epLink']),
+                              fallback: provider.data.cover,
                               fit: BoxFit.cover,
                               width: 165,
                               height: 110,

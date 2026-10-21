@@ -18,15 +18,21 @@ class MALLogin extends DatabaseLogin {
   @override
   Future<bool> initiateLogin() async {
     final verifier = generateCodeVerifier();
-    final challenge = generateCodeChallenge(verifier);
+    final challenge = verifier; // MAL OAuth PKCE supports plain only.
 
     await storeSecureVal(SecureStorageKey.malChallengeVerifier, verifier);
 
     final redirect = "auth.animestream://callback";
     final state = generateState();
 
-    final loginUrl =
-        "https://myanimelist.net/v1/oauth2/authorize?response_type=code&client_id=$_clientId&code_challenge=$challenge&redirect_uri=$redirect&state=$state";
+    final loginUrl = Uri.https('myanimelist.net', '/v1/oauth2/authorize', {
+      'response_type': 'code',
+      'client_id': _clientId,
+      'code_challenge': challenge,
+      'code_challenge_method': 'plain',
+      'redirect_uri': redirect,
+      'state': state,
+    }).toString();
 
     final req = await FlutterWebAuth2.authenticate(
         url: loginUrl, callbackUrlScheme: redirect.split(":")[0]);
@@ -49,7 +55,7 @@ class MALLogin extends DatabaseLogin {
       'client_id': _clientId,
       'grant_type': "authorization_code",
       'code': code,
-      'code_verifier': challenge,
+      'code_verifier': verifier,
       'redirect_uri': redirect,
     };
 
@@ -59,13 +65,38 @@ class MALLogin extends DatabaseLogin {
 
     // if(res != 302) return false;
 
-    final classed = MALAuthResponse.fromMap(jsonDecode(res.body));
+    final classed = _parseTokenResponse(res.statusCode, res.body);
 
     await storeSecureVal(SecureStorageKey.malAuthResponse, classed.toJson());
     await storeSecureVal(SecureStorageKey.malToken, classed.accessToken);
 
     print("[MAL-LOGIN]: Login success, Access token has been saved!");
     return true;
+  }
+
+  MALAuthResponse _parseTokenResponse(int status, String body) {
+    Map<String, dynamic> data;
+    try {
+      final decoded = jsonDecode(body);
+      if (decoded is! Map<String, dynamic>) {
+        throw const FormatException('Not a JSON object');
+      }
+      data = decoded;
+    } catch (_) {
+      throw MalException(
+        'MAL OAuth returned a non-JSON response (HTTP $status). '
+        'Check the registered redirect URI and retry login.',
+        status,
+      );
+    }
+    if (status < 200 || status >= 300 || data['error'] != null) {
+      final reason = data['error']?.toString() ?? 'token request rejected';
+      throw MalException('MAL OAuth failed (HTTP $status): $reason', status);
+    }
+    if (data['access_token'] is! String || data['refresh_token'] is! String) {
+      throw MalException('MAL OAuth token response is missing credentials (HTTP $status)', status);
+    }
+    return MALAuthResponse.fromMap(data);
   }
 
   @override
@@ -124,7 +155,7 @@ class MALLogin extends DatabaseLogin {
 
     if (res.statusCode != 200) throw Exception("COULDNT REFRESH THE TOKEN");
 
-    final classedRes = MALAuthResponse.fromMap(jsonDecode(res.body));
+    final classedRes = _parseTokenResponse(res.statusCode, res.body);
 
     await storeSecureVal(SecureStorageKey.malAuthResponse, classedRes.toJson());
     await storeSecureVal(SecureStorageKey.malToken, classedRes.accessToken);

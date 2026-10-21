@@ -19,6 +19,7 @@ import 'package:animestream/core/database/types.dart';
 import 'package:animestream/ui/models/snackBar.dart';
 import 'package:animestream/ui/models/sources.dart';
 import 'package:animestream/core/anime/providers/externalAssPreferences.dart';
+import 'package:animestream/core/database/simkl/episodeArtwork.dart';
 
 class InfoProvider extends ChangeNotifier {
   int id;
@@ -48,6 +49,33 @@ class InfoProvider extends ChangeNotifier {
   MediaStatus? _mediaListStatus;
 
   List<EpisodeDetails> _epLinks = [];
+  Map<int, String> _simklEpisodeImages = {};
+  int _episodeArtworkGeneration = 0;
+
+  String? episodeThumbnail(EpisodeDetails episode) {
+    if (episode.thumbnail != null && episode.thumbnail!.trim().isNotEmpty) {
+      return episode.thumbnail;
+    }
+    return _simklEpisodeImages[episode.episodeNumber];
+  }
+
+  Future<void> _loadSimklEpisodeImages(
+      List<EpisodeDetails> episodes, int generation, String sourceId) async {
+    final simklId = _altDatabases
+        .where((item) => item.database == Databases.simkl)
+        .firstOrNull?.id;
+    if (simklId == null || simklId <= 0) return;
+    try {
+      final results = await SimklEpisodeArtwork.instance.forEpisodes(simklId, episodes);
+      if (generation != _episodeArtworkGeneration ||
+          selectedSource.identifier != sourceId) return;
+      _simklEpisodeImages = results;
+      notifyListeners();
+    } catch (_) {
+      // SIMKL fallback must not break the extension's episode list.
+    }
+  }
+
   List<VideoStream> _streamSources = [];
   List<Map<String, String>> _qualities = [];
   List<List<Map<String, dynamic>>> _visibleEpList = [];
@@ -360,7 +388,13 @@ class InfoProvider extends ChangeNotifier {
 
   // cleaned, refactored and pretty good ig
   void paginate(List<EpisodeDetails> links) {
+    final generation = ++_episodeArtworkGeneration;
+    final sourceId = selectedSource.identifier;
+    _simklEpisodeImages = {};
     _epLinks = links;
+    if (links.isNotEmpty && _altDatabases.any((it) => it.database == Databases.simkl)) {
+      _loadSimklEpisodeImages(links, generation, sourceId);
+    }
     _visibleEpList.clear();
 
     final filteredList = <Map<String, dynamic>>[];

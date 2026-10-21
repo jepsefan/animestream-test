@@ -1,6 +1,14 @@
 # AnimeStream — Latest three beta development versions
 
-Complete history: [CHANGELOG.md](CHANGELOG.md). These notes cover beta34.73, beta34.72 and beta34.71.
+Complete history: [CHANGELOG.md](CHANGELOG.md). These notes cover beta34.74, beta34.73 and beta34.72.
+
+## v1.4.9-beta34.74 — SIMKL episode artwork in existing cache
+- If a source has no episode thumbnail and the user has SIMKL connected, fetch the matched SIMKL anime's episode artwork as a fallback. Original source art wins; the anime cover remains the final fallback.
+- Reuse the existing CacheManager and Hive network-cache box for SIMKL episode metadata **and image bytes**. App Cache Manager controls such as Clear all cache and maximum storage size apply; no independent image cache.
+- Cache successfully found episode images with long retention; do not refresh them periodically. Only missing episode numbers are retried after 24h, and failed SIMKL fetches after 30min. Fetch an anime's episode list in one request; never make one API call per missing image.
+- Verify SIMKL identity via the existing alternate database ID; never guess a match solely from a title. Ignore specials and ambiguous episode numbers. Only activate when a SIMKL token is present.
+- Integrate mobile list/grid and desktop/TV artwork, asynchronously so failures cannot block playback or episode listing.
+- Version `1.4.9-beta34.74+84`. APK build and SIMKL live response not yet verified. README unchanged.
 
 ## v1.4.9-beta34.73 — Re:ANIME manual HLS audio switching
 - Beta34.72 sound works and ASS delay Step works, but changing English/Japanese in Audio Track did not switch audible language.
@@ -15,13 +23,6 @@ Complete history: [CHANGELOG.md](CHANGELOG.md). These notes cover beta34.73, bet
 - Pin the paired Better Player fork `hls-audio-label-selection-reanime`: Android matches ExoPlayer audio renditions by label rather than wrongly equating HLS rendition index with renderer group index. Requests made before ExoPlayer discovers tracks are retried when tracks change.
 - Preserve external ASS timing editor with 0.05/0.5/1s step, per-anime/per-provider delay isolation, HLS proxy, subtitles and MKV entry.
 - Version `1.4.9-beta34.72+82`. APK build and on-device audio switching not yet verified; server content and language labels may differ.
-
-## v1.4.9-beta34.71 — Adjustable external ASS delay step
-- Add a **Step** button at the far left of the in-player external ASS sync toolbar. Each tap cycles the +/- increment through 0.05 s → 0.50 s → 1.00 s → 0.05 s.
-- Minus and plus apply the selected step immediately. The signed total delay and Reset/Done remain unchanged, and the saved offset stays isolated by anime and video provider. The step itself resets to 0.05 s per player session.
-- Focus the Step control first on Android TV and exclude obscured playback controls from keyboard navigation during editing.
-- Existing audio, HLS proxy, subtitle renderer and extension handling unchanged; README unchanged.
-- Version `1.4.9-beta34.71+81`. APK compilation/device behavior not yet verified.
 
 ### Known limitations
 - Some possibly Arabic subtitle characters display as squares with crosses. Logged and deferred by request; no font/rendering change.

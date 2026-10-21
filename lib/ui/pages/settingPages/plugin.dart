@@ -1,4 +1,5 @@
 import 'package:animestream/ui/models/sources.dart';
+import 'package:animestream/ui/pages/settingPages/aniyomiRepositories.dart';
 import 'package:animestream/core/anime/providers/providerDetails.dart';
 import 'package:animestream/core/anime/providers/aniyomiExtensionBridge.dart';
 import 'package:animestream/core/anime/providers/extensionAniListMatcher.dart';
@@ -1103,7 +1104,7 @@ class _PluginPageState extends State<PluginPage> {
                               ),
                       ),
                   ]),
-                  _items(_available, installed: false),
+                  const AniyomiRepositoriesPage(embedded: true),
                 ])),
         ]),
       ),

@@ -1,6 +1,12 @@
 # AnimeStream — Latest three beta development versions
 
-Complete history: [CHANGELOG.md](CHANGELOG.md). These notes cover beta34.76, beta34.75 and beta34.74.
+Complete history: [CHANGELOG.md](CHANGELOG.md). These notes cover beta34.77, beta34.76 and beta34.75.
+
+## v1.4.9-beta34.77 — MAL OAuth login PKCE fix
+- Fix MyAnimeList authorization to use `plain` PKCE with the same code challenge and code verifier, rather than sending an SHA-256 challenge that MAL does not support.
+- URL-encode OAuth authorization parameters; validate the token response's HTTP status and JSON shape before parsing credentials. Show a useful HTTP-status error instead of a raw FormatException when MAL returns HTML.
+- Apply safe response parsing to refresh-token requests. No changes to the MAL/Kitsu fallback, extensions, HLS audio, ASS delay, or existing cache.
+- Version `1.4.9-beta34.77+87`. Login still depends on the OAuth redirect registered for the MAL client ID; build/device verification pending.
 
 ## v1.4.9-beta34.76 — AniList metadata outage fallback (anime)
 - Use read-only MAL v2 as first fallback and Kitsu as second for anime search, trending, currently airing and recently updated when AniList API fails.
@@ -16,14 +22,6 @@ Complete history: [CHANGELOG.md](CHANGELOG.md). These notes cover beta34.76, bet
 - Newly added source episodes can be queried immediately without waiting for older episodes' cooldowns. One series-wide SIMKL request can resolve several eligible episodes at once.
 - Keep the existing shared CacheManager/Hive image and metadata storage, cache controls, size limits and clear actions. Safely migrate positive art from beta34.74 while discarding the older series-wide cooldown.
 - Version `1.4.9-beta34.75+85`. APK build and live SIMKL endpoint remain unverified. README unchanged.
-
-## v1.4.9-beta34.74 — SIMKL episode artwork in existing cache
-- If a source has no episode thumbnail and the user has SIMKL connected, fetch the matched SIMKL anime's episode artwork as a fallback. Original source art wins; the anime cover remains the final fallback.
-- Reuse the existing CacheManager and Hive network-cache box for SIMKL episode metadata **and image bytes**. App Cache Manager controls such as Clear all cache and maximum storage size apply; no independent image cache.
-- Cache successfully found episode images with long retention; do not refresh them periodically. Only missing episode numbers are retried after 24h, and failed SIMKL fetches after 30min. Fetch an anime's episode list in one request; never make one API call per missing image.
-- Verify SIMKL identity via the existing alternate database ID; never guess a match solely from a title. Ignore specials and ambiguous episode numbers. Only activate when a SIMKL token is present.
-- Integrate mobile list/grid and desktop/TV artwork, asynchronously so failures cannot block playback or episode listing.
-- Version `1.4.9-beta34.74+84`. APK build and SIMKL live response not yet verified. README unchanged.
 
 ### Known limitations
 - Some possibly Arabic subtitle characters display as squares with crosses. Logged and deferred by request; no font/rendering change.

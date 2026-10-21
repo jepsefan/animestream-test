@@ -20,6 +20,7 @@ import 'package:animestream/ui/models/snackBar.dart';
 import 'package:animestream/ui/models/sources.dart';
 import 'package:animestream/core/anime/providers/externalAssPreferences.dart';
 import 'package:animestream/core/database/simkl/episodeArtwork.dart';
+import 'package:animestream/core/metadata/metadataFallback.dart';
 
 class InfoProvider extends ChangeNotifier {
   int id;
@@ -299,13 +300,14 @@ class InfoProvider extends ChangeNotifier {
   }
 
   Future<void> _getInfo(int id) async {
+    final isFallback = AnimeMetadataRouter.instance.isFallbackId(id);
     final s = _altDatabases.toSet();
 
     try {
       final info = await DatabaseHandler().getAnimeInfo(id);
       s.addAll(info.alternateDatabases);
 
-      if (currentUserSettings?.database == Databases.anilist &&
+      if (!isFallback && currentUserSettings?.database == Databases.anilist &&
           await AniListLogin().isAnilistLoggedIn()) {
         _loggedIn = true;
 
@@ -372,7 +374,7 @@ class InfoProvider extends ChangeNotifier {
       _altDatabases = s.toList();
       _dataLoaded = true;
       _data = info;
-      _mediaListStatus = assignItemEnum(data.mediaListStatus);
+      _mediaListStatus = isFallback ? null : assignItemEnum(data.mediaListStatus);
       notifyListeners();
     } catch (err) {
       Logs.app.log(err.toString());

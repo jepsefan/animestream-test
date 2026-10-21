@@ -11,21 +11,8 @@ import 'package:animestream/core/metadata/metadataTypes.dart';
 /// effect on the next request without a restart.
 class MetadataSettings {
   const MetadataSettings._();
-
-  static List<String> get _disabled =>
-      currentUserSettings?.disabledMetadataProviders ?? const <String>[];
-
-  static bool isEnabled(String source) => !_disabled.contains(source);
-
-  static bool get anilistEnabled => isEnabled('anilist');
-
-  /// The user's fallback order, filtered to providers that still exist and are
-  /// still enabled. An empty list means "no fallback".
-  static List<String> get fallbackOrder {
-    final configured = currentUserSettings?.metadataFallbacks;
-    final order = configured ?? const <String>['mal', 'kitsu'];
-    return order.where(isEnabled).toList(growable: false);
-  }
+  static bool get anilistEnabled => true;
+  static List<String> get fallbackOrder => const ['mal', 'kitsu'];
 }
 
 class _AnimeFallbackEntry {

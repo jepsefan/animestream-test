@@ -1,4 +1,5 @@
 import 'package:animestream/core/app/values.dart';
+import 'package:animestream/core/metadata/metadataFallback.dart';
 import 'package:animestream/core/network/network.dart';
 
 import 'package:animestream/core/commons/enums.dart';
@@ -23,6 +24,11 @@ class AnilistApiException implements Exception {
 
 class Anilist extends Database {
   Future<List<AnilistSearchResult>> search(String query) async {
+    try { return await _searchAniList(query); }
+    catch (_) { return AnimeMetadataRouter.instance.search(query); }
+  }
+
+  Future<List<AnilistSearchResult>> _searchAniList(String query) async {
     final gquery = '''
             query {
                 Page(perPage: 15) {
@@ -74,6 +80,13 @@ class Anilist extends Database {
   }
 
   Future<AnilistInfo> getAnimeInfo(int id) async {
+    if (AnimeMetadataRouter.instance.isFallbackId(id)) {
+      return AnimeMetadataRouter.instance.info(id);
+    }
+    return _getAnimeInfoAniList(id);
+  }
+
+  Future<AnilistInfo> _getAnimeInfoAniList(int id) async {
     final query = AnilistQueries.infoQuery(id);
     final String? token = await getSecureVal(SecureStorageKey.anilistToken);
     final result = await Anilist().fetchQuery(
@@ -191,6 +204,14 @@ class Anilist extends Database {
   }
 
   Future<List<CurrentlyAiringResult>> getCurrentlyAiringAnime({int page = 1}) async {
+    try { return await _getCurrentlyAiringAniList(page: page); }
+    catch (_) {
+      if (page > 1) return [];
+      return AnimeMetadataRouter.instance.currentlyAiring();
+    }
+  }
+
+  Future<List<CurrentlyAiringResult>> _getCurrentlyAiringAniList({int page = 1}) async {
     if (page < 1 || page > 2) throw RangeError.range(page, 1, 2, 'page');
     final query = '''{
             Page(page: $page, perPage: 40) {
@@ -242,6 +263,11 @@ class Anilist extends Database {
 
   //maybe latest and not recentlyUpdatedAnime!
   Future<List<RecentlyUpdatedResult>> recentlyUpdated() async {
+    try { return await _recentlyUpdatedAniList(); }
+    catch (_) { return AnimeMetadataRouter.instance.recentlyUpdated(); }
+  }
+
+  Future<List<RecentlyUpdatedResult>> _recentlyUpdatedAniList() async {
     final timeMs = (new DateTime.now().millisecondsSinceEpoch ~/ 1000) - 10000;
     final query = '''{
         Page(perPage: 50) {
@@ -300,6 +326,11 @@ class Anilist extends Database {
   }
 
   Future<List<TrendingResult>> getTrending() async {
+    try { return await _getTrendingAniList(); }
+    catch (_) { return AnimeMetadataRouter.instance.trending(); }
+  }
+
+  Future<List<TrendingResult>> _getTrendingAniList() async {
     final gquery = '''
             query {
                 Page(perPage: 25) {

@@ -4,7 +4,11 @@ import 'package:animestream/core/anime/providers/aniyomiExtensionBridge.dart';
 
 /// Browse user-added Aniyomi extension repositories without executing APKs.
 class AniyomiRepositoriesPage extends StatefulWidget {
-  const AniyomiRepositoriesPage({super.key});
+  /// Render directly inside Manage Providers > Available without a second
+  /// Scaffold/AppBar. The same manager and local repository storage are used.
+  final bool embedded;
+
+  const AniyomiRepositoriesPage({super.key, this.embedded = false});
 
   @override
   State<AniyomiRepositoriesPage> createState() =>
@@ -269,18 +273,22 @@ class _AniyomiRepositoriesPageState extends State<AniyomiRepositoriesPage> with 
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Extension repositories'),
-        actions: [
-          IconButton(
-            tooltip: 'Refresh installed extensions',
-            onPressed: _busy ? null : _refreshInstalled,
-            icon: const Icon(Icons.refresh),
-          ),
-        ],
-      ),
-      body: ListView(padding: const EdgeInsets.all(16), children: [
+    final content = ListView(padding: const EdgeInsets.all(16), children: [
+        if (widget.embedded)
+          Row(children: [
+            Expanded(
+              child: Text('Extension repositories',
+                  style: Theme.of(context).textTheme.titleLarge),
+            ),
+            IconButton(
+              tooltip: 'Refresh extension repositories',
+              onPressed: _busy ? null : () async {
+                await _reload();
+                await _refreshInstalled();
+              },
+              icon: const Icon(Icons.refresh),
+            ),
+          ]),
         const Text('Add an Aniyomi-compatible index.min.json address, or '
           'paste an aniyomi://add-repo link. Addresses are stored locally. '
           'Only add extension repositories you trust.'),
@@ -465,7 +473,20 @@ class _AniyomiRepositoriesPageState extends State<AniyomiRepositoriesPage> with 
         }),
         const SizedBox(height: 12),
         const Text('APK signatures are verified against the locally approved certificate before Android is asked to install. Confirm installation in Android. Full Anikku Host API support is still in progress.'),
-      ]),
+    ]);
+    if (widget.embedded) return content;
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Extension repositories'),
+        actions: [
+          IconButton(
+            tooltip: 'Refresh installed extensions',
+            onPressed: _busy ? null : _refreshInstalled,
+            icon: const Icon(Icons.refresh),
+          ),
+        ],
+      ),
+      body: content,
     );
   }
 }

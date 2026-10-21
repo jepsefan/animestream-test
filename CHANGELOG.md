@@ -2,6 +2,14 @@
 
 Complete development history. Published GitHub Releases use the concise [RELEASE_NOTES.md](RELEASE_NOTES.md) for the latest three beta versions. Older entries remain here for reference.
 
+## v1.4.9-beta34.74 — SIMKL episode artwork in existing cache
+- If a source has no episode thumbnail and the user has SIMKL connected, fetch the matched SIMKL anime's episode artwork as a fallback. Original source art wins; the anime cover remains the final fallback.
+- Reuse the existing CacheManager and Hive network-cache box for SIMKL episode metadata **and image bytes**. App Cache Manager controls such as Clear all cache and maximum storage size apply; no independent image cache.
+- Cache successfully found episode images with long retention; do not refresh them periodically. Only missing episode numbers are retried after 24h, and failed SIMKL fetches after 30min. Fetch an anime's episode list in one request; never make one API call per missing image.
+- Verify SIMKL identity via the existing alternate database ID; never guess a match solely from a title. Ignore specials and ambiguous episode numbers. Only activate when a SIMKL token is present.
+- Integrate mobile list/grid and desktop/TV artwork, asynchronously so failures cannot block playback or episode listing.
+- Version `1.4.9-beta34.74+84`. APK build and SIMKL live response not yet verified. README unchanged.
+
 ## v1.4.9-beta34.73 — Re:ANIME manual HLS audio switching
 - Beta34.72 sound works and ASS delay Step works, but changing English/Japanese in Audio Track did not switch audible language.
 - Fix wrong HLS rendition metadata after [Sub]/[Dub] sorting: audio NAME and URI now always come from the same reordered track.

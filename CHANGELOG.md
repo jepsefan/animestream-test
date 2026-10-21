@@ -2,6 +2,12 @@
 
 Complete development history. Published GitHub Releases use the concise [RELEASE_NOTES.md](RELEASE_NOTES.md) for the latest three beta versions. Older entries remain here for reference.
 
+## v1.4.9-beta34.77 — MAL OAuth login PKCE fix
+- Fix MyAnimeList authorization to use `plain` PKCE with the same code challenge and code verifier, rather than sending an SHA-256 challenge that MAL does not support.
+- URL-encode OAuth authorization parameters; validate the token response's HTTP status and JSON shape before parsing credentials. Show a useful HTTP-status error instead of a raw FormatException when MAL returns HTML.
+- Apply safe response parsing to refresh-token requests. No changes to the MAL/Kitsu fallback, extensions, HLS audio, ASS delay, or existing cache.
+- Version `1.4.9-beta34.77+87`. Login still depends on the OAuth redirect registered for the MAL client ID; build/device verification pending.
+
 ## v1.4.9-beta34.76 — AniList metadata outage fallback (anime)
 - Use read-only MAL v2 as first fallback and Kitsu as second for anime search, trending, currently airing and recently updated when AniList API fails.
 - Adapt sofikuw/anImestream's anime metadata router and providers without depending on manga classes absent from this fork.

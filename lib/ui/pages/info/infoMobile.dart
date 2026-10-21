@@ -1087,15 +1087,6 @@ class _InfoMobileState extends State<InfoMobile> {
                               fit: BoxFit.cover,
                               width: 165,
                               height: 110,
-                              errorBuilder: (context, error, stackTrace) {
-                                // Use the cover image incase of an error!
-                                return Image.network(
-                                  provider.data.cover,
-                                  fit: BoxFit.cover,
-                                  width: 165,
-                                  height: 110,
-                                );
-                              },
                             ),
                           ),
                         ),

@@ -2,6 +2,13 @@
 
 Complete development history. Published GitHub Releases use the concise [RELEASE_NOTES.md](RELEASE_NOTES.md) for the latest three beta versions. Older entries remain here for reference.
 
+## v1.4.9-beta34.78 — Extension repositories in Manage Providers > Available
+- Move the existing Aniyomi extension repository interface into the **Available** tab of **Manage Providers [Beta]**. The tab now displays repository URL entry, trusted repository management, extension search, Installed / Updates / Browse filters, language filtering, and APK installation, updates and uninstallation instead of the older available Dart provider list.
+- Embed the repository screen without a second app bar or navigation page; add an in-tab refresh control for repository catalogs and Android-installed extensions.
+- Remove the separate **Extension Repositories** entry from Settings. The **Installed** tab retains its existing installed APK/source approval and diagnostic controls, as well as saved Dart providers.
+- Reuse the existing local repository URLs, trusted certificate fingerprints and APK signature-verification process. No default external repositories are added and no repository storage migration is required.
+- Version `1.4.9-beta34.78+88`. APK compilation and Android/mobile/TV UI testing have not yet been verified.
+
 ## v1.4.9-beta34.77 — MAL OAuth login PKCE fix
 - Fix MyAnimeList authorization to use `plain` PKCE with the same code challenge and code verifier, rather than sending an SHA-256 challenge that MAL does not support.
 - URL-encode OAuth authorization parameters; validate the token response's HTTP status and JSON shape before parsing credentials. Show a useful HTTP-status error instead of a raw FormatException when MAL returns HTML.

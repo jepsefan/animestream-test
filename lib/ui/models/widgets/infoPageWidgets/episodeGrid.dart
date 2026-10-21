@@ -5,6 +5,7 @@ import 'package:animestream/ui/models/bottomSheets/serverSelectionSheet.dart';
 import 'package:animestream/ui/models/providers/infoProvider.dart';
 import 'package:animestream/ui/models/widgets/ContextMenu.dart';
 import 'package:flutter/material.dart';
+import 'package:animestream/ui/models/widgets/infoPageWidgets/simklEpisodeImage.dart';
 
 class InfoPageEpisodeGrid extends StatelessWidget {
   final Size size;
@@ -295,7 +296,7 @@ class InfoPageEpisodeGrid extends StatelessWidget {
   /// Do not assume third-party preview links always respond successfully.
   Widget _episodeArtwork(EpisodeDetails episode, bool hovered) {
     final imageUrls = <String>[
-      if (episode.thumbnail != null) episode.thumbnail!,
+      if (provider.episodeThumbnail(episode) != null) provider.episodeThumbnail(episode)!,
       if (provider.extensionCover != null) provider.extensionCover!,
       provider.data.cover,
     ].where((url) {
@@ -314,6 +315,13 @@ class InfoPageEpisodeGrid extends StatelessWidget {
     // Compose error fallbacks from the last URL to the first.
     for (final url in imageUrls.reversed) {
       final fallback = image;
+      if (url.contains('wsrv.nl/?url=') && url.contains('simkl.in%2Fepisodes%2F')) {
+        image = SimklEpisodeImage(
+          url: url, fallback: provider.extensionCover ?? provider.data.cover,
+          width: double.infinity, height: double.infinity,
+        );
+        continue;
+      }
       image = Image.network(
         url,
         fit: BoxFit.cover,

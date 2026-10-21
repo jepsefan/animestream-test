@@ -1,6 +1,14 @@
 # AnimeStream — Latest three beta development versions
 
-Complete history: [CHANGELOG.md](CHANGELOG.md). These notes cover beta34.75, beta34.74 and beta34.73.
+Complete history: [CHANGELOG.md](CHANGELOG.md). These notes cover beta34.76, beta34.75 and beta34.74.
+
+## v1.4.9-beta34.76 — AniList metadata outage fallback (anime)
+- Use read-only MAL v2 as first fallback and Kitsu as second for anime search, trending, currently airing and recently updated when AniList API fails.
+- Adapt sofikuw/anImestream's anime metadata router and providers without depending on manga classes absent from this fork.
+- Encode MAL/Kitsu IDs as separate negative application IDs; fallback result details resolve via their actual provider rather than issuing AniList GraphQL requests.
+- Suppress AniList/SIMKL cross-database ID lookup for fallback-only entries to avoid accidental metadata/list ID corruption. Original source player and subtitle functionality remains intact.
+- Existing positive AniList IDs do not yet dynamically remap to MAL on detail-fetch failure; no manga or configurable metadata toggles in this first port.
+- Version `1.4.9-beta34.76+86`. APK compilation/device testing is not yet verified.
 
 ## v1.4.9-beta34.75 — Hourly cooldown for missing SIMKL episode images
 - Retry missing SIMKL artwork no more than once an hour **per episode**, independently from all other episodes. Failed SIMKL requests use the same one-hour retry. Found artwork remains long-lived and is not refreshed on a timer.
@@ -16,13 +24,6 @@ Complete history: [CHANGELOG.md](CHANGELOG.md). These notes cover beta34.75, bet
 - Verify SIMKL identity via the existing alternate database ID; never guess a match solely from a title. Ignore specials and ambiguous episode numbers. Only activate when a SIMKL token is present.
 - Integrate mobile list/grid and desktop/TV artwork, asynchronously so failures cannot block playback or episode listing.
 - Version `1.4.9-beta34.74+84`. APK build and SIMKL live response not yet verified. README unchanged.
-
-## v1.4.9-beta34.73 — Re:ANIME manual HLS audio switching
-- Beta34.72 sound works and ASS delay Step works, but changing English/Japanese in Audio Track did not switch audible language.
-- Fix wrong HLS rendition metadata after [Sub]/[Dub] sorting: audio NAME and URI now always come from the same reordered track.
-- Better Player branch hls-audio-language-selection-reanime matches Media3 track labels or language metadata instead of assuming a playlist index equals the native group index, and retains deferred track selection.
-- Preserve working default audio, proxy HLS playback, direct MKV and per-anime/source ASS delay Step.
-- Version 1.4.9-beta34.73+83. APK compilation and device track switch have not yet been verified.
 
 ### Known limitations
 - Some possibly Arabic subtitle characters display as squares with crosses. Logged and deferred by request; no font/rendering change.

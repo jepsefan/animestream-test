@@ -12,7 +12,7 @@ import 'package:animestream/core/network/caching/domain/cache_entry.dart';
 
 /// Reuses the app's existing Hive-backed CacheManager and its size/clear
 /// settings. Positive episode artwork never refreshes automatically.
-/// Only episodes without an image are retried after 24 hours.
+/// Missing artwork is retried no more than once an hour per source episode.
 class SimklEpisodeArtwork {
   SimklEpisodeArtwork._();
   static final SimklEpisodeArtwork instance = SimklEpisodeArtwork._();
@@ -20,10 +20,11 @@ class SimklEpisodeArtwork {
   final Map<int, Future<Map<int, String>>> _pendingLists = {};
   final Map<String, Future<Uint8List?>> _pendingImages = {};
   static const Duration _permanent = Duration(days: 3650);
-  static const Duration _missingRetry = Duration(hours: 24);
-  static const Duration _failedRetry = Duration(minutes: 30);
+  static const Duration _missingRetry = Duration(hours: 1);
+  static const Duration _failedRetry = Duration(hours: 1);
 
-  String _listKey(int id) => 'simkl:episode-artwork:list:$id';
+  String _listKey(int id) => 'simkl:episode-artwork:v2:list:$id';
+  String _legacyListKey(int id) => 'simkl:episode-artwork:list:$id';
   String _imageKey(String url) => 'simkl:episode-artwork:image:$url';
 
   static String? _imageUrl(Object? raw) {
@@ -92,59 +93,125 @@ class SimklEpisodeArtwork {
     }
   }
 
+  /// Only the episode numbers returned by the selected video provider are
+  /// eligible. SIMKL may list episode 16 long before this source does; never
+  /// store or download image 16 from that SIMKL response until the source
+  /// actually includes episode 16 in its own episode list.
   Future<Map<int, String>> _loadList(int id, Set<int> needs) async {
     final config = _cache.cacheConfig;
     final useCache = config.enableCaching;
     final allowRead = useCache && !config.bypassCache;
     final key = _listKey(id);
-    var found = <int, String>{};
-    var retryAfter = DateTime.fromMillisecondsSinceEpoch(0);
+    final found = <int, String>{};
+    final retryAfterByEpisode = <int, int>{};
+    var migratedLegacy = false;
+
     if (allowRead) {
-      final entry = await _cache.get(key);
+      var entry = await _cache.get(key);
+      if (entry == null) {
+        // Migrate images already loaded in beta34.74 without transferring
+        // its series-wide cooldown or any future-episode metadata. Old
+        // positives are kept only when THIS source currently lists them.
+        entry = await _cache.get(_legacyListKey(id));
+        migratedLegacy = entry != null;
+      }
       if (entry != null) {
         try {
           final saved = jsonDecode(utf8.decode(entry.bodyBytes)) as Map;
           final images = saved['images'] as Map?;
           if (images != null) {
-            found = images.map<int, String>((k, v) =>
-                MapEntry(int.parse(k.toString()), v.toString()));
+            for (final image in images.entries) {
+              final number = int.tryParse(image.key.toString());
+              final url = image.value?.toString() ?? '';
+              if (number != null && needs.contains(number) && url.isNotEmpty) {
+                found[number] = url;
+              }
+            }
           }
-          retryAfter = DateTime.fromMillisecondsSinceEpoch(
-              (saved['retryAfter'] as num?)?.toInt() ?? 0);
+          if (!migratedLegacy) {
+            final cooldowns = saved['retryAfterByEpisode'] as Map?;
+            if (cooldowns != null) {
+              for (final item in cooldowns.entries) {
+                final number = int.tryParse(item.key.toString());
+                final expiry = int.tryParse(item.value.toString());
+                if (number != null && expiry != null &&
+                    needs.contains(number) && !found.containsKey(number)) {
+                  retryAfterByEpisode[number] = expiry;
+                }
+              }
+            }
+          }
         } catch (_) {
-          found = {};
+          // Invalid cache metadata is simply reloaded.
+          found.clear();
+          retryAfterByEpisode.clear();
         }
       }
     }
-    if (!needs.any((number) => !found.containsKey(number)) ||
-        (allowRead && DateTime.now().isBefore(retryAfter))) {
+
+    final now = DateTime.now().millisecondsSinceEpoch;
+    final eligible = needs.where((number) =>
+        !found.containsKey(number) &&
+        (!allowRead || (retryAfterByEpisode[number] ?? 0) <= now)).toSet();
+
+    if (eligible.isEmpty) {
+      if (migratedLegacy && useCache) {
+        await _storeList(key, found, retryAfterByEpisode);
+        await _cache.delete(_legacyListKey(id));
+      }
       return found;
     }
 
-    var retry = _missingRetry;
+    var retryDelay = _missingRetry;
     try {
+      // One request for the whole anime, never one request per episode.
       final response = await Simkl().fetch(
           'https://api.simkl.com/anime/episodes/$id?client_id=' +
           AnimeStreamEnvironment.simklClientId);
-      for (final item in _parseEpisodes(response).entries) {
-        found.putIfAbsent(item.key, () => item.value);
+      final incoming = _parseEpisodes(response);
+      // Only retain images for episodes in the selected provider's list.
+      // If another newly available episode caused the request, it is also
+      // useful to save any other now-found image without a second request.
+      for (final number in needs) {
+        final url = incoming[number];
+        if (url != null) found.putIfAbsent(number, () => url);
       }
     } catch (_) {
-      // Source episodes must keep working during SIMKL API outages.
-      retry = _failedRetry;
+      // Errors receive the same one-hour cooldown as absent images.
+      retryDelay = _failedRetry;
     }
+
+    final nextRetry = DateTime.now().add(retryDelay).millisecondsSinceEpoch;
+    for (final number in eligible) {
+      if (found.containsKey(number)) {
+        retryAfterByEpisode.remove(number);
+      } else {
+        retryAfterByEpisode[number] = nextRetry;
+      }
+    }
+    for (final number in found.keys) {
+      retryAfterByEpisode.remove(number);
+    }
+
     if (useCache) {
-      final now = DateTime.now();
-      await _cache.put(key, CacheEntry(
-        key: key,
-        bodyBytes: utf8.encode(jsonEncode({
-          'images': found.map((k, v) => MapEntry(k.toString(), v)),
-          'retryAfter': now.add(retry).millisecondsSinceEpoch,
-        })),
-        expiry: now.add(_permanent),
-      ), _permanent);
+      await _storeList(key, found, retryAfterByEpisode);
+      if (migratedLegacy) await _cache.delete(_legacyListKey(id));
     }
     return found;
+  }
+
+  Future<void> _storeList(String key, Map<int, String> found,
+      Map<int, int> retryAfterByEpisode) async {
+    final now = DateTime.now();
+    await _cache.put(key, CacheEntry(
+      key: key,
+      bodyBytes: utf8.encode(jsonEncode({
+        'images': found.map((k, v) => MapEntry(k.toString(), v)),
+        'retryAfterByEpisode':
+            retryAfterByEpisode.map((k, v) => MapEntry(k.toString(), v)),
+      })),
+      expiry: now.add(_permanent),
+    ), _permanent);
   }
 
   /// Binary image bytes share the exact same CacheManager/Hive cache as the

@@ -953,20 +953,20 @@ class _InfoMobileState extends State<InfoMobile> {
                     height: 140,
                     width: 175,
                     margin: EdgeInsets.only(bottom: 15),
-                    decoration: BoxDecoration(
-                      image: DecorationImage(
-                          image: NetworkImage(
-                            provider.episodeThumbnail(
-                              provider.visibleEpList[provider.currentPageIndex][index]['epLink']) ??
-                                provider.data.cover,
-                          ),
-                          fit: BoxFit.cover),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      mainAxisAlignment: MainAxisAlignment.end,
+                    clipBehavior: Clip.hardEdge,
+                    decoration: const BoxDecoration(),
+                    child: Stack(
+                      fit: StackFit.expand,
                       children: [
+                        SimklEpisodeImage(
+                          url: provider.episodeThumbnail(
+                              provider.visibleEpList[provider.currentPageIndex][index]['epLink']),
+                          fallback: provider.data.cover,
+                        ),
                         if (provider.selectedSource.supportDownloads)
+                          Align(
+                            alignment: Alignment.bottomRight,
+                            child:
                           Container(
                             decoration: BoxDecoration(
                                 borderRadius: BorderRadius.only(topLeft: Radius.circular(15)),
@@ -993,6 +993,7 @@ class _InfoMobileState extends State<InfoMobile> {
                                 color: Colors.black,
                               ),
                             ),
+                          ),
                           ),
                       ],
                     ),

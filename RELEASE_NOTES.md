@@ -1,6 +1,13 @@
 # AnimeStream — Latest three beta development versions
 
-Complete history: [CHANGELOG.md](CHANGELOG.md). These notes cover beta34.74, beta34.73 and beta34.72.
+Complete history: [CHANGELOG.md](CHANGELOG.md). These notes cover beta34.75, beta34.74 and beta34.73.
+
+## v1.4.9-beta34.75 — Hourly cooldown for missing SIMKL episode images
+- Retry missing SIMKL artwork no more than once an hour **per episode**, independently from all other episodes. Failed SIMKL requests use the same one-hour retry. Found artwork remains long-lived and is not refreshed on a timer.
+- The selected streaming source defines the eligible episode list. SIMKL cannot trigger prefetch of future episodes (e.g. episode 16 while the selected provider only lists episodes 1–15).
+- Newly added source episodes can be queried immediately without waiting for older episodes' cooldowns. One series-wide SIMKL request can resolve several eligible episodes at once.
+- Keep the existing shared CacheManager/Hive image and metadata storage, cache controls, size limits and clear actions. Safely migrate positive art from beta34.74 while discarding the older series-wide cooldown.
+- Version `1.4.9-beta34.75+85`. APK build and live SIMKL endpoint remain unverified. README unchanged.
 
 ## v1.4.9-beta34.74 — SIMKL episode artwork in existing cache
 - If a source has no episode thumbnail and the user has SIMKL connected, fetch the matched SIMKL anime's episode artwork as a fallback. Original source art wins; the anime cover remains the final fallback.
@@ -16,13 +23,6 @@ Complete history: [CHANGELOG.md](CHANGELOG.md). These notes cover beta34.74, bet
 - Better Player branch hls-audio-language-selection-reanime matches Media3 track labels or language metadata instead of assuming a playlist index equals the native group index, and retains deferred track selection.
 - Preserve working default audio, proxy HLS playback, direct MKV and per-anime/source ASS delay Step.
 - Version 1.4.9-beta34.73+83. APK compilation and device track switch have not yet been verified.
-
-## v1.4.9-beta34.72 — Re:ANIME Sub/Dub audio selection
-- Re:ANIME legitimately returns HD-1 and HD-2 Hoster entries per [Sub] and [Dub]; the HLS playlist may expose multiple language renditions within each host.
-- Prefer Japanese audio as the default HLS rendition when the selected server is [Sub] and English audio when it is [Dub], if those languages exist. Preserve the original order when no matching language is available.
-- Pin the paired Better Player fork `hls-audio-label-selection-reanime`: Android matches ExoPlayer audio renditions by label rather than wrongly equating HLS rendition index with renderer group index. Requests made before ExoPlayer discovers tracks are retried when tracks change.
-- Preserve external ASS timing editor with 0.05/0.5/1s step, per-anime/per-provider delay isolation, HLS proxy, subtitles and MKV entry.
-- Version `1.4.9-beta34.72+82`. APK build and on-device audio switching not yet verified; server content and language labels may differ.
 
 ### Known limitations
 - Some possibly Arabic subtitle characters display as squares with crosses. Logged and deferred by request; no font/rendering change.

@@ -6,11 +6,13 @@ import 'package:animestream/core/data/settings.dart';
 import 'package:animestream/core/data/types.dart';
 import 'package:animestream/core/database/database.dart';
 import 'package:animestream/ui/models/sources.dart';
+import 'package:animestream/core/anime/providers/providerDetails.dart';
 import 'package:animestream/ui/models/widgets/clickableItem.dart';
 import 'package:animestream/ui/models/widgets/toggleItem.dart';
 import 'package:animestream/ui/pages/settingPages/cache.dart';
 import 'package:animestream/ui/pages/settingPages/common.dart';
 import 'package:animestream/ui/pages/settingPages/plugin.dart';
+import 'package:animestream/ui/pages/settingPages/providers.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
@@ -57,7 +59,7 @@ class _GeneralSettingState extends State<GeneralSetting> {
   bool useDesktopNativeDiscordPresence = false;
   bool enableLogging = false;
 
-  final sources = SourceManager.instance.sources;
+  List<ProviderDetails> get sources => SourceManager.instance.sources;
 
   @override
   Widget build(BuildContext context) {
@@ -138,7 +140,8 @@ class _GeneralSettingState extends State<GeneralSetting> {
                       },
                       label: "Default provider",
                       description:
-                          (currentUserSettings?.preferredProvider ?? sources.first.identifier).replaceAll('_', ' '),
+                          (currentUserSettings?.preferredProvider ??
+                              (sources.isEmpty ? 'No provider' : sources.first.identifier)).replaceAll('_', ' '),
                       suffixIcon: Icon(Icons.arrow_drop_down),
                     ),
                     ClickableItem(
@@ -147,6 +150,14 @@ class _GeneralSettingState extends State<GeneralSetting> {
                       },
                       label: "Manage Providers",
                       description: "Add or remove providers",
+                      suffixIcon: Icon(Icons.navigate_next_rounded),
+                    ),
+                    ClickableItem(
+                      label: "Built-in providers",
+                      description: "Enable streaming sources and metadata fallbacks",
+                      onTap: () => Navigator.of(context).push(
+                        MaterialPageRoute(builder: (context) => const BuiltInProvidersPage()),
+                      ).then((_) { if (mounted) setState(() {}); }),
                       suffixIcon: Icon(Icons.navigate_next_rounded),
                     ),
                     ClickableItem(
@@ -272,7 +283,8 @@ class _GeneralSettingState extends State<GeneralSetting> {
                 shrinkWrap: true,
                 itemCount: sources.length,
                 itemBuilder: (context, index) {
-                  final activeProvider = currentUserSettings?.preferredProvider ?? sources.first.identifier;
+                  final activeProvider = currentUserSettings?.preferredProvider ??
+                      (sources.isEmpty ? '' : sources.first.identifier);
                   return Container(
                     margin: const EdgeInsets.symmetric(vertical: 5),
                     clipBehavior: Clip.hardEdge,

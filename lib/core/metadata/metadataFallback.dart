@@ -11,8 +11,15 @@ import 'package:animestream/core/metadata/metadataTypes.dart';
 /// effect on the next request without a restart.
 class MetadataSettings {
   const MetadataSettings._();
-  static bool get anilistEnabled => true;
-  static List<String> get fallbackOrder => const ['mal', 'kitsu'];
+  static bool isEnabled(String id) =>
+      !(currentUserSettings?.disabledMetadataProviders ?? const <String>[]).contains(id);
+
+  static bool get anilistEnabled => isEnabled('anilist');
+
+  static List<String> get fallbackOrder =>
+      (currentUserSettings?.metadataFallbacks ?? const <String>['mal', 'kitsu'])
+          .where((id) => (id == 'mal' || id == 'kitsu') && isEnabled(id))
+          .toList(growable: false);
 }
 
 class _AnimeFallbackEntry {

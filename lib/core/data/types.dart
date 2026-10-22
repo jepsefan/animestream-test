@@ -54,6 +54,15 @@ class SettingsModal {
   /// The preferred database provider (SIMKL/MAL/AL) [defaults to Anilist]
   final Databases? database;
 
+  /// Built-in video sources hidden from source pickers (extensions unaffected).
+  final List<String>? disabledProviders;
+
+  /// Metadata services excluded from browse/search (not account login).
+  final List<String>? disabledMetadataProviders;
+
+  /// Ordered anime metadata fallback identifiers, empty means no fallback.
+  final List<String>? metadataFallbacks;
+
   /// Enable extra speed options in player (4x,5x,8x,10x) [defaults to false]
   final bool? enableSuperSpeeds;
 
@@ -113,6 +122,9 @@ class SettingsModal {
     this.isDev,
     this.downloadPath,
     this.database,
+    this.disabledProviders,
+    this.disabledMetadataProviders,
+    this.metadataFallbacks,
     this.enableSuperSpeeds,
     this.useQueuedDownloads,
     this.useFramelessWindow,
@@ -148,6 +160,15 @@ class SettingsModal {
       isDev: map['isDev'] ?? false,
       downloadPath: map['downloadPath'], // No default value since we can assign them at runtime according to OS
       database: DatabaseFromString.getDb(map['database'] ?? "anilist"),
+      disabledProviders: map['disabledProviders'] is List
+          ? (map['disabledProviders'] as List).whereType<String>().toList()
+          : const <String>[],
+      disabledMetadataProviders: map['disabledMetadataProviders'] is List
+          ? (map['disabledMetadataProviders'] as List).whereType<String>().toList()
+          : const <String>[],
+      metadataFallbacks: map['metadataFallbacks'] is List
+          ? (map['metadataFallbacks'] as List).whereType<String>().toList()
+          : const <String>['mal', 'kitsu'],
       enableSuperSpeeds: map['enableSuperSpeeds'] ?? false,
       useQueuedDownloads: map['useQueuedDownloads'] ?? false,
       useFramelessWindow: map['useFramelessWindow'] ?? false,
@@ -184,6 +205,9 @@ class SettingsModal {
       'isDev': isDev,
       'downloadPath': downloadPath,
       'database': database?.name,
+      'disabledProviders': disabledProviders,
+      'disabledMetadataProviders': disabledMetadataProviders,
+      'metadataFallbacks': metadataFallbacks,
       'enableSuperSpeeds': enableSuperSpeeds,
       'useQueuedDownloads': useQueuedDownloads,
       'useFramelessWindow': useFramelessWindow,

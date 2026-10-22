@@ -308,6 +308,8 @@ class InfoProvider extends ChangeNotifier {
       s.addAll(info.alternateDatabases);
 
       if (!isFallback && currentUserSettings?.database == Databases.anilist &&
+          !(currentUserSettings?.disabledMetadataProviders ?? const <String>[])
+              .contains('simkl') &&
           await AniListLogin().isAnilistLoggedIn()) {
         _loggedIn = true;
 

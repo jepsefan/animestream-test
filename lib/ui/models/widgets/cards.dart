@@ -26,7 +26,10 @@ class Cards {
             clipBehavior: Clip.hardEdge,
             height: 175,
             width: 115,
-            child: animeId == null ? Image.network(
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                Image.network(
               fit: BoxFit.cover,
               imageUrl,
               height: 175,
@@ -39,6 +42,13 @@ class Cards {
                   child: child,
                 );
               },
+                ),
+                if (animeId != null)
+                  CompletedCoverOverlay(
+                    animeId: animeId,
+                    child: const SizedBox.expand(),
+                  ),
+              ],
             ),
           ),
           Padding(

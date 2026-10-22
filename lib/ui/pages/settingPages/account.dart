@@ -1,4 +1,5 @@
 import 'package:animestream/core/app/runtimeDatas.dart';
+import 'package:animestream/ui/models/completedCoverStatus.dart';
 import 'package:animestream/core/commons/enums.dart';
 import 'package:animestream/core/data/secureStorage.dart';
 import 'package:animestream/core/database/anilist/anilist.dart';
@@ -126,6 +127,8 @@ class _AccountSettingState extends State<AccountSetting> {
     switch (db) {
       case Databases.anilist:
         await AniListLogin().removeToken();
+        storedUserData = null;
+        CompletedCoverStatus.instance.clear();
         if (mounted) setState(() => anilistLoggedIn = false);
         break;
       case Databases.simkl:

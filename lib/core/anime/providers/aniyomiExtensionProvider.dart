@@ -50,7 +50,7 @@ class AniyomiExtensionProvider extends AnimeProvider {
         throw StateError('Aniyomi search failed: $status');
       }
       // A successful HTTP response can be an unrelated browse page.
-      if (response['relevance'] == 'unverified_unrelated_catalogue') continue;
+      if (response['resultRelevance'] == 'unverified_unrelated_catalogue') continue;
       final items = (response['results'] as List?) ?? const [];
       final parsed = items.whereType<Map>().where((item) =>
           (item['url']?.toString().isNotEmpty ?? false) &&
@@ -77,7 +77,7 @@ class AniyomiExtensionProvider extends AnimeProvider {
     final parts = aliasId.split('\u001f');
     final sourceUrl = parts.first;
     final sourceTitle = parts.length > 1 ? parts.sublist(1).join('\u001f') : sourceUrl;
-    final response = await AniyomiExtensionBridge.testExtensionEpisodes(
+    final response = await AniyomiExtensionBridge.loadExtensionEpisodes(
         extension.packageName, sourceUrl, sourceTitle,
         sourceId: selectedSource?.id,
         sourceName: selectedSource?.name,

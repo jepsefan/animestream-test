@@ -209,6 +209,23 @@ class MainActivity: FlutterActivity() {
                         }.start()
                     }
                 }
+                "loadExtensionEpisodes" -> {
+                    val pkg = call.argument<String>("packageName")
+                    val url = call.argument<String>("sourceUrl")
+                    val title = call.argument<String>("sourceTitle")
+                    if (pkg.isNullOrBlank() || url.isNullOrBlank() || title.isNullOrBlank()) {
+                        result.error("INVALID_SELECTION", "Missing package name, URL or title", null)
+                    } else {
+                        Thread {
+                            val response = ExtensionEpisodeProbe(this).load(
+                                pkg, url, title, call.argument<Number>("sourceId")?.toLong(),
+                                call.argument<String>("sourceName"),
+                                call.argument<String>("sourceLanguage"),
+                                fullEpisodeList = true)
+                            runOnUiThread { result.success(response) }
+                        }.start()
+                    }
+                }
                 "testExtensionEpisodes" -> {
                     val pkg = call.argument<String>("packageName")
                     val url = call.argument<String>("sourceUrl")

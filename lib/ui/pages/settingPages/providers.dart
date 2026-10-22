@@ -44,7 +44,8 @@ class _BuiltInProvidersPageState extends State<BuiltInProvidersPage> {
   }
 
   Future<void> _change(String id, bool enabled, String category) async {
-    if (_saving) return;
+    if (_saving || (category == 'fallback' && enabled &&
+        _disabledMetadata.contains(id))) return;
     setState(() {
       _saving = true;
       final target = category == 'source' ? _disabledSources
@@ -145,7 +146,9 @@ class _BuiltInProvidersPageState extends State<BuiltInProvidersPage> {
                     _heading('Metadata fallbacks'),
                     _note('When AniList is unavailable: MyAnimeList, then Kitsu. '
                         'Only enabled fallbacks will be tried.'),
-                    _switch('MyAnimeList', 'First fallback',
+                    _switch('MyAnimeList',
+                      _disabledMetadata.contains('mal')
+                          ? 'Enable MyAnimeList under Metadata first' : 'First fallback',
                       _fallbacks.contains('mal') && !_disabledMetadata.contains('mal'),
                       (enabled) => _change('mal', enabled, 'fallback')),
                     _switch('Kitsu', 'Second fallback for anime',

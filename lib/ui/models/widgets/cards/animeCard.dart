@@ -156,6 +156,7 @@ class _AnimeCardState extends State<AnimeCard> {
                         width: width,
                       ),
                     ),
+                    ),
                   ),
                   Positioned(
                     right: 0,

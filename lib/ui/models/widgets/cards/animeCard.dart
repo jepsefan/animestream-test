@@ -5,6 +5,7 @@ import 'package:animestream/core/commons/enums.dart';
 import 'package:animestream/core/database/handler/syncHandler.dart';
 import 'package:animestream/ui/models/snackBar.dart';
 import 'package:animestream/ui/models/widgets/ContextMenu.dart';
+import 'package:animestream/ui/models/widgets/completedCoverOverlay.dart';
 import 'package:animestream/ui/pages/info.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
@@ -143,7 +144,9 @@ class _AnimeCardState extends State<AnimeCard> {
                               : 10),
                     ),
                     clipBehavior: Clip.hardEdge,
-                    child: CachedNetworkImage(
+                    child: CompletedCoverOverlay(
+                      animeId: widget.id,
+                      child: CachedNetworkImage(
                       imageUrl: widget.imageUrl,
                       fadeInDuration: Duration(milliseconds: 200),
                       fit: BoxFit.cover,

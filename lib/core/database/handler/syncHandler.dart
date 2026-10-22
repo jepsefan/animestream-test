@@ -6,6 +6,7 @@ import 'package:animestream/core/database/database.dart';
 import 'package:animestream/core/database/mal/mutations.dart';
 import 'package:animestream/core/database/simkl/mutations.dart';
 import 'package:animestream/core/database/types.dart';
+import 'package:animestream/ui/models/completedCoverStatus.dart';
 
 class SyncHandler extends DatabaseMutation {
   @override
@@ -58,6 +59,22 @@ class SyncHandler extends DatabaseMutation {
           rethrow;
         }
       }
+    }
+
+    // Update cover shading only after the requested sync succeeded.
+    // The card uses an AniList ID even if SIMKL or MAL is the active tracker.
+    int? aniListId = activedb == Databases.anilist ? id : null;
+    if (aniListId == null) {
+      for (final other in otherIds ?? const <AlternateDatabaseId>[]) {
+        if (other.database == Databases.anilist) {
+          aniListId = other.id;
+          break;
+        }
+      }
+    }
+    if (aniListId != null && status != null) {
+      CompletedCoverStatus.instance.setCompleted(
+          aniListId, status == MediaStatus.COMPLETED);
     }
 
     return null;

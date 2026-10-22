@@ -24,6 +24,13 @@ interface AnimeSource {
     suspend fun getEpisodeList(anime: SAnime): List<SEpisode> =
         fetchEpisodeList(anime).toBlocking().single()
 
+    /** Anikku extensions-lib 16 season API. Implementations without season
+     * support retain the existing single-series episode behavior.
+     * A default also preserves binary compatibility with older extensions.
+     */
+    suspend fun getSeasonList(anime: SAnime): List<SAnime> =
+        throw UnsupportedOperationException("Season list not supported")
+
     suspend fun getHosterList(episode: SEpisode): List<Hoster> =
         throw IllegalStateException("Not used")
 

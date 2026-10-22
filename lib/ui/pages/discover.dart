@@ -4,6 +4,7 @@ import 'dart:ui';
 
 import 'package:animestream/ui/models/providers/mainNavProvider.dart';
 import 'package:animestream/ui/models/widgets/cards/animeCard.dart';
+import 'package:animestream/ui/models/widgets/completedCoverOverlay.dart';
 import 'package:animestream/ui/models/widgets/infoPageWidgets/scrollingList.dart';
 import 'package:flutter/material.dart';
 
@@ -272,10 +273,14 @@ class _DiscoverState extends State<Discover> {
                       children: [
                         ClipRRect(
                           borderRadius: BorderRadius.circular(20),
-                          child: Image.network(
-                            trendingList[moddedIndex].cover,
-                            height: 170,
-                            width: 120,
+                          child: CompletedCoverOverlay(
+                            animeId: trendingList[moddedIndex].id,
+                            child: Image.network(
+                              trendingList[moddedIndex].cover,
+                              height: 170,
+                              width: 120,
+                              fit: BoxFit.cover,
+                            ),
                           ),
                         ),
                         Container(

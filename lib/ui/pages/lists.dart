@@ -7,6 +7,7 @@ import 'package:animestream/core/database/anilist/queries.dart';
 import 'package:animestream/core/database/anilist/types.dart';
 import 'package:animestream/ui/models/widgets/bottomBar.dart';
 import 'package:animestream/ui/models/widgets/cards.dart';
+import 'package:animestream/ui/models/completedCoverStatus.dart';
 import 'package:animestream/ui/models/widgets/cards/animeCard.dart';
 import 'package:animestream/ui/models/widgets/loader.dart';
 import 'package:animestream/ui/models/widgets/navRail.dart';
@@ -120,6 +121,7 @@ class _AnimeListsState extends State<AnimeLists> with TickerProviderStateMixin {
     final list = await AnilistQueries().getUserAnimeList(storedUserData!.name);
     if (list.isEmpty) throw new Exception("List is empty lil bro!");
     rawAnimeList = list;
+    CompletedCoverStatus.instance.seedFromLists(storedUserData!.name, list);
     sort(SortType.RecentlyUpdated);
     setState(() {
       dataLoaded = true;

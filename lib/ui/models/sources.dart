@@ -134,6 +134,16 @@ class SourceManager {
 
   List<ProviderDetails> get sources => _sources;
 
+  /// Rebuild built-in sources without touching approved Android extensions.
+  void applyDisabledInbuiltProviders(Iterable<String> disabled) {
+    final disabledIds = disabled.toSet();
+    final builtInIds = inbuiltSources.map((source) => source.identifier).toSet();
+    _sources.removeWhere((source) => builtInIds.contains(source.identifier));
+    _sources.insertAll(0, inbuiltSources.where(
+      (source) => !disabledIds.contains(source.identifier),
+    ));
+  }
+
   void addSource(ProviderDetails source) {
     _sources.add(source);
   }
@@ -148,8 +158,14 @@ class SourceManager {
 
   Future<void> loadProviders({bool clearBeforeLoading = true}) async {
     final providers = await ProviderManager().getSavedProviders();
-    if (clearBeforeLoading) _sources.clear();
-    _sources.addAll(providers);
+    if (clearBeforeLoading) {
+      _sources.clear();
+      applyDisabledInbuiltProviders(
+          currentUserSettings?.disabledProviders ?? const <String>[]);
+    }
+    final inbuiltIds = inbuiltSources.map((source) => source.identifier).toSet();
+    _sources.addAll(providers.where(
+        (provider) => !inbuiltIds.contains(provider.identifier)));
     if (Platform.isAndroid) {
       await refreshAniyomiExtensions();
     }

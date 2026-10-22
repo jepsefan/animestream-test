@@ -92,7 +92,46 @@ internal class ExtensionEpisodeProbe(private val context: Context) {
             url = sourceUrl
             title = sourceTitle
         }
-        val episodes = ExtensionSourceCalls.episodes(source, anime)
+        // Preserve successful existing sources. Only fetch details if the
+        // first episode request failed or genuinely returned no episodes.
+        // Details are extension-native, never synthesized from AniList.
+        var episodeFailure: Throwable? = null
+        val firstEpisodes = try {
+            ExtensionSourceCalls.episodes(source, anime)
+        } catch (failure: Throwable) {
+            episodeFailure = failure
+            emptyList()
+        }
+        var episodes = firstEpisodes
+        var detailsFallbackUsed = false
+        var detailsFallbackStage = "not_needed"
+        if (episodes.isEmpty()) {
+            val updated = try {
+                ExtensionSourceCalls.details(source, anime)
+            } catch (failure: Throwable) {
+                // Do not mask the original episode parser/network exception.
+                if (episodeFailure != null) throw episodeFailure
+                null
+            }
+            if (updated != null && updated.url.isNotBlank()) {
+                // Keep the user's selected source identity. Extensions may
+                // legitimately update anime.url while parsing their detail page.
+                try {
+                    episodes = ExtensionSourceCalls.episodes(source, updated)
+                    detailsFallbackUsed = episodes.isNotEmpty()
+                    detailsFallbackStage = if (detailsFallbackUsed)
+                        "updated_anime_details" else "still_empty"
+                } catch (failure: Throwable) {
+                    if (episodeFailure != null) throw episodeFailure
+                    throw failure
+                }
+            } else {
+                detailsFallbackStage = "details_unavailable"
+            }
+            if (episodes.isEmpty() && episodeFailure != null) {
+                throw episodeFailure
+            }
+        }
         // Prefer the current extension domain; a fallback to an absolute
         // selected series URL also works for non-HTTP catalogue sources.
         val artworkBase = (source as? AnimeHttpSource)?.baseUrl?.toHttpUrlOrNull()
@@ -101,6 +140,8 @@ internal class ExtensionEpisodeProbe(private val context: Context) {
             "status" to "episode_list_completed",
             "sourceTitle" to sourceTitle,
             "episodeCount" to episodes.size,
+            "detailsFallbackUsed" to detailsFallbackUsed,
+            "detailsFallbackStage" to detailsFallbackStage,
             // Playback must receive every episode; the separate user-invoked
             // diagnostic probe is intentionally capped at 100 entries.
             "episodes" to (if (fullEpisodeList) episodes else episodes.take(100)).map {

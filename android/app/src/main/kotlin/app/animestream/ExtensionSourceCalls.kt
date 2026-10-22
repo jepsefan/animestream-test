@@ -48,6 +48,20 @@ internal object ExtensionSourceCalls {
         }
     }
 
+    /** Update a source result with extension-native detail fields when its
+     * episode parser needs initialized metadata. Never replace the source URL
+     * with one inferred from AniList or another metadata provider.
+     */
+    fun details(source: AnimeSource, anime: SAnime): SAnime {
+        return try {
+            runBlocking { withTimeout(WAIT_MS) { source.getAnimeDetails(anime) } }
+        } catch (e: Throwable) {
+            if (!unsupported(e)) throw e
+            source.fetchAnimeDetails(anime).toBlocking()
+                .toFuture().get(WAIT_MS, TimeUnit.MILLISECONDS)
+        }
+    }
+
     fun episodes(source: AnimeSource, anime: SAnime): List<SEpisode> {
         return try {
             runBlocking { withTimeout(WAIT_MS) { source.getEpisodeList(anime) } }

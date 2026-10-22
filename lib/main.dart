@@ -79,7 +79,8 @@ void main(List<String> args) async {
     /// Load sources. we adding inbuilt sources till migrated
     final sm = SourceManager.instance;
 
-    sm.addSources(sm.inbuiltSources);
+    sm.applyDisabledInbuiltProviders(
+        currentUserSettings?.disabledProviders ?? const <String>[]);
     await sm.loadProviders(clearBeforeLoading: false);
 
     HttpOverrides.global = _HttpOverrides();

@@ -134,6 +134,23 @@ class AniyomiExtensionBridge {
     return Map<String, dynamic>.from(raw ?? const {});
   }
 
+  /// Player-facing complete episode list. Diagnostic previews intentionally
+  /// stay limited to 100 episodes; this call does not trim long-running series.
+  static Future<Map<String, dynamic>> loadExtensionEpisodes(
+      String packageName, String sourceUrl, String sourceTitle,
+      {int? sourceId, String? sourceName, String? sourceLanguage}) async {
+    final raw = await _channel.invokeMethod<Map<dynamic, dynamic>>(
+      'loadExtensionEpisodes', {
+        'packageName': packageName,
+        'sourceUrl': sourceUrl,
+        'sourceTitle': sourceTitle,
+        'sourceId': sourceId,
+        'sourceName': sourceName,
+        'sourceLanguage': sourceLanguage,
+      });
+    return Map<String, dynamic>.from(raw ?? const {});
+  }
+
   /// Opt-in stream resolution for a selected episode. Returns sanitized metadata.
   /// No media URL, signed query parameters or authorization headers are exposed.
   static Future<Map<String, dynamic>> testExtensionStreams(

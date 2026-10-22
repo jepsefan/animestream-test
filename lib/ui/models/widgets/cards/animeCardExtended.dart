@@ -1,6 +1,7 @@
 import 'dart:ui';
 
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:animestream/ui/models/widgets/completedCoverOverlay.dart';
 import 'package:flutter/material.dart';
 
 import 'package:animestream/core/app/runtimeDatas.dart';
@@ -94,7 +95,9 @@ class AnimeCardExtended extends StatelessWidget {
                           borderRadius: BorderRadius.circular(10),
                         ),
                         clipBehavior: Clip.hardEdge,
-                        child: CachedNetworkImage(
+                        child: CompletedCoverOverlay(
+                          animeId: id,
+                          child: CachedNetworkImage(
                           imageUrl: imageUrl,
                           fit: BoxFit.cover,
                           fadeInDuration: Duration(milliseconds: 200),
@@ -104,6 +107,7 @@ class AnimeCardExtended extends StatelessWidget {
                           errorWidget: (context, url, error) {
                           return Image.asset("lib/assets/images/broken_heart.png");
                         },
+                        ),
                         ),
                       ),
                       Expanded(

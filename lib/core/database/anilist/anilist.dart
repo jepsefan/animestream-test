@@ -24,6 +24,7 @@ class AnilistApiException implements Exception {
 
 class Anilist extends Database {
   Future<List<AnilistSearchResult>> search(String query) async {
+    if (!MetadataSettings.anilistEnabled) return AnimeMetadataRouter.instance.search(query);
     try { return await _searchAniList(query); }
     catch (_) { return AnimeMetadataRouter.instance.search(query); }
   }
@@ -82,6 +83,9 @@ class Anilist extends Database {
   Future<AnilistInfo> getAnimeInfo(int id) async {
     if (AnimeMetadataRouter.instance.isFallbackId(id)) {
       return AnimeMetadataRouter.instance.info(id);
+    }
+    if (!MetadataSettings.anilistEnabled) {
+      throw StateError('AniList is disabled; existing AniList details cannot be resolved using fallback IDs');
     }
     return _getAnimeInfoAniList(id);
   }
@@ -204,6 +208,7 @@ class Anilist extends Database {
   }
 
   Future<List<CurrentlyAiringResult>> getCurrentlyAiringAnime({int page = 1}) async {
+    if (!MetadataSettings.anilistEnabled) return AnimeMetadataRouter.instance.currentlyAiring();
     try { return await _getCurrentlyAiringAniList(page: page); }
     catch (_) {
       if (page > 1) return [];
@@ -263,6 +268,7 @@ class Anilist extends Database {
 
   //maybe latest and not recentlyUpdatedAnime!
   Future<List<RecentlyUpdatedResult>> recentlyUpdated() async {
+    if (!MetadataSettings.anilistEnabled) return AnimeMetadataRouter.instance.recentlyUpdated();
     try { return await _recentlyUpdatedAniList(); }
     catch (_) { return AnimeMetadataRouter.instance.recentlyUpdated(); }
   }
@@ -326,6 +332,7 @@ class Anilist extends Database {
   }
 
   Future<List<TrendingResult>> getTrending() async {
+    if (!MetadataSettings.anilistEnabled) return AnimeMetadataRouter.instance.trending();
     try { return await _getTrendingAniList(); }
     catch (_) { return AnimeMetadataRouter.instance.trending(); }
   }

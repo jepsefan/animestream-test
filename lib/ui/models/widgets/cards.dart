@@ -3,11 +3,12 @@ import 'dart:io';
 import 'package:animestream/core/app/runtimeDatas.dart';
 import 'package:animestream/ui/models/widgets/cards/animeCardExtended.dart';
 import 'package:animestream/ui/models/widgets/cards/animeCard.dart';
+import 'package:animestream/ui/models/widgets/completedCoverOverlay.dart';
 import 'package:flutter/material.dart';
 
 class Cards {
   /**Builds a character card (no navigation) */
-  static Widget characterCard(String name, String role, String imageUrl) {
+  static Widget characterCard(String name, String role, String imageUrl, {int? animeId}) {
     return Card(
       color: appTheme.backgroundColor,
       clipBehavior: Clip.hardEdge,
@@ -25,7 +26,7 @@ class Cards {
             clipBehavior: Clip.hardEdge,
             height: 175,
             width: 115,
-            child: Image.network(
+            child: animeId == null ? Image.network(
               fit: BoxFit.cover,
               imageUrl,
               height: 175,

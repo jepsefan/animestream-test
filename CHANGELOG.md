@@ -2,6 +2,12 @@
 
 Complete development history. Published GitHub Releases use the concise [RELEASE_NOTES.md](RELEASE_NOTES.md) for the latest three beta versions. Older entries remain here for reference.
 
+## v1.4.9-beta34.80 — Complete extension episodes and safer search matching
+- Separate Android extension episode diagnostics from player episode loading: **Manage Providers** diagnostics retain the first 100 entries and the total-count/truncation indicator; the regular series-page playback bridge now transfers the full episode list returned by the approved extension, so long-running series are no longer silently cut off at episode 100.
+- Fix Dart extension search to read the actual Android `resultRelevance` field (rather than the nonexistent `relevance` field). An unverified, unrelated browse/catalogue response is no longer accepted as a normal title-search match; manual selection and the existing AnimeOnsen 403 search workaround remain available.
+- Keep existing extension APK approvals, source settings, stream hoster resolution, subtitle/audio playback, SIMKL integration and metadata fallbacks unchanged.
+- Version `1.4.9-beta34.80+90`. Flutter/Android compilation and device behavior have not been verified.
+
 ## v1.4.9-beta34.79 — Built-in provider and metadata controls
 - Add **General → Built-in providers** between **Manage Providers** and **Cache Manager**, based on sofikuw/anImestream's provider settings page but adapted to the anime-only fork.
 - Toggle built-in **AnimeOnsen, AniZone, Anikoto and Animegg** on or off without uninstalling extensions. Persist the disabled list in existing Hive Settings and restore it on startup. AniDB remains removed.

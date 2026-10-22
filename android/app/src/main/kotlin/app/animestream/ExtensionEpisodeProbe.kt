@@ -25,14 +25,15 @@ internal class ExtensionEpisodeProbe(private val context: Context) {
     fun load(
         packageName: String, sourceUrl: String, sourceTitle: String,
         sourceId: Long? = null, approvedName: String? = null,
-        approvedLanguage: String? = null
+        approvedLanguage: String? = null,
+        fullEpisodeList: Boolean = false
     ): Map<String, Any?> {
         if (sourceUrl.isBlank() || sourceTitle.isBlank()) {
             return mapOf("status" to "invalid_selection")
         }
         return try {
             perform(packageName, sourceUrl, sourceTitle, sourceId,
-                approvedName, approvedLanguage)
+                approvedName, approvedLanguage, fullEpisodeList)
         } catch (error: Throwable) {
             val errors = mutableListOf<String>()
             val seen = java.util.Collections.newSetFromMap(
@@ -66,7 +67,8 @@ internal class ExtensionEpisodeProbe(private val context: Context) {
 
     private fun perform(
         packageName: String, sourceUrl: String, sourceTitle: String,
-        sourceId: Long?, approvedName: String?, approvedLanguage: String?
+        sourceId: Long?, approvedName: String?, approvedLanguage: String?,
+        fullEpisodeList: Boolean
     ): Map<String, Any?> {
         val app = context.applicationContext as? Application
             ?: return mapOf("status" to "missing_application")
@@ -99,7 +101,9 @@ internal class ExtensionEpisodeProbe(private val context: Context) {
             "status" to "episode_list_completed",
             "sourceTitle" to sourceTitle,
             "episodeCount" to episodes.size,
-            "episodes" to episodes.take(100).map {
+            // Playback must receive every episode; the separate user-invoked
+            // diagnostic probe is intentionally capped at 100 entries.
+            "episodes" to (if (fullEpisodeList) episodes else episodes.take(100)).map {
                 mapOf(
                     "name" to it.name,
                     "url" to it.url,
@@ -107,7 +111,7 @@ internal class ExtensionEpisodeProbe(private val context: Context) {
                     "preview" to episodePreviewUrl(it.preview_url, artworkBase)
                 )
             },
-            "truncated" to (episodes.size > 100),
+            "truncated" to (!fullEpisodeList && episodes.size > 100),
             "networkDiagnostics" to helper.searchNetworkDiagnostics()
         )
     }

@@ -1,6 +1,14 @@
 # AnimeStream — Latest three beta development versions
 
-Complete history: [CHANGELOG.md](CHANGELOG.md). These notes cover beta34.81, beta34.80 and beta34.79.
+Complete history: [CHANGELOG.md](CHANGELOG.md). These notes cover beta34.82, beta34.81 and beta34.80.
+
+## v1.4.9-beta34.82 — Extension details recovery and Anikku season API
+- Added the Anikku `getSeasonList(SAnime)` Host API signature with an unsupported default, preserving older extensions and leaving existing episode numbering untouched. This is ABI groundwork; the app does not automatically merge seasons yet.
+- Added a version-neutral `getAnimeDetails` bridge (modern suspend API, legacy Rx fallback only when unsupported).
+- When an approved extension returns zero episodes or its first episode request fails, retry once using that extension's updated series details and source URL. Successful episode requests are unchanged, and the original error is retained if recovery also fails.
+- Episode results report `detailsFallbackUsed` and `detailsFallbackStage` for testing, without exposing credentials or introducing extra calls for functioning sources.
+- Retain beta34.80 full episode lists, beta34.81 completed-cover shading, APK approvals, stream handling, audio, ASS subtitles and SIMKL as before.
+- Version `1.4.9-beta34.82+92`. Android/Flutter build and device tests have not been run.
 
 ## v1.4.9-beta34.81 — Shade completed anime covers
 - Give anime posters a subtle 40% black overlay when the signed-in user's **AniList watch-list status is COMPLETED**, independent of the anime's airing/release status. Leave all other statuses visually unchanged.
@@ -14,14 +22,6 @@ Complete history: [CHANGELOG.md](CHANGELOG.md). These notes cover beta34.81, bet
 - Fix Dart extension search to read the actual Android `resultRelevance` field (rather than the nonexistent `relevance` field). An unverified, unrelated browse/catalogue response is no longer accepted as a normal title-search match; manual selection and the existing AnimeOnsen 403 search workaround remain available.
 - Keep existing extension APK approvals, source settings, stream hoster resolution, subtitle/audio playback, SIMKL integration and metadata fallbacks unchanged.
 - Version `1.4.9-beta34.80+90`. Flutter/Android compilation and device behavior have not been verified.
-
-## v1.4.9-beta34.79 — Built-in provider and metadata controls
-- Add **General → Built-in providers** between **Manage Providers** and **Cache Manager**, based on sofikuw/anImestream's provider settings page but adapted to the anime-only fork.
-- Toggle built-in **AnimeOnsen, AniZone, Anikoto and Animegg** on or off without uninstalling extensions. Persist the disabled list in existing Hive Settings and restore it on startup. AniDB remains removed.
-- Add **AniList, MyAnimeList and SIMKL** metadata controls and separately enable/disable the **MyAnimeList → Kitsu** fallback order. Disabling AniList routes supported discovery searches to enabled fallbacks; existing positive AniList IDs are not remapped to fallback IDs.
-- SIMKL metadata control suppresses the series-page SIMKL cross-ID enrichment lookup, but does not log out the user or alter the SIMKL image cache. The previously identified AniList-login dependency for SIMKL episode artwork is intentionally left unchanged.
-- Preserve APK repository management, approved extensions, existing playback and cache functionality. If a disabled built-in was the default source, switch the default to the first remaining available source when possible.
-- Version `1.4.9-beta34.79+89`. Flutter compilation and device testing have not been verified.
 
 ### Known limitations
 - Some possibly Arabic subtitle characters display as squares with crosses. Logged and deferred by request; no font/rendering change.

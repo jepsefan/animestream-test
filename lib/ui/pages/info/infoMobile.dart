@@ -1403,6 +1403,7 @@ class _InfoMobileState extends State<InfoMobile> {
                         getTitle(item.title),
                         recommended ? item.type : item.relationType!,
                         item.cover,
+                        animeId: item.type.toLowerCase() == 'anime' ? item.id : null,
                       )),
           );
         },

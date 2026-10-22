@@ -1,6 +1,14 @@
 # AnimeStream — Latest three beta development versions
 
-Complete history: [CHANGELOG.md](CHANGELOG.md). These notes cover beta34.78, beta34.77 and beta34.76.
+Complete history: [CHANGELOG.md](CHANGELOG.md). These notes cover beta34.79, beta34.78 and beta34.77.
+
+## v1.4.9-beta34.79 — Built-in provider and metadata controls
+- Add **General → Built-in providers** between **Manage Providers** and **Cache Manager**, based on sofikuw/anImestream's provider settings page but adapted to the anime-only fork.
+- Toggle built-in **AnimeOnsen, AniZone, Anikoto and Animegg** on or off without uninstalling extensions. Persist the disabled list in existing Hive Settings and restore it on startup. AniDB remains removed.
+- Add **AniList, MyAnimeList and SIMKL** metadata controls and separately enable/disable the **MyAnimeList → Kitsu** fallback order. Disabling AniList routes supported discovery searches to enabled fallbacks; existing positive AniList IDs are not remapped to fallback IDs.
+- SIMKL metadata control suppresses the series-page SIMKL cross-ID enrichment lookup, but does not log out the user or alter the SIMKL image cache. The previously identified AniList-login dependency for SIMKL episode artwork is intentionally left unchanged.
+- Preserve APK repository management, approved extensions, existing playback and cache functionality. If a disabled built-in was the default source, switch the default to the first remaining available source when possible.
+- Version `1.4.9-beta34.79+89`. Flutter compilation and device testing have not been verified.
 
 ## v1.4.9-beta34.78 — Extension repositories in Manage Providers > Available
 - Move the existing Aniyomi extension repository interface into the **Available** tab of **Manage Providers [Beta]**. The tab now displays repository URL entry, trusted repository management, extension search, Installed / Updates / Browse filters, language filtering, and APK installation, updates and uninstallation instead of the older available Dart provider list.
@@ -14,14 +22,6 @@ Complete history: [CHANGELOG.md](CHANGELOG.md). These notes cover beta34.78, bet
 - URL-encode OAuth authorization parameters; validate the token response's HTTP status and JSON shape before parsing credentials. Show a useful HTTP-status error instead of a raw FormatException when MAL returns HTML.
 - Apply safe response parsing to refresh-token requests. No changes to the MAL/Kitsu fallback, extensions, HLS audio, ASS delay, or existing cache.
 - Version `1.4.9-beta34.77+87`. Login still depends on the OAuth redirect registered for the MAL client ID; build/device verification pending.
-
-## v1.4.9-beta34.76 — AniList metadata outage fallback (anime)
-- Use read-only MAL v2 as first fallback and Kitsu as second for anime search, trending, currently airing and recently updated when AniList API fails.
-- Adapt sofikuw/anImestream's anime metadata router and providers without depending on manga classes absent from this fork.
-- Encode MAL/Kitsu IDs as separate negative application IDs; fallback result details resolve via their actual provider rather than issuing AniList GraphQL requests.
-- Suppress AniList/SIMKL cross-database ID lookup for fallback-only entries to avoid accidental metadata/list ID corruption. Original source player and subtitle functionality remains intact.
-- Existing positive AniList IDs do not yet dynamically remap to MAL on detail-fetch failure; no manga or configurable metadata toggles in this first port.
-- Version `1.4.9-beta34.76+86`. APK compilation/device testing is not yet verified.
 
 ### Known limitations
 - Some possibly Arabic subtitle characters display as squares with crosses. Logged and deferred by request; no font/rendering change.

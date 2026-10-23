@@ -13,6 +13,16 @@ void main() {
       expect(parsed.number, 0);
       expect(parsed.label, 'Episode 1000.5');
     });
+    test('explicit episode zero has its own label', () {
+      final parsed = ExtensionEpisodeNumber.parse(0, 'Special episode');
+      expect(parsed.number, 0);
+      expect(parsed.label, 'Episode 0');
+      expect(parsed.sortNumber, 0);
+    });
+    test('string zero is also explicit episode zero', () {
+      final parsed = ExtensionEpisodeNumber.parse('0', '');
+      expect(parsed.label, 'Episode 0');
+    });
     test('unnumbered specials do not receive invented ordinals', () {
       final parsed = ExtensionEpisodeNumber.parse(-1, 'Special: Recap');
       expect(parsed.number, 0);

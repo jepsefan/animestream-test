@@ -5,6 +5,7 @@ import 'package:animestream/core/app/logging.dart';
 import 'package:animestream/core/app/runtimeDatas.dart';
 import 'package:animestream/core/data/animeSpecificPreference.dart';
 import 'package:animestream/core/data/types.dart';
+import 'package:animestream/core/commons/utils.dart';
 import 'package:animestream/ui/models/playerControllers/betterPlayer.dart';
 import 'package:animestream/ui/models/widgets/player/controls.dart';
 import 'package:animestream/ui/models/widgets/player/gestureOverlay.dart';
@@ -39,11 +40,18 @@ class Watch extends StatefulWidget {
 
 class _WatchState extends State<Watch> with WidgetsBindingObserver {
   late VideoController controller;
+  bool _isAndroidTv = false;
+
+  Future<void> _detectAndroidTv() async {
+    final detected = await isTv();
+    if (mounted) setState(() => _isAndroidTv = detected);
+  }
 
   @override
   void initState() {
     super.initState();
     isWatchPageActive = true;
+    _detectAndroidTv();
     setWatchMode();
 
     controller = widget.controller;
@@ -587,14 +595,15 @@ class _WatchState extends State<Watch> with WidgetsBindingObserver {
       onKeyEvent: (node, event) =>
           _handleTvSeekKey(event, playerProvider, playerDataProvider),
       child: PopScope(
-      canPop: !playerProvider.state.controlsVisible &&
-          !playerDataProvider.editingExternalAssDelay,
+      // TV Back hides playback controls first; phone Back exits playback.
+      canPop: !_isAndroidTv || (!playerProvider.state.controlsVisible &&
+          !playerDataProvider.editingExternalAssDelay),
       onPopInvokedWithResult: (didPop, result) async {
         if (!didPop && playerDataProvider.editingExternalAssDelay) {
           playerDataProvider.finishExternalAssDelayEdit();
           return;
         }
-        if (!didPop && playerProvider.state.controlsVisible) {
+        if (!didPop && _isAndroidTv && playerProvider.state.controlsVisible) {
           playerProvider.toggleControlsVisibility(action: false);
           _controlsTimer?.cancel();
           _controlsTimer = null;

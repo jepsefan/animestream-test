@@ -481,8 +481,7 @@ class _DesktopControlsState extends State<DesktopControls> {
                           ),
                           Center(
                             child: ElevatedButton.icon(
-                              onPressed: () => AudioTrackPicker.show(
-                                  context, dataProvider, provider),
+                              onPressed: () => AudioTrackPicker.show(context, provider),
                               icon: const Icon(Icons.audiotrack),
                               label: const Text('Choose audio track'),
                             ),

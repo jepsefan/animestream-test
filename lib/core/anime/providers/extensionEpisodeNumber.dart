@@ -17,7 +17,16 @@ class ExtensionEpisodeNumber {
       }
       // Decimal episodes are specials between regular episodes; don't round
       // 1000.5 to 1001 and thereby misidentify the content.
-      final text = value.toString().replaceFirst(RegExp(r'\\.0$'), '');
+      final text = value.toString().replaceFirst(RegExp(r'\.0), '');
+      return ExtensionEpisodeNumber(0, 'Episode $text', value);
+    }
+    // Host API uses -1 or NaN for unknown numbers and 0 for special episodes.
+    final cleaned = title.trim();
+    return ExtensionEpisodeNumber(0,
+        cleaned.isEmpty ? 'Special / unnumbered' : cleaned, null);
+  }
+}
+), '');
       return ExtensionEpisodeNumber(0, 'Episode $text', value);
     }
     // Host API uses -1 or NaN for unknown numbers and 0 for special episodes.

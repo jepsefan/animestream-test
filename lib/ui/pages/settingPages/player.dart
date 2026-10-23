@@ -3,6 +3,7 @@ import 'package:animestream/core/anime/providers/externalAssPreferences.dart';
 import 'package:animestream/core/anime/providers/aniyomiExtensionProvider.dart';
 import 'package:animestream/ui/models/sources.dart';
 import 'package:animestream/core/data/settings.dart';
+import 'package:animestream/core/data/preferredSubtitleLanguage.dart';
 import 'package:animestream/core/data/types.dart';
 import 'package:animestream/ui/models/widgets/slider.dart';
 import 'package:animestream/ui/models/widgets/toggleItem.dart';
@@ -41,6 +42,7 @@ class PlayerSettingState extends State<PlayerSetting> {
   String assPrimary = '';
   String assSecondary = '';
   String assLanguage = 'en';
+  String sourceSubtitleLanguage = 'en';
 
   String? preferredQuality;
 
@@ -56,11 +58,13 @@ class PlayerSettingState extends State<PlayerSetting> {
     final primary = await ExternalAssPreferences.primary();
     final secondary = await ExternalAssPreferences.secondary();
     final language = await ExternalAssPreferences.language();
+    final nativeLanguage = await PreferredSubtitleLanguage.load();
     loaded = true;
     setState(() {
       assPrimary = primary;
       assSecondary = secondary;
       assLanguage = language;
+      sourceSubtitleLanguage = nativeLanguage;
       skipDuration = settings.skipDuration ?? 15;
       megaSkipDuration = settings.megaSkipDuration ?? 85;
       preferredQuality = settings.preferredQuality;
@@ -153,6 +157,31 @@ class PlayerSettingState extends State<PlayerSetting> {
                             if (value == null) return;
                             await ExternalAssPreferences.configure(language: value);
                             if (mounted) setState(() => assLanguage = value);
+                          },
+                        ),
+                        const SizedBox(height: 12),
+                        DropdownButtonFormField<String>(
+                          isExpanded: true,
+                          decoration: const InputDecoration(labelText: 'Default source subtitle language'),
+                          value: sourceSubtitleLanguage,
+                          items: const [
+                            DropdownMenuItem(value: 'auto', child: Text('Auto (first available)')),
+                            DropdownMenuItem(value: 'en', child: Text('English')),
+                            DropdownMenuItem(value: 'sv', child: Text('Swedish')),
+                            DropdownMenuItem(value: 'ja', child: Text('Japanese')),
+                            DropdownMenuItem(value: 'de', child: Text('German')),
+                            DropdownMenuItem(value: 'fr', child: Text('French')),
+                            DropdownMenuItem(value: 'es', child: Text('Spanish')),
+                            DropdownMenuItem(value: 'ar', child: Text('Arabic')),
+                            DropdownMenuItem(value: 'zh', child: Text('Chinese')),
+                            DropdownMenuItem(value: 'ko', child: Text('Korean')),
+                            DropdownMenuItem(value: 'pt', child: Text('Portuguese')),
+                            DropdownMenuItem(value: 'it', child: Text('Italian')),
+                          ],
+                          onChanged: (value) async {
+                            if (value == null) return;
+                            await PreferredSubtitleLanguage.save(value);
+                            if (mounted) setState(() => sourceSubtitleLanguage = value);
                           },
                         ),
                         const Text('Enable Ext sub for each anime in Episodes. '

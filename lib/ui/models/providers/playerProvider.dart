@@ -24,8 +24,8 @@ class PlayerProvider extends ChangeNotifier {
   bool _usingExternalAudioManifest = false;
   bool get usingExternalAudioManifest => _usingExternalAudioManifest;
 
-  Future<void> initiateStream(VideoStream stream) async {
-    final url = await _audioBridge.prepare(stream);
+  Future<void> initiateStream(VideoStream stream, {String? selectedAudioUrl}) async {
+    final url = await _audioBridge.prepare(stream, selectedAudioUrl: selectedAudioUrl);
     _usingExternalAudioManifest = url != stream.url;
     await _controller.initiateVideo(url, headers: stream.customHeaders);
   }
@@ -82,6 +82,23 @@ class PlayerProvider extends ChangeNotifier {
     }
 
     if (seekTime != null) await _controller.seekTo(Duration(milliseconds: seekTime));
+  }
+
+  /// Rebuild the local HLS master with the chosen audio rendition first,
+  /// restart the same stream and resume at the previous timestamp.
+  Future<bool> restartWithExternalAudio(
+      VideoStream stream, String selectedAudioUrl) async {
+    if (!Platform.isAndroid || stream.externalAudioTracks.isEmpty ||
+        !stream.externalAudioTracks.any((e) => e.url == selectedAudioUrl)) {
+      return false;
+    }
+    final pos = _controller.position ?? 0;
+    final wasPlaying = _controller.isPlaying ?? false;
+    await _controller.pause();
+    await initiateStream(stream, selectedAudioUrl: selectedAudioUrl);
+    await _controller.seekTo(Duration(milliseconds: pos));
+    if (wasPlaying) await _controller.play();
+    return _usingExternalAudioManifest;
   }
 
   /// Fast forward / Seek n seconds

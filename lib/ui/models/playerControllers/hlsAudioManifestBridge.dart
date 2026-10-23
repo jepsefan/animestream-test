@@ -40,7 +40,7 @@ class HlsAudioManifestBridge {
         uri.queryParameters.containsKey('w_payload');
   }
 
-  Future<String> prepare(VideoStream stream) async {
+  Future<String> prepare(VideoStream stream, {String? selectedAudioUrl}) async {
     final video = stream.url;
     final uri = Uri.tryParse(video);
     final isHls = uri != null &&
@@ -72,6 +72,10 @@ class HlsAudioManifestBridge {
             preferred.hasMatch(b.label.trim());
         return aMatch == bMatch ? 0 : (aMatch ? -1 : 1);
       });
+    }
+    if (selectedAudioUrl != null) {
+      ordered.sort((a, b) => a.url == selectedAudioUrl ? -1
+          : b.url == selectedAudioUrl ? 1 : 0);
     }
     try {
       _server ??= await HttpServer.bind(InternetAddress.loopbackIPv4, 0,

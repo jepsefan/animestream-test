@@ -37,7 +37,7 @@ class InfoPageEpisodeGrid extends StatelessWidget {
           ),
           child: GestureDetector(
             onTap: () {
-              provider.selectedEpisodeToLoadStreams = index + (provider.currentPageIndex * 24);
+              provider.selectedEpisodeToLoadStreams = provider.visibleEpList[provider.currentPageIndex][index]['realIndex'] as int;
               showDialog(
                 context: context,
                 useRootNavigator: false,
@@ -49,7 +49,7 @@ class InfoPageEpisodeGrid extends StatelessWidget {
                       width: size.width / 3,
                       child: ServerSelectionBottomSheet(
                         provider: provider,
-                        episodeIndex: index + (provider.currentPageIndex * 24),
+                        episodeIndex: provider.visibleEpList[provider.currentPageIndex][index]['realIndex'] as int,
                         type: ServerSheetType.watch,
                       ),
                     ),
@@ -76,7 +76,8 @@ class InfoPageEpisodeGrid extends StatelessWidget {
   }
 
   Widget _episodeCompactTileDesktop(ValueNotifier<bool> hovered, int index, BuildContext context) {
-    final episodeNumber = provider.visibleEpList[provider.currentPageIndex][index]['realIndex'] + 1;
+    final episode = provider.visibleEpList[provider.currentPageIndex][index]['epLink'] as EpisodeDetails;
+    final episodeNumber = episode.episodeLabel ?? '${episode.episodeNumber}';
 
     return ContextMenu(
       menuItems: [
@@ -84,7 +85,7 @@ class InfoPageEpisodeGrid extends StatelessWidget {
             icon: Icons.play_arrow_rounded,
             label: "Watch",
             onClick: () {
-              provider.selectedEpisodeToLoadStreams = index;
+              provider.selectedEpisodeToLoadStreams = provider.visibleEpList[provider.currentPageIndex][index]['realIndex'] as int;
               showDialog(
                 context: context,
                 useRootNavigator: false,
@@ -96,7 +97,7 @@ class InfoPageEpisodeGrid extends StatelessWidget {
                       width: size.width / 3,
                       child: ServerSelectionBottomSheet(
                         provider: provider,
-                        episodeIndex: index,
+                        episodeIndex: provider.visibleEpList[provider.currentPageIndex][index]['realIndex'] as int,
                         type: ServerSheetType.watch,
                       ),
                     ),
@@ -192,9 +193,11 @@ class InfoPageEpisodeGrid extends StatelessWidget {
 
   Widget _episodeTileDesktop(ValueNotifier<bool> hovered, int index, BuildContext context) {
     final episode = provider.visibleEpList[provider.currentPageIndex][index]['epLink'] as EpisodeDetails;
-    final episodeNumber = episode.episodeNumber;
+    final episodeNumber = episode.episodeLabel ?? '${episode.episodeNumber}';
     final title = episode.episodeTitle != null && episode.episodeTitle!.isNotEmpty
-        ? "$episodeNumber: ${episode.episodeTitle}"
+        ? (episode.episodeLabel == null
+            ? '$episodeNumber: ${episode.episodeTitle}'
+            : episode.episodeTitle!)
         : 'Episode $episodeNumber';
     final isFiller = episode.isFiller ?? false;
 

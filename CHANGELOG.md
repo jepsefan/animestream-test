@@ -3,6 +3,7 @@
 Complete development history. Published GitHub Releases use the concise [RELEASE_NOTES.md](RELEASE_NOTES.md) for the latest three beta versions. Older entries remain here for reference.
 
 ## v1.4.9-beta34.85 — Extension episode identity and selection safety
+- Explicit episode number 0 is labeled `Episode 0`; null, -1 and unknown numbers keep the extension's own special/unnumbered title. Rebuilt the parser source to fix a malformed line and accidental duplicate code.
 - Preserve the actual episode number supplied by each approved extension; never silently replace a missing/invalid number with the position in the list.
 - Keep decimal episodes and unnumbered specials labeled distinctly instead of rounding them to a potentially wrong canonical episode number. Sorting keeps their source-defined positions and uses stable numeric ordering within consecutive regular episodes.
 - Episode grid and compact views show source episode identities; watch, context-menu and download actions resolve the original global list index even after pagination or filtering.

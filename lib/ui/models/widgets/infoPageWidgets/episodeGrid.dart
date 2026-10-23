@@ -130,7 +130,7 @@ class InfoPageEpisodeGrid extends StatelessWidget {
 
   Widget _episodeGridTileDesktop(ValueNotifier<bool> hovered, int index, BuildContext context) {
     final episode = provider.visibleEpList[provider.currentPageIndex][index]['epLink'] as EpisodeDetails;
-    final episodeNumber = provider.visibleEpList[provider.currentPageIndex][index]['realIndex'] + 1;
+    final episodeNumber = episode.episodeLabel ?? '${episode.episodeNumber}';
 
     return ClipRRect(
       borderRadius: BorderRadius.circular(12),
@@ -350,7 +350,7 @@ class InfoPageEpisodeGrid extends StatelessWidget {
             width: MediaQuery.of(context).size.width / 3,
             child: ServerSelectionBottomSheet(
               provider: provider,
-              episodeIndex: index + (provider.currentPageIndex * 24),
+              episodeIndex: provider.visibleEpList[provider.currentPageIndex][index]['realIndex'] as int,
               type: ServerSheetType.download,
             ),
           ),

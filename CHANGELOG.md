@@ -2,6 +2,13 @@
 
 Complete development history. Published GitHub Releases use the concise [RELEASE_NOTES.md](RELEASE_NOTES.md) for the latest three beta versions. Older entries remain here for reference.
 
+## v1.4.9-beta34.83 — Default extension subtitles and selectable Re:ANIME audio
+- Added **Player → External ASS Subtitles → Default source subtitle language** (English by default, with Auto and other language choices). This is separate from the existing Preferred ASS Language used by cross-source ASS lookup. Native extension subtitles now prefer the chosen language when available, otherwise retain the source's first subtitle.
+- Added a shared audio picker in the mobile and desktop/TV controls. Android Better Player now queries the current ExoPlayer/Media3 player for actual embedded audio tracks, including MKV, and can select a validated renderer/group/track without assuming HLS metadata.
+- For extension-provided external HLS audio, selecting a rendition regenerates the local HLS master with that track as default, reopens the same video and seeks back to the prior position; restores playing/paused state. Stream URLs and headers are never displayed in the menu.
+- Pointed AnimeStream to the compatible Better Player fork branch `hls-mkv-embedded-audio-track-selection`. Existing subtitle renderer, extension API and metadata functionality remain unchanged.
+- Version `1.4.9-beta34.83+93`. **Not Flutter/Gradle compiled or verified on Android hardware.** A provider exposing audio metadata does not guarantee the remote stream has independently playable HLS audio.
+
 ## v1.4.9-beta34.82 — Extension details recovery and Anikku season API
 - Added the Anikku `getSeasonList(SAnime)` Host API signature with an unsupported default, preserving older extensions and leaving existing episode numbering untouched. This is ABI groundwork; the app does not automatically merge seasons yet.
 - Added a version-neutral `getAnimeDetails` bridge (modern suspend API, legacy Rx fallback only when unsupported).

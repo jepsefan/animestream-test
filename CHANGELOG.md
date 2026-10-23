@@ -2,6 +2,14 @@
 
 Complete development history. Published GitHub Releases use the concise [RELEASE_NOTES.md](RELEASE_NOTES.md) for the latest three beta versions. Older entries remain here for reference.
 
+## v1.4.9-beta34.85 — Extension episode identity and selection safety
+- Preserve the actual episode number supplied by each approved extension; never silently replace a missing/invalid number with the position in the list.
+- Keep decimal episodes and unnumbered specials labeled distinctly instead of rounding them to a potentially wrong canonical episode number. Sorting keeps their source-defined positions and uses stable numeric ordering within consecutive regular episodes.
+- Episode grid and compact views show source episode identities; watch, context-menu and download actions resolve the original global list index even after pagination or filtering.
+- Add Flutter unit coverage for One Piece episode 1000, decimal 1000.5, and unnumbered specials.
+- Keep beta34.84 player audio switching, Android TV controls, 123Anime and existing extension search unchanged. The actual content of One Piece episode 1000 still needs user verification.
+- Version `1.4.9-beta34.85+95`. APK build/device tests not run.
+
 ## v1.4.9-beta34.84 — Unified audio tracks and Android TV Back behavior
 - Removed the duplicate **External HLS audio** choice that restarted the video. Both HLS and MKV now use the actual tracks reported by the active Media3/ExoPlayer player, selected directly without reopening playback.
 - Show readable audio languages (Japanese, English, etc.) in a single list; hide synthetic HLS suffixes such as `Native_1` and `English_2`. Keep the underlying track identifiers intact for playback.

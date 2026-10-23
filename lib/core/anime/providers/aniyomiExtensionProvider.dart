@@ -113,9 +113,9 @@ class AniyomiExtensionProvider extends AnimeProvider {
       });
     }
     // Many extensions return newest first; AnimeStream tracks oldest first.
-    // Stable order: use real numeric episode numbers when known, and keep
-    // the extension's ordering for specials/unknowns rather than inventing IDs.
-    // Sources usually deliver newest first; reverse when numeric ends descend.
+    // Keep the source order for specials/unnumbered episodes. Sort only
+    // consecutive runs of numbered episodes (stable on equal numbers), so
+    // unknown positions cannot be promoted to made-up episode identities.
     final known = result.where((entry) =>
         (entry['episodeNumber'] as int) > 0).toList();
     if (known.length >= 2 &&
@@ -123,12 +123,26 @@ class AniyomiExtensionProvider extends AnimeProvider {
             (known.last['episodeNumber'] as int)) {
       result.setAll(0, result.reversed.toList());
     }
-    result.sort((a, b) {
-      final na = (a['episodeNumber'] as int);
-      final nb = (b['episodeNumber'] as int);
-      if (na == 0 || nb == 0) return 0;
-      return na.compareTo(nb);
-    });
+    var start = 0;
+    while (start < result.length) {
+      if ((result[start]['episodeNumber'] as int) <= 0) {
+        start++;
+        continue;
+      }
+      var end = start + 1;
+      while (end < result.length &&
+          (result[end]['episodeNumber'] as int) > 0) {
+        end++;
+      }
+      final group = result.sublist(start, end).asMap().entries.toList()
+        ..sort((a, b) {
+          final compare = (a.value['episodeNumber'] as int)
+              .compareTo(b.value['episodeNumber'] as int);
+          return compare != 0 ? compare : a.key.compareTo(b.key);
+        });
+      result.setRange(start, end, group.map((entry) => entry.value));
+      start = end;
+    }
     return result;
   }
 

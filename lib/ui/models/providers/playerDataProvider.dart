@@ -9,6 +9,7 @@ import 'package:animestream/core/app/runtimeDatas.dart';
 import 'package:animestream/core/commons/extractQuality.dart';
 import 'package:animestream/core/commons/utils.dart';
 import 'package:animestream/core/data/preferences.dart';
+import 'package:animestream/core/data/preferredSubtitleLanguage.dart';
 import 'package:animestream/core/database/aniskip/aniskip.dart';
 import 'package:animestream/core/database/database.dart';
 import 'package:animestream/core/database/types.dart';
@@ -161,6 +162,11 @@ class PlayerDataProvider extends ChangeNotifier {
   // Keep track preference for this playback session. Rebind by language when
   // the player switches server or episode (URLs are not interchangeable).
   String? _preferredSubtitleLanguage;
+  String _defaultSourceSubtitleLanguage = 'en';
+  Future<void> loadDefaultSubtitleLanguage() async {
+    _defaultSourceSubtitleLanguage = await PreferredSubtitleLanguage.load();
+    notifyListeners();
+  }
   String? _selectedSubtitleUrl;
   String? _selectedSubtitleStreamUrl;
 
@@ -297,6 +303,14 @@ class PlayerDataProvider extends ChangeNotifier {
       for (final track in tracks) {
         if (track.language.toLowerCase() ==
             _preferredSubtitleLanguage!.toLowerCase()) return track;
+      }
+    }
+    if (_defaultSourceSubtitleLanguage != 'auto') {
+      for (final track in tracks) {
+        if (PreferredSubtitleLanguage.normalize(track.language) ==
+            _defaultSourceSubtitleLanguage ||
+            PreferredSubtitleLanguage.normalize(track.label) ==
+            _defaultSourceSubtitleLanguage) return track;
       }
     }
     return tracks.first;

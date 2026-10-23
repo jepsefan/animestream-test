@@ -1,6 +1,13 @@
 # AnimeStream — Latest three beta development versions
 
-Complete history: [CHANGELOG.md](CHANGELOG.md). These notes cover beta34.83, beta34.82 and beta34.81.
+Complete history: [CHANGELOG.md](CHANGELOG.md). These notes cover beta34.84, beta34.83 and beta34.82.
+
+## v1.4.9-beta34.84 — Unified audio tracks and Android TV Back behavior
+- Removed the duplicate **External HLS audio** choice that restarted the video. Both HLS and MKV now use the actual tracks reported by the active Media3/ExoPlayer player, selected directly without reopening playback.
+- Show readable audio languages (Japanese, English, etc.) in a single list; hide synthetic HLS suffixes such as `Native_1` and `English_2`. Keep the underlying track identifiers intact for playback.
+- Android TV: pressing Back when the playback controls overlay is visible hides it instead of immediately leaving playback. Press Back again with the controls hidden to leave the player. On phones, touching the video toggles the controls; system Back no longer stops at the player overlay.
+- The existing beta34.83 English-first extension subtitle preference remains unchanged.
+- Version `1.4.9-beta34.84+94`. Not yet compiled or device-verified.
 
 ## v1.4.9-beta34.83 — Default extension subtitles and selectable Re:ANIME audio
 - Added **Player → External ASS Subtitles → Default source subtitle language** (English by default, with Auto and other language choices). This is separate from the existing Preferred ASS Language used by cross-source ASS lookup. Native extension subtitles now prefer the chosen language when available, otherwise retain the source's first subtitle.
@@ -16,13 +23,6 @@ Complete history: [CHANGELOG.md](CHANGELOG.md). These notes cover beta34.83, bet
 - Episode results report `detailsFallbackUsed` and `detailsFallbackStage` for testing, without exposing credentials or introducing extra calls for functioning sources.
 - Retain beta34.80 full episode lists, beta34.81 completed-cover shading, APK approvals, stream handling, audio, ASS subtitles and SIMKL as before.
 - Version `1.4.9-beta34.82+92`. Android/Flutter build and device tests have not been run.
-
-## v1.4.9-beta34.81 — Shade completed anime covers
-- Give anime posters a subtle 40% black overlay when the signed-in user's **AniList watch-list status is COMPLETED**, independent of the anime's airing/release status. Leave all other statuses visually unchanged.
-- Apply the reusable shading layer to normal and extended cards across Home, Discover, Search and My Lists; include Discover's trending poster and **Related / Recommended** anime covers on the series page. The opened series' own main cover/banner remains unshaded.
-- Fetch completed AniList IDs as a single list request (not one request per poster), share a short-lived in-memory cache, and reuse the existing My Lists response when available. Unknown/failed status queries leave covers unchanged; fallback-only negative metadata IDs are not guessed.
-- Refresh the shading immediately after successful tracking status updates and clear stored completed IDs on AniList logout; keep streaming extensions, audio, subtitles and SIMKL unchanged.
-- Version `1.4.9-beta34.81+91`. Flutter compilation and device verification are pending.
 
 ### Known limitations
 - Some possibly Arabic subtitle characters display as squares with crosses. Logged and deferred by request; no font/rendering change.

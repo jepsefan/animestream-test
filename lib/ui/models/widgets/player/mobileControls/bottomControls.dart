@@ -534,8 +534,7 @@ class _BottomControlsState extends State<BottomControls> {
                     ),
                     IconButton(
                       focusNode: _audioFocusNode,
-                      onPressed: () => AudioTrackPicker.show(
-                          context, dataProvider, playerProvider),
+                      onPressed: () => AudioTrackPicker.show(context, playerProvider),
                       icon: const Icon(Icons.audiotrack_rounded),
                       tooltip: "Audio Tracks",
                       color: Colors.white,

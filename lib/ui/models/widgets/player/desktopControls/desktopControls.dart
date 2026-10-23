@@ -4,6 +4,7 @@ import 'package:animestream/core/app/runtimeDatas.dart';
 import 'package:animestream/ui/models/bottomSheets/customControlsSheet.dart';
 import 'package:animestream/ui/models/providers/playerDataProvider.dart';
 import 'package:animestream/ui/models/providers/playerProvider.dart';
+import 'package:animestream/ui/models/widgets/player/audioTrackPicker.dart';
 import 'package:animestream/ui/models/snackBar.dart';
 import 'package:animestream/ui/models/widgets/ContextMenu.dart';
 import 'package:animestream/ui/models/widgets/player/desktopControls/pipMode.dart';
@@ -478,35 +479,13 @@ class _DesktopControlsState extends State<DesktopControls> {
                               );
                             },
                           ),
-                          ListView.builder(
-                            itemCount: dataProvider.availableAudioTracks.length,
-                            itemBuilder: (context, index) {
-                              final audTrack = dataProvider.availableAudioTracks[index];
-                              return GestureDetector(
-                                onTap: () {
-                                  (provider.controller).setAudioTrack(audTrack);
-                                  dataProvider.updateCurrentAudioTrack(audTrack);
-                                },
-                                child: Container(
-                                    color:
-                                        dataProvider.availableAudioTracks[index].url == dataProvider.state.currentAudioTrack.url
-                                            ? appTheme.accentColor
-                                            : null,
-                                    height: 40,
-                                    alignment: Alignment.center,
-                                    child: Text(
-                                      "${dataProvider.availableAudioTracks[index].name}",
-                                      style: TextStyle(
-                                        fontSize: 18,
-                                        color: dataProvider.availableAudioTracks[index].url ==
-                                                dataProvider.state.currentAudioTrack.url
-                                            ? appTheme.onAccent
-                                            : appTheme.textMainColor,
-                                        fontFamily: "Poppins",
-                                      ),
-                                    ),
-                                  ),);
-                            },
+                          Center(
+                            child: ElevatedButton.icon(
+                              onPressed: () => AudioTrackPicker.show(
+                                  context, dataProvider, provider),
+                              icon: const Icon(Icons.audiotrack),
+                              label: const Text('Choose audio track'),
+                            ),
                           ),
                           ListView.builder(
                             itemCount: dataProvider.state.streams.length,

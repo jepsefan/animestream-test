@@ -154,6 +154,9 @@ class EpisodeDetails {
   /// Episode number
   final int episodeNumber;
 
+  /// Optional display identity from source, including specials/decimals.
+  final String? episodeLabel;
+
   /// Episode thumbnail url, if available
   final String? thumbnail;
 
@@ -175,6 +178,7 @@ class EpisodeDetails {
   EpisodeDetails({
     required this.episodeLink,
     required this.episodeNumber,
+    this.episodeLabel,
     this.thumbnail = null,
     this.episodeTitle = null,
     this.hasDub = false,
@@ -187,6 +191,7 @@ class EpisodeDetails {
     return <String, dynamic>{
       'episodeLink': episodeLink,
       'episodeNumber': episodeNumber,
+      'episodeLabel': episodeLabel,
       'thumbnail': thumbnail,
       'episodeTitle': episodeTitle,
       'hasDub': hasDub,
@@ -202,6 +207,7 @@ class EpisodeDetails {
     return EpisodeDetails(
       episodeLink: map['episodeLink'] as String,
       episodeNumber: episodeNumber is int ? episodeNumber : int.parse(episodeNumber),
+      episodeLabel: map['episodeLabel']?.toString(),
       thumbnail: map['thumbnail'] != null ? map['thumbnail'] as String : null,
       episodeTitle: map['episodeTitle'] != null ? map['episodeTitle'] as String : null,
       hasDub: map['hasDub'] != null

@@ -1,24 +1,53 @@
 import 'package:animestream/ui/models/playerControllers/betterPlayer.dart';
-import 'package:animestream/ui/models/providers/playerDataProvider.dart';
 import 'package:animestream/ui/models/providers/playerProvider.dart';
 import 'package:flutter/material.dart';
 
-/// Present actual embedded MKV/Media3 tracks and extension-provided HLS audio.
-/// No source URL or signed header is shown in the UI.
+/// One list of *actual* Media3 audio tracks for both HLS and MKV.
+/// Extension-provided HLS URLs are not shown a second time and selecting a
+/// track uses Media3 directly without rebuilding or restarting the video.
 class AudioTrackPicker {
-  static Future<void> show(BuildContext context,
-      PlayerDataProvider data, PlayerProvider player) async {
-    final embedded = player.controller is BetterPlayerWrapper
-        ? await (player.controller as BetterPlayerWrapper).getEmbeddedAudioTracks()
+  static String _language(String raw) {
+    final value = raw.toLowerCase().trim().split(RegExp(r'[-_ ]')).first;
+    switch (value) {
+      case 'ja': case 'jp': case 'jpn': case 'japanese': case 'native':
+        return 'Japanese';
+      case 'en': case 'eng': case 'english': return 'English';
+      case 'sv': case 'swe': case 'swedish': return 'Swedish';
+      case 'fr': case 'fre': case 'fra': case 'french': return 'French';
+      case 'de': case 'deu': case 'ger': case 'german': return 'German';
+      case 'es': case 'spa': case 'spanish': return 'Spanish';
+      case 'ar': case 'ara': case 'arabic': return 'Arabic';
+      case 'zh': case 'zho': case 'chi': case 'chinese': return 'Chinese';
+      case 'ko': case 'kor': case 'korean': return 'Korean';
+      default: return '';
+    }
+  }
+
+  static String _title(Map<String, dynamic> track) {
+    final language = track['language']?.toString() ?? '';
+    final label = track['label']?.toString() ?? '';
+    // Media3 may expose manifest NAME=Native_1 / English_2.
+    final clean = label.replaceFirst(RegExp(r'_\\d+$'), '').trim();
+    final recognized = _language(language);
+    if (recognized.isNotEmpty) return recognized;
+    final fromLabel = _language(clean);
+    if (fromLabel.isNotEmpty) return fromLabel;
+    return clean.isEmpty ? 'Audio' : clean;
+  }
+
+  static Future<void> show(BuildContext context, PlayerProvider player) async {
+    final wrapper = player.controller;
+    final tracks = wrapper is BetterPlayerWrapper
+        ? await wrapper.getEmbeddedAudioTracks()
         : <Map<String, dynamic>>[];
     if (!context.mounted) return;
-    final external = data.state.currentStream.externalAudioTracks;
     await showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
       builder: (sheetContext) => SafeArea(
         child: SizedBox(
-          height: (MediaQuery.sizeOf(sheetContext).height * 0.62).clamp(230.0, 560.0),
+          height: (MediaQuery.sizeOf(sheetContext).height * 0.62)
+              .clamp(230.0, 560.0),
           child: Column(children: [
             const Padding(
               padding: EdgeInsets.all(18),
@@ -26,59 +55,28 @@ class AudioTrackPicker {
                   style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
             ),
             Expanded(child: ListView(children: [
-              if (external.isNotEmpty) ...[
-                const ListTile(title: Text('External HLS audio'),
-                    subtitle: Text('Restarts video at the same position')),
-                for (final audio in external)
-                  ListTile(
-                    leading: const Icon(Icons.language),
-                    title: Text(audio.label.isEmpty ? audio.language : audio.label),
-                    subtitle: Text(audio.language),
-                    onTap: () async {
-                      try {
-                        final success = await player.restartWithExternalAudio(
-                            data.state.currentStream, audio.url);
-                        if (!success) throw StateError('Audio switching not supported for this stream');
-                        final track = data.availableAudioTracks
-                            .where((a) => a.url == audio.url).firstOrNull;
-                        if (track != null) data.updateCurrentAudioTrack(track);
-                        if (sheetContext.mounted) Navigator.pop(sheetContext);
-                      } catch (_) {
-                        if (sheetContext.mounted) {
-                          ScaffoldMessenger.of(sheetContext).showSnackBar(
-                            const SnackBar(content: Text(
-                                'Could not change external audio for this stream')));
-                        }
+              for (final track in tracks)
+                ListTile(
+                  leading: const Icon(Icons.audiotrack),
+                  title: Text(_title(track)),
+                  onTap: () async {
+                    try {
+                      final success = await (wrapper as BetterPlayerWrapper)
+                          .selectEmbeddedAudioTrack(track);
+                      if (!success) throw StateError('Track unavailable');
+                      if (sheetContext.mounted) Navigator.pop(sheetContext);
+                    } catch (_) {
+                      if (sheetContext.mounted) {
+                        ScaffoldMessenger.of(sheetContext).showSnackBar(
+                          const SnackBar(content:
+                              Text('Could not select this audio track')),
+                        );
                       }
-                    },
-                  ),
-              ],
-              if (embedded.isNotEmpty) ...[
-                const ListTile(title: Text('Embedded audio (MKV / Media3)')),
-                for (final track in embedded)
-                  ListTile(
-                    leading: const Icon(Icons.audiotrack),
-                    title: Text(track['label']?.toString() ?? 'Audio'),
-                    subtitle: Text(track['language']?.toString() ?? ''),
-                    onTap: () async {
-                      try {
-                        final success = await (player.controller as BetterPlayerWrapper)
-                            .selectEmbeddedAudioTrack(track);
-                        if (!success) throw StateError('Native track not available');
-                        if (sheetContext.mounted) Navigator.pop(sheetContext);
-                      } catch (_) {
-                        if (sheetContext.mounted) {
-                          ScaffoldMessenger.of(sheetContext).showSnackBar(
-                            const SnackBar(content: Text(
-                                'Could not select this embedded audio track')));
-                        }
-                      }
-                    },
-                  ),
-              ],
-              if (external.isEmpty && embedded.isEmpty)
-                const ListTile(title: Text('No selectable audio tracks found'),
-                    subtitle: Text('The current file or player has not exposed additional audio.')),
+                    }
+                  },
+                ),
+              if (tracks.isEmpty)
+                const ListTile(title: Text('No selectable audio tracks found')),
             ])),
           ]),
         ),

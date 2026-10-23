@@ -1,6 +1,7 @@
 import 'package:animestream/core/anime/providers/animeProvider.dart';
 import 'package:animestream/core/anime/providers/aniyomiExtensionBridge.dart';
 import 'package:animestream/core/anime/providers/types.dart';
+import 'package:animestream/core/anime/providers/extensionEpisodeNumber.dart';
 
 /// Wraps an installed Aniyomi APK in AnimeStream's existing provider API.
 /// Search, episode loading and playback are performed by the original APK.
@@ -90,13 +91,8 @@ class AniyomiExtensionProvider extends AnimeProvider {
     for (final item in episodes.whereType<Map>()) {
       final url = item['url']?.toString() ?? '';
       if (url.isEmpty) continue;
-      final rawNumber = item['number'];
-      final number = rawNumber is num ? rawNumber.toDouble() :
-          double.tryParse(rawNumber?.toString() ?? '');
-      // Preserve distinct source episode URLs while normalizing the ordinal for UI.
-      final ordinal = (number != null && number > 0)
-          ? number.round()
-          : (episodes.length - result.length);
+      final episodeName = (item['name'] ?? '').toString();
+      final parsed = ExtensionEpisodeNumber.parse(item['number'], episodeName);
       // The native host resolves relative preview URLs against the selected
       // extension domain. Reject unsupported schemes before displaying them.
       final preview = item['preview']?.toString().trim() ?? '';
@@ -108,16 +104,31 @@ class AniyomiExtensionProvider extends AnimeProvider {
           : null;
       result.add({
         'episodeLink': url,
-        'episodeNumber': ordinal,
-        'episodeTitle': (item['name'] ?? 'Episode $ordinal').toString(),
+        'episodeNumber': parsed.number,
+        'episodeLabel': parsed.label,
+        'episodeTitle': episodeName.isEmpty ? parsed.label : episodeName,
         'thumbnail': thumbnail,
         'hasDub': dub,
-        'metadata': (item['name'] ?? 'Episode $ordinal').toString(),
+        'metadata': episodeName.isEmpty ? parsed.label : episodeName,
       });
     }
     // Many extensions return newest first; AnimeStream tracks oldest first.
-    result.sort((a, b) => (a['episodeNumber'] as int)
-        .compareTo(b['episodeNumber'] as int));
+    // Stable order: use real numeric episode numbers when known, and keep
+    // the extension's ordering for specials/unknowns rather than inventing IDs.
+    // Sources usually deliver newest first; reverse when numeric ends descend.
+    final known = result.where((entry) =>
+        (entry['episodeNumber'] as int) > 0).toList();
+    if (known.length >= 2 &&
+        (known.first['episodeNumber'] as int) >
+            (known.last['episodeNumber'] as int)) {
+      result.setAll(0, result.reversed.toList());
+    }
+    result.sort((a, b) {
+      final na = (a['episodeNumber'] as int);
+      final nb = (b['episodeNumber'] as int);
+      if (na == 0 || nb == 0) return 0;
+      return na.compareTo(nb);
+    });
     return result;
   }
 

@@ -122,6 +122,7 @@ class _WatchState extends State<Watch> with WidgetsBindingObserver {
     Logs.player.log("Initializing stream ${dataProvider.state.currentStream}");
 
     dataProvider.initSubsettings();
+    await dataProvider.loadDefaultSubtitleLanguage();
 
     if (!widget.localSource) {
       await dataProvider.extractCurrentStreamQualities();

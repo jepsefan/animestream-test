@@ -4,6 +4,7 @@ import 'package:animestream/ui/models/playerControllers/videoController.dart';
 import 'package:animestream/ui/models/widgets/player/playerUtils.dart';
 import 'package:better_player/better_player.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 class BetterPlayerWrapper implements VideoController {
   late BetterPlayerController controller = BetterPlayerController(_config);
@@ -131,6 +132,30 @@ class BetterPlayerWrapper implements VideoController {
       controller.enablePictureInPicture(key);
     else
       controller.disablePictureInPicture();
+  }
+
+  /// Native Media3 track list also includes MKV-contained audio languages.
+  /// Uses the current Better Player texture, not a global player instance.
+  Future<List<Map<String, dynamic>>> getEmbeddedAudioTracks() async {
+    final textureId = controller.videoPlayerController?.textureId;
+    if (textureId == null) return const [];
+    final raw = await const MethodChannel('better_player_channel')
+        .invokeMethod<List<dynamic>>('getEmbeddedAudioTracks', {'textureId': textureId});
+    return (raw ?? const []).whereType<Map>().map((e) =>
+        Map<String, dynamic>.from(e)).toList();
+  }
+
+  Future<bool> selectEmbeddedAudioTrack(Map<String, dynamic> track) async {
+    final textureId = controller.videoPlayerController?.textureId;
+    if (textureId == null) return false;
+    return await const MethodChannel('better_player_channel').invokeMethod<bool>(
+      'selectEmbeddedAudioTrack', {
+        'textureId': textureId,
+        'renderer': track['renderer'],
+        'group': track['group'],
+        'track': track['track'],
+      },
+    ) ?? false;
   }
 
   @override

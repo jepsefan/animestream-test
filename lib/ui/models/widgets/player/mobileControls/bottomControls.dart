@@ -4,6 +4,7 @@ import 'package:animestream/core/data/assMotionSmoothing.dart';
 import 'package:animestream/ui/models/bottomSheets/customControlsSheet.dart';
 import 'package:animestream/ui/models/providers/playerDataProvider.dart';
 import 'package:animestream/ui/models/providers/playerProvider.dart';
+import 'package:animestream/ui/models/widgets/player/audioTrackPicker.dart';
 import 'package:animestream/ui/pages/settingPages/common.dart';
 import 'package:animestream/ui/pages/settingPages/subtitle.dart';
 import 'package:flutter/material.dart';
@@ -533,78 +534,9 @@ class _BottomControlsState extends State<BottomControls> {
                     ),
                     IconButton(
                       focusNode: _audioFocusNode,
-                      onPressed: () {
-                        showModalBottomSheet(
-                            context: context,
-                            isScrollControlled: true,
-                            builder: (context) {
-                              return Column(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Padding(
-                                  padding: const EdgeInsets.only(bottom: 20, top: 20),
-                                  child: Text(
-                                    "Audio Track",
-                                    style: textStyle().copyWith(fontSize: 23),
-                                  ),
-                                ),
-                                  ListView.builder(
-                                    itemCount: dataProvider.availableAudioTracks.length,
-                                    shrinkWrap: true,
-                                    itemBuilder: (BuildContext context, index) {
-                                      return Container(
-                                        padding: EdgeInsets.only(left: 25, right: 25),
-                                        child: ElevatedButton(
-                                          onPressed: () async {
-                                            // final src = dataProvider.state.qualities[index].url;
-                                            dataProvider.updateCurrentAudioTrack(dataProvider.availableAudioTracks[index]);
-                                            try {
-                                              playerProvider.controller.setAudioTrack(
-                                                dataProvider.state.currentAudioTrack);
-                                            } catch (_) {
-                                              if (context.mounted) {
-                                                ScaffoldMessenger.of(context).showSnackBar(
-                                                  const SnackBar(content: Text(
-                                                    'Audio rendition is not yet available in the player')),
-                                                );
-                                              }
-                                            }
-                                            // selectedQuality = dataProvider.state.qualities[index]['quality'] ?? '720';
-                                            // dataProvider.updateCurrentQuality(dataProvider.state.qualities[index]);
-                                            // playerProvider.playVideo(src,
-                                            //     currentStream: dataProvider.state.currentStream,
-                                            //     preserveProgress: true);
-                                            Navigator.pop(context);
-                                          },
-                                          style: ElevatedButton.styleFrom(
-                                            shape: RoundedRectangleBorder(
-                                              borderRadius: BorderRadius.circular(10),
-                                              // side: BorderSide(color: Colors.white)
-                                            ),
-                                            backgroundColor: dataProvider.availableAudioTracks[index].url ==
-                                                    dataProvider.state.currentAudioTrack.url
-                                                ? appTheme.accentColor
-                                                : appTheme.backgroundSubColor,
-                                          ),
-                                          child: Text(
-                                            "${dataProvider.availableAudioTracks[index].name} (${dataProvider.availableAudioTracks[index].language})",
-                                            style: TextStyle(
-                                              color: dataProvider.availableAudioTracks[index].url ==
-                                                      dataProvider.state.currentAudioTrack.url
-                                                  ? appTheme.onAccent
-                                                  : appTheme.accentColor,
-                                              fontFamily: "Poppins",
-                                            ),
-                                          ),
-                                        ),
-                                      );
-                                    },
-                                  ),
-                                ],
-                              );
-                            });
-                      },
-                      icon: Icon(Icons.audiotrack_rounded),
+                      onPressed: () => AudioTrackPicker.show(
+                          context, dataProvider, playerProvider),
+                      icon: const Icon(Icons.audiotrack_rounded),
                       tooltip: "Audio Tracks",
                       color: Colors.white,
                     ),

@@ -1,3 +1,4 @@
+import 'package:animestream/core/anime/providers/episodeProgress.dart';
 import 'dart:async';
 import 'dart:io';
 
@@ -269,12 +270,16 @@ class _WatchState extends State<Watch> with WidgetsBindingObserver {
       final currentByTotal = (controller.position ?? 0) / (controller.duration ?? 0);
       if (currentByTotal * 100 >= 75 && !dataProvider.state.preloadStarted && (controller.isPlaying ?? false)) {
         dataProvider.preloadNextEpisode();
-        updateWatching(
-          dataProvider.showId,
-          dataProvider.showTitle,
-          dataProvider.state.currentEpIndex + 1,
-          dataProvider.altDatabases,
-        );
+        final episode = dataProvider.epLinks[dataProvider.state.currentEpIndex];
+        final nextProgress = EpisodeProgress.onWatched(episode, 0);
+        if (nextProgress != null) {
+          updateWatching(
+            dataProvider.showId,
+            dataProvider.showTitle,
+            nextProgress,
+            dataProvider.altDatabases,
+          );
+        }
       }
     }
 
@@ -621,7 +626,7 @@ class _WatchState extends State<Watch> with WidgetsBindingObserver {
           await saveAnimeSpecificPreference(
             playerDataProvider.showId.toString(),
             AnimeSpecificPreference(
-              lastWatchDuration: {playerDataProvider.state.currentEpIndex + 1: watchPercentage * 100},
+              lastWatchDuration: {EpisodeProgress.resumeKey(playerDataProvider.epLinks, playerDataProvider.state.currentEpIndex): watchPercentage * 100},
             ),
           );
         }

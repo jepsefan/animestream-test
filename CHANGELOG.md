@@ -3,6 +3,7 @@
 Complete development history. Published GitHub Releases use the concise [RELEASE_NOTES.md](RELEASE_NOTES.md) for the latest three beta versions. Older entries remain here for reference.
 
 ## v1.4.9-beta34.85 — Extension episode identity and selection safety
+- Episode 0 can be locally marked watched when 75% played, without updating AniList/MAL/SIMKL; info page displays the local checkmark. AniZone server names now normalize extra whitespace extracted from site buttons.
 - Extension Episode 0 ordering: explicitly numbered Episode 0 is placed before ordinary episodes even if Animenosub returns it last. Recognize explicit `Ep. 0` names or `episode-0` URLs if an extension reports a conflicting list index; other specials keep their ordering and streams keep their original URLs. Added regression tests.
 - Tracker safety: progress now uses the actual regular episode number, not list index + 1. Episode 0/specials do not advance AniList, MAL or SIMKL; replaying an earlier episode does not downgrade progress. Continue buttons, resume timestamps and watched indicators use canonical episode IDs, with special resume keys separated. Added unit tests for episode-zero progress behavior.
 - AniZone: distinguish regular /1–/12 episodes from /s1 specials. Guardian Fitz (Mushoku Tensei II 2023) is shown as Episode 0 before Episode 1 based on its verified source identity; other specials keep their source-defined position and do not shift regular episode numbers. Unit tests added.
@@ -12,7 +13,7 @@ Complete development history. Published GitHub Releases use the concise [RELEASE
 - Episode grid and compact views show source episode identities; watch, context-menu and download actions resolve the original global list index even after pagination or filtering.
 - Add Flutter unit coverage for One Piece episode 1000, decimal 1000.5, and unnumbered specials.
 - Keep beta34.84 player audio switching, Android TV controls, 123Anime and existing extension search unchanged. The actual content of One Piece episode 1000 still needs user verification.
-- Version `1.4.9-beta34.85+96`. APK build/device tests not run.
+- Version `1.4.9-beta34.85+97`. APK build/device tests not run.
 
 ## v1.4.9-beta34.84 — Unified audio tracks and Android TV Back behavior
 - Removed the duplicate **External HLS audio** choice that restarted the video. Both HLS and MKV now use the actual tracks reported by the active Media3/ExoPlayer player, selected directly without reopening playback.

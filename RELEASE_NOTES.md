@@ -3,6 +3,7 @@
 Complete history: [CHANGELOG.md](CHANGELOG.md). These notes cover beta34.86, beta34.85 and beta34.84.
 
 ## v1.4.9-beta34.86 — Extension source settings
+- Continue Watching now displays the same small outlined rating badges as other cards. Lazy, cached metadata lookups identify AniList adult entries and MAL R/R+/Rx entries without delaying cards or changing playback.
 - Fix the small 18+/R+ badge plus: square black stroke caps surround all four ends, and the plus is inset to avoid clipping against the image boundary.
 - Keep the upper endpoint of the R+/18+ circle fixed while moving only the lower endpoint away from the plus. Small search/recommended badges now have black outlines around the ring, plus and central R/18 for contrast.
 - Fixed the upper-right opening of R+/18+ badges and added lazy, cached MAL rating lookups for anime recommendation cards.
@@ -19,7 +20,7 @@ Complete history: [CHANGELOG.md](CHANGELOG.md). These notes cover beta34.86, bet
 - Installed extensions now have a Source settings page exposing their actual Aniyomi/Anikku preference options: list, on/off, multiple choice, and non-sensitive text fields for source domains.
 - Preferences are stored locally per extension source and cached source instances are refreshed after saving; unsupported extensions show a clear message.
 - No change to BetterPlayer, audio, subtitles, or existing stream selection.
-- Version `1.4.9-beta34.86+111`. APK build/device tests not yet run.
+- Version `1.4.9-beta34.86+112`. APK build/device tests not yet run.
 
 ## v1.4.9-beta34.85 — Extension episode identity and selection safety
 - Episode 0 can be locally marked watched when 75% played, without updating AniList/MAL/SIMKL; info page displays the local checkmark. AniZone server names now normalize extra whitespace extracted from site buttons.

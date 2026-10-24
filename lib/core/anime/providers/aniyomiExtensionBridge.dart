@@ -234,6 +234,7 @@ class AniyomiExtensionInfo {
   final List<String> signingFingerprints;
   final String? sourceClass;
   final String? sourceFactory;
+  final bool isNsfw;
 
   const AniyomiExtensionInfo({
     required this.packageName,
@@ -243,6 +244,7 @@ class AniyomiExtensionInfo {
     this.signingFingerprints = const [],
     this.sourceClass,
     this.sourceFactory,
+    this.isNsfw = false,
   });
 
   factory AniyomiExtensionInfo.fromMap(Map<String, dynamic> map) =>
@@ -255,6 +257,7 @@ class AniyomiExtensionInfo {
            ?.map((e) => e.toString()).toList() ?? const [],
         sourceClass: map['sourceClass'] as String?,
         sourceFactory: map['sourceFactory'] as String?,
+        isNsfw: map['isNsfw'] == true,
       );
 }
 

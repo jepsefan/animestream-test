@@ -1,5 +1,6 @@
 import 'package:animestream/ui/models/sources.dart';
 import 'package:animestream/ui/pages/settingPages/aniyomiRepositories.dart';
+import 'package:animestream/ui/pages/settingPages/extensionSourceSettings.dart';
 import 'package:animestream/core/anime/providers/providerDetails.dart';
 import 'package:animestream/core/anime/providers/aniyomiExtensionBridge.dart';
 import 'package:animestream/core/anime/providers/extensionAniListMatcher.dart';
@@ -948,6 +949,13 @@ class _PluginPageState extends State<PluginPage> {
                       ExpansionTile(
                         title: Text(ext.name),
                         subtitle: Text('${ext.packageName} • v${ext.version}'),
+                        trailing: IconButton(
+                          tooltip: 'Source settings',
+                          icon: const Icon(Icons.settings_outlined),
+                          onPressed: () => Navigator.of(context).push(
+                            MaterialPageRoute(builder: (_) =>
+                              ExtensionSourceSettingsPage(extension: ext))),
+                        ),
                         childrenPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                         children: [
                           Align(

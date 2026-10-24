@@ -132,7 +132,14 @@ class SourceManager {
       ..addAll(restored);
   }
 
-  List<ProviderDetails> get sources => _sources;
+  List<ProviderDetails> get sources => _sources.where((source) {
+    if (currentUserSettings?.showAdultContent == true) return true;
+    if (!AniyomiExtensionProvider.isExtensionId(source.identifier)) return true;
+    final pkg = source.identifier.substring('aniyomi:'.length).split('#').first;
+    return !_adultExtensionPackages.contains(pkg);
+  }).toList();
+
+  final Set<String> _adultExtensionPackages = {};
 
   /// Rebuild built-in sources without touching approved Android extensions.
   void applyDisabledInbuiltProviders(Iterable<String> disabled) {
@@ -176,6 +183,9 @@ class SourceManager {
     try {
       final installed = await AniyomiExtensionBridge.listInstalledExtensions();
       await _restoreApprovedSources(installed);
+      _adultExtensionPackages
+        ..clear()
+        ..addAll(installed.where((e) => e.isNsfw).map((e) => e.packageName));
       _aniyomi.clear();
       _sources.removeWhere((e) =>
           AniyomiExtensionProvider.isExtensionId(e.identifier));

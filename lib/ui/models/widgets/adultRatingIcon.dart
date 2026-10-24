@@ -36,7 +36,9 @@ class _AdultRingPainter extends CustomPainter {
       ..style = PaintingStyle.stroke
       ..strokeWidth = 3.4
       ..strokeCap = StrokeCap.square;
-    final grade = ageRating?.trim().toLowerCase();
+    // AniList exposes isAdult but no MAL age grade. Use the exact same
+    // 18+ ring and upper-right plus as MAL Rx when no grade is provided.
+    final grade = (ageRating ?? 'rx').trim().toLowerCase();
     final isR = grade == 'r';
     final isRPlus = grade == 'r+';
     if (isR) {

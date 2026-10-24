@@ -239,6 +239,11 @@ class SourceManager {
 
   Future<AnimeProvider> _getProvider(String identifier) async {
     if (AniyomiExtensionProvider.isExtensionId(identifier)) {
+      if (currentUserSettings?.showAdultContent != true &&
+          _adultExtensionPackages.contains(
+              identifier.substring('aniyomi:'.length).split('#').first)) {
+        throw StateError('18+ extension source is disabled in Built-in providers');
+      }
       final provider = _aniyomi[identifier];
       if (provider == null) throw StateError('Aniyomi extension no longer installed');
       return provider;

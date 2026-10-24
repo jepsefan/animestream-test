@@ -1,3 +1,4 @@
+import 'package:animestream/core/anime/providers/episodeProgress.dart';
 import 'dart:convert';
 import 'dart:io';
 
@@ -187,7 +188,7 @@ class ServerSelectionBottomSheetState extends State<ServerSelectionBottomSheet> 
       title,
       widget.provider.data.cover,
       widget.provider.id,
-      widget.episodeIndex,
+      provider.watched,
       totalEpisodes: widget.provider.data.episodes,
       alternateDatabases: widget.provider.altDatabases,
       rating: widget.provider.data.rating,
@@ -217,7 +218,7 @@ class ServerSelectionBottomSheetState extends State<ServerSelectionBottomSheet> 
                 altDatabases: provider.altDatabases,
                 preferDubs: provider.preferDubs,
                 lastWatchDuration: provider.lastWatchedDurationMap?[
-                    provider.watched < provider.epLinks.length ? provider.watched + 1 : provider.watched],
+                    EpisodeProgress.resumeKey(provider.epLinks, widget.episodeIndex)],
               ),
             ),
             ChangeNotifierProvider(
@@ -254,7 +255,7 @@ class ServerSelectionBottomSheetState extends State<ServerSelectionBottomSheet> 
                   "Select Server",
                   style: textStyle().copyWith(fontSize: 23),
                 ),
-                Text("Episode ${widget.episodeIndex + 1}",
+                Text(EpisodeProgress.label(provider.epLinks[widget.episodeIndex]),
                     style: TextStyle(color: appTheme.textSubColor, fontFamily: "Rubik")),
               ],
             ),
@@ -353,7 +354,7 @@ class _DownloadTile extends StatelessWidget {
           final mapped = jsonDecode(quality['headers'] ?? "{}");
           Map<String, String> headers = Map.from(mapped).cast();
 
-          final episodeNum = "${widget.episodeIndex + 1}";
+          final episodeNum = EpisodeProgress.label(widget.provider.epLinks[widget.episodeIndex]);
 
           final fileName = "${title} EP ${episodeNum.padLeft(2, '0')}";
           final streamLink = quality['url']!;

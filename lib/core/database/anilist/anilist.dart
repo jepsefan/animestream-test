@@ -39,6 +39,7 @@ class Anilist extends Database {
                     media(search: ${jsonEncode(query)}, type: ANIME${currentUserSettings?.showAdultContent == true ? '' : ', isAdult: false'}) {
                         id
                         idMal
+                        isAdult
                         title {
                             english
                             romaji
@@ -70,6 +71,7 @@ class Anilist extends Database {
           cover: item['coverImage']['large'],
           id: item['id'],
           idMal: item['idMal'],
+          isAdult: item['isAdult'] == true,
           title: {
             'english': item['title']['english'],
             'romaji': item['title']['romaji'],
@@ -138,6 +140,7 @@ class Anilist extends Database {
                   'native': rec['title']['native'],
                 },
                 cover: rec['coverImage']['large'] ?? rec['coverImage']['extraLarge'],
+                isAdult: rec['isAdult'] == true,
                 type: rec['type'],
                 rating: rec['averageScore'] is int ? rec['averageScore'] / 10 : null),
           );
@@ -157,6 +160,7 @@ class Anilist extends Database {
             cover: relation['node']['coverImage']['large'] ?? relation['node']['coverImage']['extraLarge'],
             type: relation['node']['type'],
             rating: null,
+            isAdult: relation['node']['isAdult'] == true,
             relationType: relation['relationType']));
       });
 
@@ -166,6 +170,7 @@ class Anilist extends Database {
       });
 
       final convertedGuy = AnilistInfo(
+          isAdult: info['isAdult'] == true,
           title: {
             'english': info['title']['english'],
             'native': info['title']['native'],

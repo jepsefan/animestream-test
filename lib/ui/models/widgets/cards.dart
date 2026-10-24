@@ -45,7 +45,7 @@ class Cards {
               },
                 ),
                 if ((isAdult || ageRating == 'r') && currentUserSettings?.showAdultContent == true)
-                  const Positioned(left: 5, bottom: 5, child: AdultRatingIcon(size: 26, ageRating: ageRating)),
+                  Positioned(left: 5, bottom: 5, child: AdultRatingIcon(size: 26, ageRating: ageRating)),
                 if (animeId != null)
                   CompletedCoverOverlay(
                     animeId: animeId,

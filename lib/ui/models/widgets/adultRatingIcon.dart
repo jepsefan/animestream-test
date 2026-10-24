@@ -16,7 +16,8 @@ class AdultRatingIcon extends StatelessWidget {
       width: size,
       height: size,
       child: CustomPaint(painter: _AdultRingPainter(
-          Theme.of(context).colorScheme.onSurface, ageRating)),
+          Theme.of(context).colorScheme.onSurface, ageRating,
+          size <= 32)),
     );
   }
 }
@@ -24,47 +25,94 @@ class AdultRatingIcon extends StatelessWidget {
 class _AdultRingPainter extends CustomPainter {
   final Color color;
   final String? ageRating;
-  const _AdultRingPainter(this.color, this.ageRating);
+  final bool outlined;
+  const _AdultRingPainter(this.color, this.ageRating, this.outlined);
 
   @override
   void paint(Canvas canvas, Size size) {
     final scale = size.width / 55;
     canvas.save();
     canvas.scale(scale);
-    final stroke = Paint()
+    // Draw small-cover badges with a dark edge so the light rating and '+'
+    // remain readable even on bright, detailed artwork.
+    final ring = Paint()
       ..color = color
       ..style = PaintingStyle.stroke
       ..strokeWidth = 3.4
       ..strokeCap = StrokeCap.square;
-    // AniList exposes isAdult but no MAL age grade. Use the exact same
-    // 18+ ring and upper-right plus as MAL Rx when no grade is provided.
+    final ringOutline = Paint()
+      ..color = Colors.black
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 5.8
+      ..strokeCap = StrokeCap.square;
+
+    // AniList lacks MAL grading and shares MAL Rx's 18+ graphic.
     final grade = (ageRating ?? 'rx').trim().toLowerCase();
     final isR = grade == 'r';
     final isRPlus = grade == 'r+';
-    if (isR) {
-      canvas.drawCircle(const Offset(27.5, 27.5), 24.5, stroke);
-    } else {
-      // The '+' occupies the opening at upper right, as in the original icon.
-      canvas.drawArc(const Rect.fromLTWH(3, 3, 49, 49),
-          -0.55, 5.58, false, stroke);
+    final glyph = isR || isRPlus ? 'R' : '18';
+
+    void drawRing(Paint paint) {
+      if (isR) {
+        canvas.drawCircle(const Offset(27.5, 27.5), 24.5, paint);
+      } else {
+        // Preserve the upper/left endpoint (5.03 rad). Only move the
+        // LOWER endpoint clockwise so it clears the bottom of '+'.
+        // Previous: start -0.55, sweep 5.58 (end 5.03).
+        canvas.drawArc(const Rect.fromLTWH(3, 3, 49, 49),
+            -0.27, 5.30, false, paint);
+      }
     }
+
+    if (outlined) drawRing(ringOutline);
+    drawRing(ring);
+
+    final textStyle = TextStyle(
+      fontSize: 34, fontWeight: FontWeight.w800, color: color, height: 1);
     final number = TextPainter(
-      text: TextSpan(text: isR || isRPlus ? 'R' : '18', style: TextStyle(
-          fontSize: 34, fontWeight: FontWeight.w800,
-          color: color, height: 1)),
+      text: TextSpan(text: glyph, style: textStyle),
       textDirection: TextDirection.ltr,
     )..layout();
-    number.paint(canvas, Offset((55 - number.width) / 2,
-        (55 - number.height) / 2 + 2));
+    final textOffset = Offset((55 - number.width) / 2,
+        (55 - number.height) / 2 + 2);
+    if (outlined) {
+      final outlineNumber = TextPainter(
+        text: TextSpan(text: glyph, style: TextStyle(
+          fontSize: 34,
+          fontWeight: FontWeight.w800,
+          height: 1,
+          foreground: Paint()
+            ..color = Colors.black
+            ..style = PaintingStyle.stroke
+            ..strokeJoin = StrokeJoin.round
+            ..strokeWidth = 2.8,
+        )),
+        textDirection: TextDirection.ltr,
+      )..layout();
+      outlineNumber.paint(canvas, textOffset);
+    }
+    number.paint(canvas, textOffset);
+
     if (!isR) {
-      final plus = Paint()..color = color..strokeWidth = 4;
-      canvas.drawLine(const Offset(43, 8), const Offset(54, 8), plus);
-      canvas.drawLine(const Offset(48.5, 2.5), const Offset(48.5, 13.5), plus);
+      void drawPlus(Paint paint) {
+        canvas.drawLine(const Offset(43, 8), const Offset(54, 8), paint);
+        canvas.drawLine(const Offset(48.5, 2.5), const Offset(48.5, 13.5), paint);
+      }
+      if (outlined) {
+        drawPlus(Paint()
+          ..color = Colors.black
+          ..strokeWidth = 6.4);
+      }
+      drawPlus(Paint()
+        ..color = color
+        ..strokeWidth = 4);
     }
     canvas.restore();
   }
 
   @override
   bool shouldRepaint(covariant _AdultRingPainter oldDelegate) =>
-      oldDelegate.color != color || oldDelegate.ageRating != ageRating;
+      oldDelegate.color != color ||
+      oldDelegate.ageRating != ageRating ||
+      oldDelegate.outlined != outlined;
 }

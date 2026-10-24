@@ -22,6 +22,7 @@ class AnimeCard extends StatefulWidget {
   final String? subText;
   final double? rating;
   final bool isAdult;
+  final String? ageRating;
   final void Function()? afterNavigation;
 
   const AnimeCard({
@@ -34,6 +35,7 @@ class AnimeCard extends StatefulWidget {
     this.ongoing = false,
     this.rating = null,
     this.isAdult = false,
+    this.ageRating,
     this.shouldNavigate = true,
     this.subText = null,
     this.isMobile = true,
@@ -161,9 +163,9 @@ class _AnimeCardState extends State<AnimeCard> {
                     ),
                     ),
                   ),
-                  if (widget.isAdult && currentUserSettings?.showAdultContent == true)
+                  if ((widget.isAdult || widget.ageRating == 'r') && currentUserSettings?.showAdultContent == true)
                     const Positioned(left: 6, bottom: 15,
-                      child: AdultRatingIcon(size: 28)),
+                      child: AdultRatingIcon(size: 28, ageRating: widget.ageRating)),
                   Positioned(
                     right: 0,
                     bottom: 10,

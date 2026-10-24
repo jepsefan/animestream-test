@@ -27,8 +27,9 @@ class AnilistApiException implements Exception {
 class Anilist extends Database {
   Future<List<AnilistSearchResult>> search(String query) async {
     if (!MetadataSettings.anilistEnabled) return AnimeMetadataRouter.instance.search(query);
-    try { return await _searchAniList(query); }
-    catch (_) { return AnimeMetadataRouter.instance.search(query); }
+    // A search uses exactly one metadata provider. Never silently search
+    // MAL/Kitsu if the chosen AniList request fails or returns no results.
+    return _searchAniList(query);
   }
 
   Future<List<AnilistSearchResult>> _searchAniList(String query) async {

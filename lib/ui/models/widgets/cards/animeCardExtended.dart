@@ -15,6 +15,7 @@ class AnimeCardExtended extends StatelessWidget {
   final String imageUrl;
   final double rating;
   final bool isAdult;
+  final String? ageRating;
   final bool shouldNavigate;
   final bool isAnime;
   final void Function()? afterNavigation;
@@ -31,6 +32,7 @@ class AnimeCardExtended extends StatelessWidget {
     required this.imageUrl,
     required this.rating,
     this.isAdult = false,
+    this.ageRating,
     this.shouldNavigate = true,
     this.isAnime = true,
     this.afterNavigation,
@@ -212,8 +214,8 @@ class AnimeCardExtended extends StatelessWidget {
                     ],
                   ),
                 ),
-                if (isAdult && currentUserSettings?.showAdultContent == true)
-                  const Positioned(left: 12, bottom: 12, child: AdultRatingIcon(size: 28)),
+                if ((isAdult || ageRating == 'r') && currentUserSettings?.showAdultContent == true)
+                  const Positioned(left: 12, bottom: 12, child: AdultRatingIcon(size: 28, ageRating: ageRating)),
               ],
             ),
           ),

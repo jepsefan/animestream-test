@@ -271,8 +271,9 @@ class _WatchState extends State<Watch> with WidgetsBindingObserver {
       if (currentByTotal * 100 >= 75 && !dataProvider.state.preloadStarted && (controller.isPlaying ?? false)) {
         dataProvider.preloadNextEpisode();
         final episode = dataProvider.epLinks[dataProvider.state.currentEpIndex];
-        final nextProgress = EpisodeProgress.onWatched(episode, 0);
+        final nextProgress = EpisodeProgress.onWatched(episode, dataProvider.trackedProgress);
         if (nextProgress != null) {
+          dataProvider.trackedProgress = nextProgress;
           updateWatching(
             dataProvider.showId,
             dataProvider.showTitle,

@@ -97,7 +97,7 @@ class AniZone extends AnimeProvider {
       final epLink = item['url']?.toString();
       if (epLink == null || epLink.isEmpty) continue;
 
-      final episodeUrl = epLink.replaceAll(r'\', '');
+      final episodeUrl = epLink.replaceAll(String.fromCharCode(92), '');
       final episodeType = item['type']?.toString();
       final isSpecial = AniZoneEpisodeIdentity.isSpecial(episodeUrl, episodeType);
       if (isSpecial) {
@@ -114,7 +114,7 @@ class AniZone extends AnimeProvider {
         regularIndex: regularIndex,
         specialIndex: specialIndex,
       );
-      final preview = item['snapshot']?.toString().replaceAll(r'\', '');
+      final preview = item['snapshot']?.toString().replaceAll(String.fromCharCode(92), '');
       final episode = <String, dynamic>{
         'episodeLink': episodeUrl,
         'episodeNumber': identity.number,

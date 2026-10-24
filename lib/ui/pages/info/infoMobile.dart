@@ -221,39 +221,39 @@ class _InfoMobileState extends State<InfoMobile> {
                                                           foregroundColor: appTheme.onAccent,
                                                         ),
                                                       )
-                                            ],
-                                            content: Padding(
-                                              padding: const EdgeInsets.all(10),
-                                              child: Text.rich(
-                                                TextSpan(text: "Remove \"", style: TextStyle(fontSize: 15), children: [
-                                                  TextSpan(
-                                                      text: "${getTitle(provider.data.title)}",
-                                                      style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
-                                                  TextSpan(
-                                                      text: "\" from your watch history?",
-                                                      style: TextStyle(fontSize: 15)),
-                                                ]),
+                                                    ],
+                                                    content: Padding(
+                                                      padding: const EdgeInsets.all(10),
+                                                      child: Text.rich(
+                                                        TextSpan(text: "Remove \"", style: TextStyle(fontSize: 15), children: [
+                                                          TextSpan(
+                                                              text: "${getTitle(provider.data.title)}",
+                                                              style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
+                                                          TextSpan(
+                                                              text: "\" from your watch history?",
+                                                              style: TextStyle(fontSize: 15)),
+                                                        ]),
+                                                      ),
+                                                    ),
+                                                  );
+                                                });
+                                          },
+                                          style: ElevatedButton.styleFrom(
+                                            shape: CircleBorder(
+                                              side: BorderSide(
+                                                color: appTheme.accentColor,
                                               ),
                                             ),
-                                          );
-                                        });
-                                  },
-                                  style: ElevatedButton.styleFrom(
-                                    shape: CircleBorder(
-                                      side: BorderSide(
-                                        color: appTheme.accentColor,
-                                      ),
-                                    ),
-                                    fixedSize: Size(50, 50),
-                                    backgroundColor: appTheme.backgroundColor,
-                                    padding: EdgeInsets.zero,
-                                  ),
-                                  child: Icon(
-                                    Icons.delete_outline_rounded,
-                                    color: appTheme.accentColor,
-                                    size: 28,
-                                  ),
-                                ),
+                                            fixedSize: Size(50, 50),
+                                            backgroundColor: appTheme.backgroundColor,
+                                            padding: EdgeInsets.zero,
+                                          ),
+                                          child: Icon(
+                                            Icons.delete_outline_rounded,
+                                            color: appTheme.accentColor,
+                                            size: 28,
+                                          ),
+                                        ),
                                     ],
                                   ),
                                 ),

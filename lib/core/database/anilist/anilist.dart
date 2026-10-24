@@ -1,3 +1,5 @@
+import 'dart:convert';
+import 'package:animestream/core/app/runtimeDatas.dart';
 import 'package:animestream/core/app/values.dart';
 import 'package:animestream/core/metadata/metadataFallback.dart';
 import 'package:animestream/core/network/network.dart';
@@ -33,7 +35,7 @@ class Anilist extends Database {
     final gquery = '''
             query {
                 Page(perPage: 15) {
-                    media(search: "$query", type: ANIME, isAdult: false) {
+                    media(search: ${jsonEncode(query)}, type: ANIME${currentUserSettings?.showAdultContent == true ? '' : ', isAdult: false'}) {
                         id
                         idMal
                         title {

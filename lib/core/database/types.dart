@@ -1,6 +1,7 @@
 import 'package:animestream/core/database/database.dart';
 
 abstract class DatabaseSearchResult {
+  bool get isAdult => false;
   int get id;
   Map<String, String?> get title;
   String get cover;
@@ -9,6 +10,7 @@ abstract class DatabaseSearchResult {
 }
 
 abstract class DatabaseRelatedRecommendation {
+  bool get isAdult => false;
   int get id;
   Map<String, String?> get title;
   String get cover;
@@ -47,6 +49,7 @@ abstract class DatabaseMutationResult {
 }
 
 abstract class DatabaseInfo {
+  bool get isAdult => false;
   Map<String, String?> get title;
   Map<String, String?> get aired;
   String? get banner;

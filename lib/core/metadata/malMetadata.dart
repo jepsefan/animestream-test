@@ -22,6 +22,30 @@ class MalAnimeMetadata implements AnimeMetadataProvider {
   static final Map<String, AnimeMetadataSummary> _summaries =
       <String, AnimeMetadataSummary>{};
 
+  // Recommendation nodes omit age ratings. Fetch them lazily as cards become
+  // visible, and share each in-flight request across repeated card builds.
+  static final Map<int, Future<String?>> _recommendationRatings = {};
+
+  static Future<String?> recommendationAgeRating(int malId) =>
+      _recommendationRatings.putIfAbsent(malId, () async {
+        try {
+          final response = await get(
+            '$_base/anime/$malId',
+            headers: _headers,
+            queryParameters: <String, String>{'fields': 'rating'},
+            cacheDuration: const Duration(hours: 12),
+          );
+          final json = response.json;
+          if (json is! Map) return null;
+          final rating = json['rating']?.toString().trim().toLowerCase();
+          return rating == 'r' || rating == 'r+' || rating == 'rx'
+              ? rating : null;
+        } catch (_) {
+          // Missing MAL details should never break recommendation cards.
+          return null;
+        }
+      });
+
   static const String _animeFields =
       'id,title,main_picture,alternative_titles,start_date,end_date,synopsis,'
       'mean,media_type,status,genres,rating,nsfw,num_episodes,average_episode_duration,'

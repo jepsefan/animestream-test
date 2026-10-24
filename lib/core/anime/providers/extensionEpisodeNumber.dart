@@ -9,7 +9,26 @@ class ExtensionEpisodeNumber {
 
   const ExtensionEpisodeNumber(this.number, this.label, this.sortNumber);
 
-  static ExtensionEpisodeNumber parse(Object? raw, String title) {
+  /// Source data is authoritative. Only an unambiguous Episode 0 title
+  /// or URL may override a conflicting synthetic numeric index.
+  static ExtensionEpisodeNumber parse(
+    Object? raw,
+    String title, {
+    String? episodeUrl,
+  }) {
+    final explicitZeroInTitle = RegExp(
+      r'^\s*ep(?:isode)?\.?\s*#?\s*0(?=\s|[:\-–—]|$)',
+      caseSensitive: false,
+    ).hasMatch(title);
+    final path = Uri.tryParse(episodeUrl ?? '')?.path ?? '';
+    final explicitZeroInUrl = RegExp(
+      r'(?:^|[/_-])(?:episode|ep)[-_]?0(?=/|$|[-_])',
+      caseSensitive: false,
+    ).hasMatch(path);
+    if (explicitZeroInTitle || explicitZeroInUrl) {
+      return const ExtensionEpisodeNumber(0, 'Episode 0', 0);
+    }
+
     final value = raw is num
         ? raw.toDouble()
         : double.tryParse(raw?.toString().trim() ?? '');
@@ -37,5 +56,19 @@ class ExtensionEpisodeNumber {
       sourceTitle.isEmpty ? 'Special / unnumbered' : sourceTitle,
       null,
     );
+  }
+
+  /// Move *only* an explicitly identified Episode 0 before regular episodes.
+  /// Unknown/special episodes retain their relative source order.
+  static List<T> episodeZeroFirst<T>(
+    Iterable<T> episodes,
+    bool Function(T episode) isExplicitZero,
+  ) {
+    final zero = <T>[];
+    final others = <T>[];
+    for (final episode in episodes) {
+      (isExplicitZero(episode) ? zero : others).add(episode);
+    }
+    return <T>[...zero, ...others];
   }
 }

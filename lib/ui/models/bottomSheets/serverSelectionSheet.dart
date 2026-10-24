@@ -259,7 +259,7 @@ class ServerSelectionBottomSheetState extends State<ServerSelectionBottomSheet> 
                   "Select Server",
                   style: textStyle().copyWith(fontSize: 23),
                 ),
-                Text(EpisodeProgress.label(provider.epLinks[widget.episodeIndex]),
+                Text(EpisodeProgress.label(widget.provider.epLinks[widget.episodeIndex]),
                     style: TextStyle(color: appTheme.textSubColor, fontFamily: "Rubik")),
               ],
             ),

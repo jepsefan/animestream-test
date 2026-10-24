@@ -9,7 +9,7 @@ import 'package:animestream/ui/models/widgets/adultRatingIcon.dart';
 
 class Cards {
   /**Builds a character card (no navigation) */
-  static Widget characterCard(String name, String role, String imageUrl, {int? animeId, bool isAdult = false}) {
+  static Widget characterCard(String name, String role, String imageUrl, {int? animeId, bool isAdult = false, String? ageRating}) {
     return Card(
       color: appTheme.backgroundColor,
       clipBehavior: Clip.hardEdge,
@@ -44,8 +44,8 @@ class Cards {
                 );
               },
                 ),
-                if (isAdult && currentUserSettings?.showAdultContent == true)
-                  const Positioned(left: 5, bottom: 5, child: AdultRatingIcon(size: 26)),
+                if ((isAdult || ageRating == 'r') && currentUserSettings?.showAdultContent == true)
+                  const Positioned(left: 5, bottom: 5, child: AdultRatingIcon(size: 26, ageRating: ageRating)),
                 if (animeId != null)
                   CompletedCoverOverlay(
                     animeId: animeId,
@@ -164,6 +164,7 @@ class Cards {
     String? subText = null,
     double? rating = null,
     bool isAdult = false,
+    String? ageRating,
     bool? isMobile,
     void Function()? afterNavigation,
   }) {
@@ -179,6 +180,7 @@ class Cards {
       subText: subText,
       rating: rating,
       isAdult: isAdult,
+      ageRating: ageRating,
       isMobile: isMobile ?? Platform.isAndroid,
     );
   }

@@ -3,6 +3,7 @@
 Complete history: [CHANGELOG.md](CHANGELOG.md). These notes cover beta34.86, beta34.85 and beta34.84.
 
 ## v1.4.9-beta34.86 — Extension source settings
+- MAL adult badge now requests age rating from the API and counts R+ and Rx as 18+ (not plain R); added unit tests.
 - Widen the 18+ circle opening without moving its plus sign or changing icon size.
 - Add open-ring 18+ symbol matching the selected artwork, at full 55px height next to the Watch/Info button and a smaller overlay on search, Related, and Recommended cards. Propagate AniList adult classification through search, information, and related metadata; use provider NSFW flags where available. The icon appears only when global 18+ is enabled and the specific title is classified adult.
 - Metadata search uses exactly one provider: AniList when enabled, otherwise the first enabled MAL/Kitsu backup. Empty results and failures never cascade to another source. The 18+ switch now controls MAL `nsfw` requests and Kitsu local NSFW filtering.
@@ -12,7 +13,7 @@ Complete history: [CHANGELOG.md](CHANGELOG.md). These notes cover beta34.86, bet
 - Installed extensions now have a Source settings page exposing their actual Aniyomi/Anikku preference options: list, on/off, multiple choice, and non-sensitive text fields for source domains.
 - Preferences are stored locally per extension source and cached source instances are refreshed after saving; unsupported extensions show a clear message.
 - No change to BetterPlayer, audio, subtitles, or existing stream selection.
-- Version `1.4.9-beta34.86+104`. APK build/device tests not yet run.
+- Version `1.4.9-beta34.86+105`. APK build/device tests not yet run.
 
 ## v1.4.9-beta34.85 — Extension episode identity and selection safety
 - Episode 0 can be locally marked watched when 75% played, without updating AniList/MAL/SIMKL; info page displays the local checkmark. AniZone server names now normalize extra whitespace extracted from site buttons.

@@ -722,7 +722,7 @@ class _InfoMobileState extends State<InfoMobile> {
                         ),
                       ),
                       Text(
-                        'Episode ${provider.nextEpisodeResumeKey}',
+                        provider.nextEpisodeLabel,
                         style: TextStyle(
                           color: appTheme.textMainColor,
                           fontFamily: "Rubik",
@@ -1069,8 +1069,7 @@ class _InfoMobileState extends State<InfoMobile> {
                     child: Stack(
                       children: [
                         Opacity(
-                          opacity: provider.visibleEpList[provider.currentPageIndex][index]['epLink'].episodeNumber >
-                                  provider.watched
+                          opacity: !provider.episodeIsWatched(provider.visibleEpList[provider.currentPageIndex][index]['epLink'])
                               ? 1.0
                               : 0.5,
                           child: ShaderMask(
@@ -1104,8 +1103,7 @@ class _InfoMobileState extends State<InfoMobile> {
                                 Text(
                                   "Episode ${provider.visibleEpList[provider.currentPageIndex][index]['epLink'].episodeNumber}",
                                   style: TextStyle(
-                                    color: provider.visibleEpList[provider.currentPageIndex][index]['epLink'].episodeNumber >
-                                            provider.watched
+                                    color: !provider.episodeIsWatched(provider.visibleEpList[provider.currentPageIndex][index]['epLink'])
                                         ? appTheme.textMainColor
                                         : appTheme.textSubColor,
                                     fontFamily: "Poppins",

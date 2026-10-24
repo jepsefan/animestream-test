@@ -1,5 +1,6 @@
 import 'package:animestream/core/app/runtimeDatas.dart';
 import 'package:animestream/core/data/settings.dart';
+import 'package:animestream/core/data/extensionAdultPreferences.dart';
 import 'package:animestream/core/data/types.dart';
 import 'package:animestream/ui/models/sources.dart';
 import 'package:animestream/ui/pages/settingPages/common.dart';
@@ -16,6 +17,7 @@ class BuiltInProvidersPage extends StatefulWidget {
 class _BuiltInProvidersPageState extends State<BuiltInProvidersPage> {
   bool _loaded = false;
   bool _saving = false;
+  bool _adultEnabled = false;
   final Set<String> _disabledSources = {};
   final Set<String> _disabledMetadata = {};
   final Set<String> _fallbacks = {'mal', 'kitsu'};
@@ -30,6 +32,7 @@ class _BuiltInProvidersPageState extends State<BuiltInProvidersPage> {
     final settings = await Settings().getSettings();
     if (!mounted) return;
     setState(() {
+      _adultEnabled = settings.showAdultContent == true;
       _disabledSources
         ..clear()
         ..addAll(settings.disabledProviders ?? const <String>[]);
@@ -78,6 +81,22 @@ class _BuiltInProvidersPageState extends State<BuiltInProvidersPage> {
         );
         await _load();
       }
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
+
+  Future<void> _setAdultEnabled(bool enabled) async {
+    if (_saving) return;
+    setState(() => _saving = true);
+    try {
+      await Settings().writeSettings(SettingsModal(showAdultContent: enabled));
+      await ExtensionAdultPreferences.sync(enabled);
+      if (!mounted) return;
+      setState(() => _adultEnabled = enabled);
+    } catch (error) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('18+ settings: $error')));
     } finally {
       if (mounted) setState(() => _saving = false);
     }
@@ -143,6 +162,9 @@ class _BuiltInProvidersPageState extends State<BuiltInProvidersPage> {
                     _switch('Simkl', 'SIMKL account and anime metadata',
                       !_disabledMetadata.contains('simkl'),
                       (enabled) => _change('simkl', enabled, 'metadata')),
+                    _switch('18+ content',
+                      'Allow adult-rated extension sources and sync explicit 18+ switches in installed extensions.',
+                      _adultEnabled, _setAdultEnabled),
                     _heading('Metadata fallbacks'),
                     _note('When AniList is unavailable: MyAnimeList, then Kitsu. '
                         'Only enabled fallbacks will be tried.'),

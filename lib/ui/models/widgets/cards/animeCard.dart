@@ -164,7 +164,7 @@ class _AnimeCardState extends State<AnimeCard> {
                     ),
                   ),
                   if ((widget.isAdult || widget.ageRating == 'r') && currentUserSettings?.showAdultContent == true)
-                    const Positioned(left: 6, bottom: 15,
+                    Positioned(left: 6, bottom: 15,
                       child: AdultRatingIcon(size: 28, ageRating: widget.ageRating)),
                   Positioned(
                     right: 0,

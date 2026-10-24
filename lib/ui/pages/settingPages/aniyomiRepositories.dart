@@ -27,6 +27,9 @@ class _AniyomiRepositoriesPageState extends State<AniyomiRepositoriesPage> with 
   String _search = '';
   String _language = 'all';
   int _section = 2;
+  // Choose the initial tab once installed packages have been scanned, but
+  // never override a tab the user selected themselves.
+  bool _sectionChosenByUser = false;
   Map<String, AniyomiExtensionInfo> _installed = {};
 
   @override
@@ -49,8 +52,12 @@ class _AniyomiRepositoriesPageState extends State<AniyomiRepositoriesPage> with 
   Future<void> _refreshInstalled() async {
     try {
       final list = await AniyomiExtensionBridge.listInstalledExtensions();
-      if (mounted) setState(() => _installed = {
-        for (final ext in list) ext.packageName: ext,
+      if (!mounted) return;
+      setState(() {
+        _installed = {for (final ext in list) ext.packageName: ext};
+        if (!_sectionChosenByUser) {
+          _section = list.isNotEmpty ? 0 : 2;
+        }
       });
     } catch (_) { /* Android-only catalog display */ }
   }
@@ -361,7 +368,10 @@ class _AniyomiRepositoriesPageState extends State<AniyomiRepositoriesPage> with 
             ChoiceChip(
               label: Text(tab.$2),
               selected: _section == tab.$1,
-              onSelected: (_) => setState(() => _section = tab.$1),
+              onSelected: (_) => setState(() {
+                _section = tab.$1;
+                _sectionChosenByUser = true;
+              }),
             ),
         ]),
         Builder(builder: (context) {
@@ -436,19 +446,24 @@ class _AniyomiRepositoriesPageState extends State<AniyomiRepositoriesPage> with 
                         icon: const Icon(Icons.download_outlined),
                         onPressed: _busy ? null : () => _install(entry, origins[entry.packageName]!),
                       ),
-                    if (_installed[entry.packageName] != null)
+                    if (_installed[entry.packageName] != null) ...[
+                      IconButton(
+                        icon: const Icon(Icons.settings_outlined),
+                        tooltip: 'Source settings',
+                        onPressed: _busy ? null : () => Navigator.of(context).push(
+                          MaterialPageRoute(builder: (_) => ExtensionSourceSettingsPage(
+                            extension: _installed[entry.packageName]!))),
+                      ),
                       PopupMenuButton<String>(
                         tooltip: 'Extension options',
                         onSelected: (value) {
                           if (value == 'uninstall') _uninstall(_installed[entry.packageName]!);
-                          if (value == 'settings') Navigator.of(context).push(MaterialPageRoute(
-                            builder: (_) => ExtensionSourceSettingsPage(extension: _installed[entry.packageName]!)));
                         },
                         itemBuilder: (_) => const [
-                          PopupMenuItem(value: 'settings', child: Text('Source settings')),
                           PopupMenuItem(value: 'uninstall', child: Text('Uninstall')),
                         ],
                       ),
+                    ],
                   ]),
                 ),
             ],
@@ -460,7 +475,7 @@ class _AniyomiRepositoriesPageState extends State<AniyomiRepositoriesPage> with 
                   title: Text(ext.name),
                   subtitle: Text('Installed v' + ext.version),
                   trailing: Row(mainAxisSize: MainAxisSize.min, children: [
-                    IconButton(icon: const Icon(Icons.tune), tooltip: 'Source settings',
+                    IconButton(icon: const Icon(Icons.settings_outlined), tooltip: 'Source settings',
                       onPressed: () => Navigator.of(context).push(MaterialPageRoute(
                         builder: (_) => ExtensionSourceSettingsPage(extension: ext)))),
                     IconButton(icon: const Icon(Icons.delete_outline), tooltip: 'Uninstall',

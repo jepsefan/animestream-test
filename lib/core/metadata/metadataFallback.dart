@@ -196,6 +196,7 @@ class AnimeMetadataRouter {
       cover: summary.cover,
       id: _idFor(summary),
       isAdult: summary.isAdult,
+      ageRating: summary.ageRating,
       idMal:
           summary.source == 'mal' ? int.tryParse(summary.providerId) : null,
       title: summary.title,
@@ -244,6 +245,7 @@ class AnimeMetadataRouter {
 
     return AnilistInfo(
       isAdult: summary.isAdult,
+      ageRating: summary.ageRating,
       aired: <String, String>{
         'start': details.startDate ?? '',
         'end': details.endDate ?? '',
@@ -280,6 +282,7 @@ class AnimeMetadataRouter {
             cover: summary.cover,
             id: _idFor(summary),
             isAdult: summary.isAdult,
+            ageRating: summary.ageRating,
             rating: summary.rating,
             title: summary.title,
             type: summary.format ?? 'ANIME',

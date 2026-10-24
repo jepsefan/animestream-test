@@ -95,17 +95,19 @@ class _AdultRingPainter extends CustomPainter {
 
     if (!isR) {
       void drawPlus(Paint paint) {
-        canvas.drawLine(const Offset(43, 8), const Offset(54, 8), paint);
-        canvas.drawLine(const Offset(48.5, 2.5), const Offset(48.5, 13.5), paint);
+        canvas.drawLine(const Offset(41.5, 9), const Offset(50.5, 9), paint);
+        canvas.drawLine(const Offset(46, 4.5), const Offset(46, 13.5), paint);
       }
       if (outlined) {
         drawPlus(Paint()
           ..color = Colors.black
-          ..strokeWidth = 6.4);
+          ..strokeWidth = 6.4
+          ..strokeCap = StrokeCap.square);
       }
       drawPlus(Paint()
         ..color = color
-        ..strokeWidth = 4);
+        ..strokeWidth = 4
+        ..strokeCap = StrokeCap.square);
     }
     canvas.restore();
   }

@@ -15,7 +15,7 @@ class ExtensionAdultPreferences {
     final title = preference['title']?.toString() ?? '';
     final key = preference['key']?.toString() ?? '';
     final normalized = '$title $key'.toLowerCase();
-    if (RegExp(r'\\b(hide|exclude|block|disable|filter)\\b').hasMatch(normalized)) return false;
+    if (RegExp(r'\b(hide|exclude|block|disable|filter)\b').hasMatch(normalized)) return false;
     return _adultName.hasMatch(title) || _adultName.hasMatch(key);
   }
 

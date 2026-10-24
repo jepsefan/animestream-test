@@ -57,6 +57,9 @@ class SourceManager {
 
   /// Identity verified against installed APK signer/version on restoration.
   /// Used only for user-triggered Source settings relinking after restart.
+  List<AniyomiExtensionSourceInfo> approvedSourcesForExtension(String packageName) =>
+      List.unmodifiable(_approvedSources[packageName] ?? const <AniyomiExtensionSourceInfo>[]);
+
   AniyomiExtensionSourceInfo? approvedExtensionSource(
       String packageName, int sourceId) {
     for (final source in

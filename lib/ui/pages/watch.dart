@@ -1,4 +1,5 @@
 import 'package:animestream/core/anime/providers/episodeProgress.dart';
+import 'package:animestream/core/data/localEpisodeZeroProgress.dart';
 import 'dart:async';
 import 'dart:io';
 
@@ -42,6 +43,7 @@ class Watch extends StatefulWidget {
 class _WatchState extends State<Watch> with WidgetsBindingObserver {
   late VideoController controller;
   bool _isAndroidTv = false;
+  final Set<String> _markedLocalEpisodeZero = {};
 
   Future<void> _detectAndroidTv() async {
     final detected = await isTv();
@@ -271,6 +273,12 @@ class _WatchState extends State<Watch> with WidgetsBindingObserver {
       if (currentByTotal * 100 >= 75 && !dataProvider.state.preloadStarted && (controller.isPlaying ?? false)) {
         dataProvider.preloadNextEpisode();
         final episode = dataProvider.epLinks[dataProvider.state.currentEpIndex];
+        if (episode.episodeNumber == 0 && episode.episodeLabel == 'Episode 0') {
+          final key = '${dataProvider.showId}:${episode.episodeLink}';
+          if (_markedLocalEpisodeZero.add(key)) {
+            LocalEpisodeZeroProgress.markWatched(dataProvider.showId);
+          }
+        }
         final nextProgress = EpisodeProgress.onWatched(episode, dataProvider.trackedProgress);
         if (nextProgress != null) {
           dataProvider.trackedProgress = nextProgress;

@@ -185,15 +185,18 @@ class ServerSelectionBottomSheetState extends State<ServerSelectionBottomSheet> 
     final provider = widget.provider;
     // return print(streamSources[index]);
 
-    await storeWatching(
-      title,
-      widget.provider.data.cover,
-      widget.provider.id,
-      provider.watched,
-      totalEpisodes: widget.provider.data.episodes,
-      alternateDatabases: widget.provider.altDatabases,
-      rating: widget.provider.data.rating,
-    );
+    // Episode zero and unnumbered specials must not modify tracker progress.
+    if (provider.epLinks[widget.episodeIndex].episodeNumber > 0) {
+      await storeWatching(
+        title,
+        widget.provider.data.cover,
+        widget.provider.id,
+        provider.watched,
+        totalEpisodes: widget.provider.data.episodes,
+        alternateDatabases: widget.provider.altDatabases,
+        rating: widget.provider.data.rating,
+      );
+    }
 
     final controller = Platform.isAndroid ? BetterPlayerWrapper() : FvpWrapper();
     final navigatorState = (Platform.isWindows ? AppWrapper.navKey.currentState : Navigator.of(context));

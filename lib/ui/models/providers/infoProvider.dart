@@ -1,4 +1,5 @@
 import 'package:animestream/core/anime/providers/episodeProgress.dart';
+import 'package:animestream/core/data/localEpisodeZeroProgress.dart';
 import 'package:flutter/material.dart';
 
 import 'package:animestream/core/anime/providers/providerDetails.dart';
@@ -118,12 +119,23 @@ class InfoProvider extends ChangeNotifier {
 
   Map? get lastWatchedDurationMap => _lastWatchedDurationMap;
 
+  bool _episodeZeroWatched = false;
   int get watched => _watched;
+  bool get episodeZeroWatched => _episodeZeroWatched;
+  bool get hasEpisodeZero => _epLinks.any((ep) => ep.episodeNumber == 0 && ep.episodeLabel == 'Episode 0');
+  Future<void> clearEpisodeZeroWatched() async {
+    await LocalEpisodeZeroProgress.clearWatched(id);
+    _episodeZeroWatched = false;
+    notifyListeners();
+  }
   int get nextEpisodeIndex => EpisodeProgress.nextIndex(_epLinks, _watched);
   EpisodeDetails? get nextEpisode => _epLinks.isEmpty ? null : _epLinks[nextEpisodeIndex];
   int get nextEpisodeResumeKey => _epLinks.isEmpty ? 1 : EpisodeProgress.resumeKey(_epLinks, nextEpisodeIndex);
   String get nextEpisodeLabel => nextEpisode == null ? 'Episode 1' : EpisodeProgress.label(nextEpisode!);
-  bool episodeIsWatched(EpisodeDetails ep) => EpisodeProgress.isWatched(ep, _watched);
+  bool episodeIsWatched(EpisodeDetails ep) =>
+      ep.episodeNumber == 0 && ep.episodeLabel == 'Episode 0'
+          ? _episodeZeroWatched
+          : EpisodeProgress.isWatched(ep, _watched);
   int get viewMode => _viewMode;
   int get currentPageIndex => _currentPageIndex;
   int get viewModeIndexLength => 3;
@@ -230,6 +242,7 @@ class InfoProvider extends ChangeNotifier {
     final asp = await getAnimeSpecificPreference(id.toString());
     _externalAssEnabled = await ExternalAssPreferences.enabled(id);
     _lastWatchedDurationMap = asp?.lastWatchDuration ?? {};
+    _episodeZeroWatched = await LocalEpisodeZeroProgress.isWatched(id);
     _manualSearchQuery = asp?.manualSearchQuery;
     _extensionSelections = Map<String, String>.from(asp?.extensionSelections ?? const {});
 
@@ -292,6 +305,7 @@ class InfoProvider extends ChangeNotifier {
       _currentPageIndex = supposedPageIndex >= visibleEpList.length ? visibleEpList.length - 1 : supposedPageIndex;
 
       if (refreshLastWatchDuration) {
+        _episodeZeroWatched = await LocalEpisodeZeroProgress.isWatched(id);
         _lastWatchedDurationMap = (await getAnimeSpecificPreference(id.toString()))?.lastWatchDuration;
       }
     } catch (err) {

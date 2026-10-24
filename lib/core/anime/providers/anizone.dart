@@ -176,7 +176,7 @@ class AniZone extends AnimeProvider {
     // print(subs);
 
     final srcName = (doc.querySelector("button.flex.gap-2.relative")?.text ?? "Default")
-        .replaceAll(RegExp(r'\\s+'), ' ')
+        .replaceAll(RegExp(r'\s+'), ' ')
         .trim();
 
     update([

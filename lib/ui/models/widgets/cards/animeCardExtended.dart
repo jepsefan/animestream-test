@@ -3,6 +3,7 @@ import 'dart:ui';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:animestream/ui/models/widgets/completedCoverOverlay.dart';
 import 'package:flutter/material.dart';
+import 'package:animestream/ui/models/widgets/adultRatingIcon.dart';
 
 import 'package:animestream/core/app/runtimeDatas.dart';
 import 'package:animestream/ui/models/snackBar.dart';
@@ -13,6 +14,7 @@ class AnimeCardExtended extends StatelessWidget {
   final String title;
   final String imageUrl;
   final double rating;
+  final bool isAdult;
   final bool shouldNavigate;
   final bool isAnime;
   final void Function()? afterNavigation;
@@ -28,6 +30,7 @@ class AnimeCardExtended extends StatelessWidget {
     required this.title,
     required this.imageUrl,
     required this.rating,
+    this.isAdult = false,
     this.shouldNavigate = true,
     this.isAnime = true,
     this.afterNavigation,
@@ -86,6 +89,8 @@ class AnimeCardExtended extends StatelessWidget {
                       ),
                     ),
                   ),
+                if (isAdult && currentUserSettings?.showAdultContent == true)
+                  const Positioned(left: 10, bottom: 10, child: AdultRatingIcon(size: 28)),
                 Container(
                   padding: EdgeInsets.all(8),
                   child: Row(

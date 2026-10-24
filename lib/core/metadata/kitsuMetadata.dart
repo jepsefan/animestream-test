@@ -106,6 +106,7 @@ class KitsuAnimeMetadata implements AnimeMetadataProvider {
 
     return AnimeMetadataSummary(
       source: 'kitsu',
+      isAdult: attrs['nsfw'] == true,
       providerId: item['id'].toString(),
       title: _titleMap(attrs),
       cover: _cover(attrs) ?? '',

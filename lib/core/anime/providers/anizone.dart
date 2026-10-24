@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:animestream/core/anime/providers/animeProvider.dart';
 import 'package:animestream/core/anime/providers/types.dart';
+import 'package:animestream/core/anime/providers/aniZoneEpisodeIdentity.dart';
 import 'package:html/parser.dart';
 import 'package:animestream/core/network/network.dart';
 
@@ -87,33 +88,51 @@ class AniZone extends AnimeProvider {
 
     final epList = <Map<String, dynamic>>[];
 
-    int i = 1;
+    var regularIndex = 0;
+    var specialIndex = 0;
+    final earlySpecials = <Map<String, dynamic>>[];
 
     for (final item in list) {
-      final title = item['title_list']?['1'];
+      final title = item['title_list']?['1']?.toString();
+      final epLink = item['url']?.toString();
+      if (epLink == null || epLink.isEmpty) continue;
 
-      final epLink = item['url'];
-
-      if(epLink == null) {
-        print("NAH now way.... No epLink for the episode?!");
-        continue;
+      final episodeUrl = epLink.replaceAll(r'\', '');
+      final episodeType = item['type']?.toString();
+      final isSpecial = AniZoneEpisodeIdentity.isSpecial(episodeUrl, episodeType);
+      if (isSpecial) {
+        specialIndex++;
+      } else {
+        regularIndex++;
       }
 
-      final epImg = item['snapshot']?.replaceAll(r"\", "");
-
-      final isFiller = item['type']?.toLowerCase() == "filler";
-      // final title = item.querySelector("h3")?.text;
-      epList.add({
-        'episodeLink': epLink.replaceAll(r"\", ""),
-        'episodeNumber': i,
-        'thumbnail': epImg,
+      final identity = AniZoneEpisodeIdentity.fromSource(
+        animeUrl: aliasId,
+        episodeUrl: episodeUrl,
+        title: title,
+        type: episodeType,
+        regularIndex: regularIndex,
+        specialIndex: specialIndex,
+      );
+      final preview = item['snapshot']?.toString().replaceAll(r'\', '');
+      final episode = <String, dynamic>{
+        'episodeLink': episodeUrl,
+        'episodeNumber': identity.number,
+        'episodeLabel': identity.label,
+        'thumbnail': preview,
         'episodeTitle': title,
-        'isFiller': isFiller,
+        'isFiller': episodeType?.toLowerCase() == 'filler',
         'hasDub': false,
-      });
-
-      i++;
+      };
+      // Only move a verified prequel special. Other sN items retain their
+      // source positions, as not every special aired before episode 1.
+      if (identity.moveBeforeRegularEpisodes) {
+        earlySpecials.add(episode);
+      } else {
+        epList.add(episode);
+      }
     }
+    epList.insertAll(0, earlySpecials);
 
     return epList;
   }

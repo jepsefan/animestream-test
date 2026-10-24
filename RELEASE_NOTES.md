@@ -1,6 +1,12 @@
 # AnimeStream — Latest three beta development versions
 
-Complete history: [CHANGELOG.md](CHANGELOG.md). These notes cover beta34.86, beta34.85 and beta34.84.
+Complete history: [CHANGELOG.md](CHANGELOG.md). These notes cover beta34.87, beta34.86 and beta34.85.
+
+## v1.4.9-beta34.87 — Centered Watch button and relocated R+ badge
+- Moved the R+/18+ age-rating badge to the left of Watch/Info on the mobile series details page, retaining the existing rating classification and visibility rules.
+- Reserved equal-width slots on both sides of Watch so the button stays horizontally centered regardless of whether the rating badge, tracker action or delete action is visible.
+- Existing tracker buttons, watch/info action, subtitle behavior and provider logic are unchanged.
+- Version `1.4.9-beta34.87+113`. APK build/device verification pending.
 
 ## v1.4.9-beta34.86 — Extension source settings
 - Continue Watching now displays the same small outlined rating badges as other cards. Lazy, cached metadata lookups identify AniList adult entries and MAL R/R+/Rx entries without delaying cards or changing playback.
@@ -34,10 +40,3 @@ Complete history: [CHANGELOG.md](CHANGELOG.md). These notes cover beta34.86, bet
 - Add Flutter unit coverage for One Piece episode 1000, decimal 1000.5, and unnumbered specials.
 - Keep beta34.84 player audio switching, Android TV controls, 123Anime and existing extension search unchanged. The actual content of One Piece episode 1000 still needs user verification.
 - Version `1.4.9-beta34.85+97`. APK build/device tests not run.
-
-## v1.4.9-beta34.84 — Unified audio tracks and Android TV Back behavior
-- Removed the duplicate **External HLS audio** choice that restarted the video. Both HLS and MKV now use the actual tracks reported by the active Media3/ExoPlayer player, selected directly without reopening playback.
-- Show readable audio languages (Japanese, English, etc.) in a single list; hide synthetic HLS suffixes such as `Native_1` and `English_2`. Keep the underlying track identifiers intact for playback.
-- Android TV: pressing Back when the playback controls overlay is visible hides it instead of immediately leaving playback. Press Back again with the controls hidden to leave the player. On phones, touching the video toggles the controls; system Back no longer stops at the player overlay.
-- The existing beta34.83 English-first extension subtitle preference remains unchanged.
-- Version `1.4.9-beta34.84+94`. Not yet compiled or device-verified.

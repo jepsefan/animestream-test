@@ -1,6 +1,12 @@
 # AnimeStream — Latest three beta development versions
 
-Complete history: [CHANGELOG.md](CHANGELOG.md). These notes cover beta34.85, beta34.84 and beta34.83.
+Complete history: [CHANGELOG.md](CHANGELOG.md). These notes cover beta34.86, beta34.85 and beta34.84.
+
+## v1.4.9-beta34.86 — Extension source settings
+- Installed extensions now have a Source settings page exposing their actual Aniyomi/Anikku preference options: list, on/off, multiple choice, and non-sensitive text fields for source domains.
+- Preferences are stored locally per extension source and cached source instances are refreshed after saving; unsupported extensions show a clear message.
+- No change to BetterPlayer, audio, subtitles, or existing stream selection.
+- Version `1.4.9-beta34.86+98`. APK build/device tests not yet run.
 
 ## v1.4.9-beta34.85 — Extension episode identity and selection safety
 - Episode 0 can be locally marked watched when 75% played, without updating AniList/MAL/SIMKL; info page displays the local checkmark. AniZone server names now normalize extra whitespace extracted from site buttons.
@@ -21,18 +27,3 @@ Complete history: [CHANGELOG.md](CHANGELOG.md). These notes cover beta34.85, bet
 - Android TV: pressing Back when the playback controls overlay is visible hides it instead of immediately leaving playback. Press Back again with the controls hidden to leave the player. On phones, touching the video toggles the controls; system Back no longer stops at the player overlay.
 - The existing beta34.83 English-first extension subtitle preference remains unchanged.
 - Version `1.4.9-beta34.84+94`. Not yet compiled or device-verified.
-
-## v1.4.9-beta34.83 — Default extension subtitles and selectable Re:ANIME audio
-- Added **Player → External ASS Subtitles → Default source subtitle language** (English by default, with Auto and other language choices). This is separate from the existing Preferred ASS Language used by cross-source ASS lookup. Native extension subtitles now prefer the chosen language when available, otherwise retain the source's first subtitle.
-- Added a shared audio picker in the mobile and desktop/TV controls. Android Better Player now queries the current ExoPlayer/Media3 player for actual embedded audio tracks, including MKV, and can select a validated renderer/group/track without assuming HLS metadata.
-- For extension-provided external HLS audio, selecting a rendition regenerates the local HLS master with that track as default, reopens the same video and seeks back to the prior position; restores playing/paused state. Stream URLs and headers are never displayed in the menu.
-- Pointed AnimeStream to the compatible Better Player fork branch `hls-mkv-embedded-audio-track-selection`. Existing subtitle renderer, extension API and metadata functionality remain unchanged.
-- Version `1.4.9-beta34.83+93`. **Not Flutter/Gradle compiled or verified on Android hardware.** A provider exposing audio metadata does not guarantee the remote stream has independently playable HLS audio.
-
-### Known limitations
-- Some possibly Arabic subtitle characters display as squares with crosses. Logged and deferred by request; no font/rendering change.
-- Some 123Anime hosts still return no playable video.
-- Standalone external audio tracks cannot yet be selected for playback, and not every Anikku extension API is supported.
-- Extension repository URLs remain user-supplied and local. APK installation requires signing checks and Android confirmation.
-
-Older versions: [CHANGELOG.md](CHANGELOG.md).

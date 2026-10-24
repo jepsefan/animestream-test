@@ -36,7 +36,7 @@ class _AdultRingPainter extends CustomPainter {
       ..strokeCap = StrokeCap.square;
     // Open the circle at the upper-right where the plus sign sits.
     canvas.drawArc(const Rect.fromLTWH(3, 3, 49, 49),
-        -0.90, 6.0, false, stroke);
+        -0.90, 5.35, false, stroke);
     final number = TextPainter(
       text: TextSpan(text: '18', style: TextStyle(
           fontSize: 34, fontWeight: FontWeight.w800,

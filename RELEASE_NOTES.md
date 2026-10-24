@@ -12,7 +12,7 @@ Complete history: [CHANGELOG.md](CHANGELOG.md). These notes cover beta34.85, bet
 - Episode grid and compact views show source episode identities; watch, context-menu and download actions resolve the original global list index even after pagination or filtering.
 - Add Flutter unit coverage for One Piece episode 1000, decimal 1000.5, and unnumbered specials.
 - Keep beta34.84 player audio switching, Android TV controls, 123Anime and existing extension search unchanged. The actual content of One Piece episode 1000 still needs user verification.
-- Version `1.4.9-beta34.85+95`. APK build/device tests not run.
+- Version `1.4.9-beta34.85+96`. APK build/device tests not run.
 
 ## v1.4.9-beta34.84 — Unified audio tracks and Android TV Back behavior
 - Removed the duplicate **External HLS audio** choice that restarted the video. Both HLS and MKV now use the actual tracks reported by the active Media3/ExoPlayer player, selected directly without reopening playback.

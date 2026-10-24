@@ -80,6 +80,7 @@ class AnilistQueries {
         Page(perPage: 100) {
           media(id: $anilistId) {
             idMal
+            isAdult
             title {
               romaji
               english
@@ -150,6 +151,7 @@ class AnilistQueries {
           mediaRecommendation {
             id
             type
+            isAdult
             averageScore
             title {
               romaji
@@ -171,6 +173,7 @@ class AnilistQueries {
           node {
             id
             type
+            isAdult
             title {
               romaji
               english

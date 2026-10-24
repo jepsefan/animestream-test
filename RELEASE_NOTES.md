@@ -3,6 +3,7 @@
 Complete history: [CHANGELOG.md](CHANGELOG.md). These notes cover beta34.85, beta34.84 and beta34.83.
 
 ## v1.4.9-beta34.85 — Extension episode identity and selection safety
+- Tracker safety: progress now uses the actual regular episode number, not list index + 1. Episode 0/specials do not advance AniList, MAL or SIMKL; replaying an earlier episode does not downgrade progress. Continue buttons, resume timestamps and watched indicators use canonical episode IDs, with special resume keys separated. Added unit tests for episode-zero progress behavior.
 - AniZone: distinguish regular /1–/12 episodes from /s1 specials. Guardian Fitz (Mushoku Tensei II 2023) is shown as Episode 0 before Episode 1 based on its verified source identity; other specials keep their source-defined position and do not shift regular episode numbers. Unit tests added.
 - Explicit episode number 0 displays as `Episode 0` instead of being classified as unknown; missing numbers retain their source title. Fixed the parser source formatting.
 - Preserve the actual episode number supplied by each approved extension; never silently replace a missing/invalid number with the position in the list.

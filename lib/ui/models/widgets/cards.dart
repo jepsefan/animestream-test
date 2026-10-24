@@ -5,10 +5,11 @@ import 'package:animestream/ui/models/widgets/cards/animeCardExtended.dart';
 import 'package:animestream/ui/models/widgets/cards/animeCard.dart';
 import 'package:animestream/ui/models/widgets/completedCoverOverlay.dart';
 import 'package:flutter/material.dart';
+import 'package:animestream/ui/models/widgets/adultRatingIcon.dart';
 
 class Cards {
   /**Builds a character card (no navigation) */
-  static Widget characterCard(String name, String role, String imageUrl, {int? animeId}) {
+  static Widget characterCard(String name, String role, String imageUrl, {int? animeId, bool isAdult = false}) {
     return Card(
       color: appTheme.backgroundColor,
       clipBehavior: Clip.hardEdge,
@@ -43,6 +44,8 @@ class Cards {
                 );
               },
                 ),
+                if (isAdult && currentUserSettings?.showAdultContent == true)
+                  const Positioned(left: 5, bottom: 5, child: AdultRatingIcon(size: 26)),
                 if (animeId != null)
                   CompletedCoverOverlay(
                     animeId: animeId,
@@ -160,6 +163,7 @@ class Cards {
     bool isAnime = true,
     String? subText = null,
     double? rating = null,
+    bool isAdult = false,
     bool? isMobile,
     void Function()? afterNavigation,
   }) {
@@ -174,6 +178,7 @@ class Cards {
       isAnime: isAnime,
       subText: subText,
       rating: rating,
+      isAdult: isAdult,
       isMobile: isMobile ?? Platform.isAndroid,
     );
   }

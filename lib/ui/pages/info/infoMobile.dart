@@ -16,6 +16,7 @@ import 'package:animestream/core/app/runtimeDatas.dart';
 import 'package:animestream/core/commons/enums.dart';
 import 'package:animestream/core/data/types.dart';
 import 'package:animestream/core/database/types.dart';
+import 'package:animestream/core/metadata/malMetadata.dart';
 import 'package:animestream/ui/models/bottomSheets/manualSearchSheet.dart';
 import 'package:animestream/ui/models/bottomSheets/mediaListStatus.dart';
 import 'package:animestream/ui/models/bottomSheets/serverSelectionSheet.dart';
@@ -1400,7 +1401,19 @@ class _InfoMobileState extends State<InfoMobile> {
             child: Container(
                 width: 130,
                 child: recommended
-                    ? Cards.animeCard(item.id, getTitle(item.title), item.cover, rating: item.rating, isAdult: item.isAdult, ageRating: item.ageRating)
+                    ? (item.id < 0 && item.id > -1000000000 && item.ageRating == null
+                        ? FutureBuilder<String?>(
+                            future: MalAnimeMetadata.recommendationAgeRating(-item.id),
+                            builder: (context, snapshot) {
+                              final grade = snapshot.data;
+                              return Cards.animeCard(item.id, getTitle(item.title), item.cover,
+                                  rating: item.rating,
+                                  isAdult: item.isAdult || grade == 'r+' || grade == 'rx',
+                                  ageRating: grade);
+                            },
+                          )
+                        : Cards.animeCard(item.id, getTitle(item.title), item.cover,
+                            rating: item.rating, isAdult: item.isAdult, ageRating: item.ageRating))
                     : Cards.characterCard(
                         getTitle(item.title),
                         recommended ? item.type : item.relationType!,

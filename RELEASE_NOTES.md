@@ -3,6 +3,7 @@
 Complete history: [CHANGELOG.md](CHANGELOG.md). These notes cover beta34.86, beta34.85 and beta34.84.
 
 ## v1.4.9-beta34.86 — Extension source settings
+- Fixed the upper-right opening of R+/18+ badges and added lazy, cached MAL rating lookups for anime recommendation cards.
 - AniList adult-rated titles now explicitly use the same open-ring 18+ badge design as MAL Rx.
 - Fixed Flutter compilation of runtime MAL age rating widgets by removing invalid const wrappers; version bumped for a new APK.
 - MAL age badges now preserve the actual `rating` class: R = R in a complete circle, R+ = centered R with an open ring and plus at upper-right, Rx = original open-ring 18+ symbol. AniList retains its generic 18+ icon when `isAdult=true`. Applies to search, information, related, and recommended UI.
@@ -16,7 +17,7 @@ Complete history: [CHANGELOG.md](CHANGELOG.md). These notes cover beta34.86, bet
 - Installed extensions now have a Source settings page exposing their actual Aniyomi/Anikku preference options: list, on/off, multiple choice, and non-sensitive text fields for source domains.
 - Preferences are stored locally per extension source and cached source instances are refreshed after saving; unsupported extensions show a clear message.
 - No change to BetterPlayer, audio, subtitles, or existing stream selection.
-- Version `1.4.9-beta34.86+108`. APK build/device tests not yet run.
+- Version `1.4.9-beta34.86+109`. APK build/device tests not yet run.
 
 ## v1.4.9-beta34.85 — Extension episode identity and selection safety
 - Episode 0 can be locally marked watched when 75% played, without updating AniList/MAL/SIMKL; info page displays the local checkmark. AniZone server names now normalize extra whitespace extracted from site buttons.

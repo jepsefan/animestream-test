@@ -81,10 +81,17 @@ jobs:
           if not match:
               raise SystemExit('Expected one pubspec version in the form 1.2.3[-prerelease]+build-number')
           version, code = match.groups()
-          tag = f'v{version}'
+          # Use unique immutable release tags for repeated APK builds of one beta.
+          # Legacy tags without +build are still accepted when building old tags.
+          legacy_tag = f'v{version}'
+          build_tag = f'{legacy_tag}+{code}'
           source_tag = os.environ['SOURCE_TAG']
-          if source_tag and source_tag != tag:
-              raise SystemExit(f'Tag {source_tag} does not match pubspec version {value} (expected {tag})')
+          if source_tag and source_tag not in (legacy_tag, build_tag):
+              raise SystemExit(
+                  f'Tag {source_tag} does not match pubspec version {value} '
+                  f'(expected {legacy_tag} or {build_tag})'
+              )
+          tag = source_tag or build_tag
           sha = subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip()
           existing = subprocess.run(['git', 'rev-parse', '--verify', f'refs/tags/{tag}^{{commit}}'], capture_output=True, text=True)
           if existing.returncode == 0 and existing.stdout.strip() != sha:

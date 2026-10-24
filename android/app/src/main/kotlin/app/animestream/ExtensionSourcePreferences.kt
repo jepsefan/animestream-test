@@ -1,6 +1,7 @@
 package app.animestream
 
 import android.content.Context
+import androidx.preference.EditTextPreference
 import androidx.preference.ListPreference
 import androidx.preference.MultiSelectListPreference
 import androidx.preference.Preference
@@ -65,9 +66,16 @@ internal class ExtensionSourcePreferences(private val context: Context) {
 
     private fun safePreferences(screen: PreferenceGroup): List<Preference> =
         mutableListOf<Preference>().also { collect(screen, it) }
-            .filter { safeKey(it.key) && it.isEnabled &&
-                (it is ListPreference || it is MultiSelectListPreference ||
-                    it is TwoStatePreference) }
+            .filter {
+                // Never expose login credentials from third-party extension
+                // preferences in the Flutter settings UI.
+                val title = it.title?.toString().orEmpty()
+                safeKey(it.key) && it.isVisible &&
+                    !Regex("password|secret|token|cookie|authorization|api.?key|login",
+                        RegexOption.IGNORE_CASE).containsMatchIn(title) &&
+                    (it is ListPreference || it is MultiSelectListPreference ||
+                        it is TwoStatePreference || it is EditTextPreference)
+            }
             .take(32)
 
     fun list(
@@ -84,6 +92,12 @@ internal class ExtensionSourcePreferences(private val context: Context) {
                 val title = preference.title?.toString()?.take(140)
                     ?.takeIf { it.isNotBlank() } ?: key
                 when (preference) {
+                    is EditTextPreference -> mapOf(
+                        "key" to key,
+                        "title" to title,
+                        "type" to "text",
+                        "value" to (preference.text ?: "").take(256)
+                    )
                     is ListPreference -> {
                         val values = preference.entryValues?.map { it.toString() }
                             ?: emptyList()
@@ -156,6 +170,16 @@ internal class ExtensionSourcePreferences(private val context: Context) {
             val preference = safePreferences(screen).firstOrNull { it.key == key }
                 ?: return mapOf("status" to "invalid_preference")
             when (preference) {
+                is EditTextPreference -> {
+                    val selected = value as? String
+                        ?: return mapOf("status" to "invalid_value")
+                    if (selected.length > 256 || selected.any { it.isISOControl() }) {
+                        return mapOf("status" to "invalid_value")
+                    }
+                    if (!preference.callChangeListener(selected))
+                        return mapOf("status" to "change_rejected")
+                    preference.text = selected
+                }
                 is ListPreference -> {
                     val selected = value as? String
                         ?: return mapOf("status" to "invalid_value")
@@ -191,6 +215,9 @@ internal class ExtensionSourcePreferences(private val context: Context) {
                 }
                 else -> return mapOf("status" to "invalid_preference")
             }
+            // Cached source instances may have captured the old domain in
+            // their constructor. Recreate them on the next search/episode call.
+            ExtensionHostRuntime.invalidate(packageName)
             mapOf("status" to "updated")
         } catch (e: IllegalArgumentException) {
             mapOf("status" to "unsupported")

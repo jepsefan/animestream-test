@@ -113,7 +113,13 @@ class AnimeMetadataRouter {
   }
 
   Future<List<AnilistSearchResult>> search(String query) async {
-    final list = await _firstList((provider) => provider.search(query));
+    // Only the first enabled fallback is selected, even on an empty result
+    // or a network failure. This never fans out a single search.
+    final available = _enabled;
+    if (available.isEmpty) {
+      throw const MetadataUnavailableException('No metadata provider is enabled for search.');
+    }
+    final list = await available.first.search(query);
     return list.map(_toSearchResult).toList(growable: false);
   }
 

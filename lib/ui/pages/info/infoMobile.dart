@@ -140,7 +140,7 @@ class _InfoMobileState extends State<InfoMobile> {
                                 ),
                               ),
                               if ((provider.data.isAdult || provider.data.ageRating == 'r') && currentUserSettings?.showAdultContent == true)
-                                const Padding(padding: EdgeInsets.only(left: 12),
+                                Padding(padding: const EdgeInsets.only(left: 12),
                                   child: AdultRatingIcon(size: 55, ageRating: provider.data.ageRating)),
                               if (provider.loggedIn)
                                 Container(

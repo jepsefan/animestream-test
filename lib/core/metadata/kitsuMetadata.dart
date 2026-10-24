@@ -1,3 +1,4 @@
+import 'package:animestream/core/app/runtimeDatas.dart';
 import 'package:animestream/core/metadata/metadataTypes.dart';
 import 'package:animestream/core/network/network.dart';
 
@@ -257,7 +258,8 @@ class KitsuAnimeMetadata implements AnimeMetadataProvider {
 
   static bool _isSafe(Map item) {
     final attributes = item['attributes'];
-    return attributes is! Map || attributes['nsfw'] != true;
+    return currentUserSettings?.showAdultContent == true ||
+        attributes is! Map || attributes['nsfw'] != true;
   }
 }
 

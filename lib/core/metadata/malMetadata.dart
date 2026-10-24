@@ -1,3 +1,4 @@
+import 'package:animestream/core/app/runtimeDatas.dart';
 import 'package:animestream/core/database/mal/login.dart';
 import 'package:animestream/core/metadata/metadataTypes.dart';
 import 'package:animestream/core/network/network.dart';
@@ -65,7 +66,7 @@ class MalAnimeMetadata implements AnimeMetadataProvider {
       queryParameters: <String, String>{
         'q': query,
         'limit': '15',
-        'nsfw': 'false',
+        'nsfw': currentUserSettings?.showAdultContent == true ? 'true' : 'false',
         'fields': _animeFields,
       },
       cacheDuration: Duration.zero,
@@ -80,7 +81,7 @@ class MalAnimeMetadata implements AnimeMetadataProvider {
       queryParameters: <String, String>{
         'ranking_type': rankingType,
         'limit': '25',
-        'nsfw': 'false',
+        'nsfw': currentUserSettings?.showAdultContent == true ? 'true' : 'false',
         'fields': _animeFields,
       },
       cacheDuration: Duration.zero,

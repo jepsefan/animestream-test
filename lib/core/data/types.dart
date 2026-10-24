@@ -63,6 +63,9 @@ class SettingsModal {
   /// Ordered anime metadata fallback identifiers, empty means no fallback.
   final List<String>? metadataFallbacks;
 
+  /// Show sources marked 18+ by their extension APK. Defaults off.
+  final bool? showAdultContent;
+
   /// Enable extra speed options in player (4x,5x,8x,10x) [defaults to false]
   final bool? enableSuperSpeeds;
 
@@ -125,6 +128,7 @@ class SettingsModal {
     this.disabledProviders,
     this.disabledMetadataProviders,
     this.metadataFallbacks,
+    this.showAdultContent,
     this.enableSuperSpeeds,
     this.useQueuedDownloads,
     this.useFramelessWindow,
@@ -166,6 +170,7 @@ class SettingsModal {
       disabledMetadataProviders: map['disabledMetadataProviders'] is List
           ? (map['disabledMetadataProviders'] as List).whereType<String>().toList()
           : const <String>[],
+      showAdultContent: map['showAdultContent'] == true,
       metadataFallbacks: map['metadataFallbacks'] is List
           ? (map['metadataFallbacks'] as List).whereType<String>().toList()
           : const <String>['mal', 'kitsu'],
@@ -208,6 +213,7 @@ class SettingsModal {
       'disabledProviders': disabledProviders,
       'disabledMetadataProviders': disabledMetadataProviders,
       'metadataFallbacks': metadataFallbacks,
+      'showAdultContent': showAdultContent,
       'enableSuperSpeeds': enableSuperSpeeds,
       'useQueuedDownloads': useQueuedDownloads,
       'useFramelessWindow': useFramelessWindow,

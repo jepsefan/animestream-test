@@ -24,7 +24,7 @@ class MalAnimeMetadata implements AnimeMetadataProvider {
 
   static const String _animeFields =
       'id,title,main_picture,alternative_titles,start_date,end_date,synopsis,'
-      'mean,media_type,status,genres,num_episodes,average_episode_duration,'
+      'mean,media_type,status,genres,rating,nsfw,num_episodes,average_episode_duration,'
       'studios,related_anime,recommendations';
 
   static const String _mangaFields =
@@ -104,6 +104,17 @@ class MalAnimeMetadata implements AnimeMetadataProvider {
         .toList();
   }
 
+  /// MyAnimeList uses r for violence/profanity, r+ for adult material and
+  /// rx for hentai. Only r+ and rx receive the 18+ icon; plain r does not.
+  /// The API may also flag explicitly NSFW titles independently of rating.
+  static bool isAdultRating(Object? rating, Object? nsfw) {
+    final value = rating?.toString().trim().toLowerCase();
+    if (value == 'r+' || value == 'rx') return true;
+    if (nsfw == true || nsfw == 1) return true;
+    final flag = nsfw?.toString().trim().toLowerCase();
+    return flag == 'true' || flag == 'black';
+  }
+
   static AnimeMetadataSummary _summaryAnime(Map<String, dynamic> node) {
     final picture = node['main_picture'];
     final cover = picture is Map
@@ -114,7 +125,7 @@ class MalAnimeMetadata implements AnimeMetadataProvider {
 
     final summary = AnimeMetadataSummary(
       source: 'mal',
-      isAdult: (node['nsfw'] == true || node['nsfw'] == 'true' || node['nsfw'] == 1 || node['rating'] == 'rx'),
+      isAdult: isAdultRating(node['rating'], node['nsfw']),
       providerId: node['id'].toString(),
       title: _titleMap(node),
       cover: cover ?? '',

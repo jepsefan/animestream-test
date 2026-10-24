@@ -139,9 +139,9 @@ class _InfoMobileState extends State<InfoMobile> {
                                   ),
                                 ),
                               ),
-                              if (provider.data.isAdult && currentUserSettings?.showAdultContent == true)
+                              if ((provider.data.isAdult || provider.data.ageRating == 'r') && currentUserSettings?.showAdultContent == true)
                                 const Padding(padding: EdgeInsets.only(left: 12),
-                                  child: AdultRatingIcon(size: 55)),
+                                  child: AdultRatingIcon(size: 55, ageRating: provider.data.ageRating)),
                               if (provider.loggedIn)
                                 Container(
                                   child: ElevatedButton(
@@ -1400,13 +1400,14 @@ class _InfoMobileState extends State<InfoMobile> {
             child: Container(
                 width: 130,
                 child: recommended
-                    ? Cards.animeCard(item.id, getTitle(item.title), item.cover, rating: item.rating, isAdult: item.isAdult)
+                    ? Cards.animeCard(item.id, getTitle(item.title), item.cover, rating: item.rating, isAdult: item.isAdult, ageRating: item.ageRating)
                     : Cards.characterCard(
                         getTitle(item.title),
                         recommended ? item.type : item.relationType!,
                         item.cover,
                         animeId: item.type.toLowerCase() == 'anime' ? item.id : null,
                         isAdult: item.isAdult,
+                        ageRating: item.ageRating,
                       )),
           );
         },

@@ -197,6 +197,8 @@ class Cards {
     int? watchedEpisodeCount,
     int? totalEpisodes,
     String? bannerImageUrl,
+    bool isAdult = false,
+    String? ageRating,
   }) =>
       AnimeCardExtended(
         id: id,
@@ -205,6 +207,8 @@ class Cards {
         rating: rating,
         afterNavigation: afterNavigation,
         bannerImageUrl: bannerImageUrl,
+        isAdult: isAdult,
+        ageRating: ageRating,
         isAnime: isAnime,
         shouldNavigate: shouldNavigate,
         totalEpisodes: totalEpisodes,

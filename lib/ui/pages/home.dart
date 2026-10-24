@@ -8,6 +8,9 @@ import 'package:flutter/material.dart';
 import 'package:animestream/core/app/runtimeDatas.dart';
 import 'package:animestream/core/commons/types.dart';
 import 'package:animestream/core/data/watching.dart';
+import 'package:animestream/core/commons/enums.dart';
+import 'package:animestream/core/database/anilist/anilist.dart';
+import 'package:animestream/core/metadata/malMetadata.dart';
 import 'package:animestream/core/database/anilist/types.dart';
 import 'package:animestream/ui/models/widgets/cards.dart';
 import 'package:animestream/ui/models/widgets/header.dart';
@@ -41,6 +44,31 @@ class _HomeState extends State<Home> {
     //       }),
     //     );
   }
+
+  final Map<int, Future<({bool adult, String? rating})>> _continueBadges = {};
+
+  Future<({bool adult, String? rating})> _continueBadge(int id) =>
+      _continueBadges.putIfAbsent(id, () async {
+        try {
+          if (id < 0 && id > -1000000000) {
+            final rating = await MalAnimeMetadata.recommendationAgeRating(-id);
+            return (adult: rating == 'r+' || rating == 'rx', rating: rating);
+          }
+          if (id > 0) {
+            final rows = await Anilist().fetchQuery(
+              'query { Page(perPage: 1) { media(id: $id, type: ANIME) { isAdult } } }',
+              RequestType.media,
+              cacheDuration: const Duration(hours: 12),
+            );
+            return (adult: rows is List && rows.isNotEmpty &&
+                rows.first is Map && rows.first['isAdult'] == true,
+                rating: null);
+          }
+        } catch (_) {
+          // Missing metadata must not hide watch-history cards.
+        }
+        return (adult: false, rating: null);
+      });
 
   List<HomePageList> recentlyWatched = [];
   // List<HomePageList> currentlyAiring = [];
@@ -468,11 +496,24 @@ class _HomeState extends State<Home> {
                             final title = preferNative ? item.title['native'] ?? normalTitle : normalTitle;
                             return Padding(
                               padding: const EdgeInsets.all(8.0),
-                              child: Cards.animeCardExtended(item.id, title, item.coverImage, item.rating ?? 0.0,
-                                  bannerImageUrl: item.coverImage,
-                                  watchedEpisodeCount: item.watchedEpisodeCount,
-                                  totalEpisodes: item.totalEpisodes,
-                                  afterNavigation: () => getLists(userName: storedUserData?.name)),
+                              child: list.title == 'Continue Watching'
+                                  ? FutureBuilder<({bool adult, String? rating})>(
+                                      future: _continueBadge(item.id),
+                                      builder: (context, snapshot) => Cards.animeCardExtended(
+                                        item.id, title, item.coverImage, item.rating ?? 0.0,
+                                        bannerImageUrl: item.coverImage,
+                                        watchedEpisodeCount: item.watchedEpisodeCount,
+                                        totalEpisodes: item.totalEpisodes,
+                                        isAdult: snapshot.data?.adult ?? false,
+                                        ageRating: snapshot.data?.rating,
+                                        afterNavigation: () => getLists(userName: storedUserData?.name),
+                                      ),
+                                    )
+                                  : Cards.animeCardExtended(item.id, title, item.coverImage, item.rating ?? 0.0,
+                                      bannerImageUrl: item.coverImage,
+                                      watchedEpisodeCount: item.watchedEpisodeCount,
+                                      totalEpisodes: item.totalEpisodes,
+                                      afterNavigation: () => getLists(userName: storedUserData?.name)),
                             );
                           })
 

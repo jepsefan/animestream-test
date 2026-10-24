@@ -3,10 +3,11 @@
 Complete history: [CHANGELOG.md](CHANGELOG.md). These notes cover beta34.86, beta34.85 and beta34.84.
 
 ## v1.4.9-beta34.86 — Extension source settings
+- Source settings gear added directly to Manage Providers > Installed and the nested Installed extension catalog, including apps installed outside catalogs. Available now defaults to Installed when APK extensions exist and Browse otherwise; manual tab choice is respected.
 - Installed extensions now have a Source settings page exposing their actual Aniyomi/Anikku preference options: list, on/off, multiple choice, and non-sensitive text fields for source domains.
 - Preferences are stored locally per extension source and cached source instances are refreshed after saving; unsupported extensions show a clear message.
 - No change to BetterPlayer, audio, subtitles, or existing stream selection.
-- Version `1.4.9-beta34.86+98`. APK build/device tests not yet run.
+- Version `1.4.9-beta34.86+99`. APK build/device tests not yet run.
 
 ## v1.4.9-beta34.85 — Extension episode identity and selection safety
 - Episode 0 can be locally marked watched when 75% played, without updating AniList/MAL/SIMKL; info page displays the local checkmark. AniZone server names now normalize extra whitespace extracted from site buttons.

@@ -1,3 +1,4 @@
+import 'package:animestream/core/anime/providers/episodeProgress.dart';
 import 'package:flutter/material.dart';
 
 import 'package:animestream/core/anime/providers/providerDetails.dart';
@@ -118,6 +119,11 @@ class InfoProvider extends ChangeNotifier {
   Map? get lastWatchedDurationMap => _lastWatchedDurationMap;
 
   int get watched => _watched;
+  int get nextEpisodeIndex => EpisodeProgress.nextIndex(_epLinks, _watched);
+  EpisodeDetails? get nextEpisode => _epLinks.isEmpty ? null : _epLinks[nextEpisodeIndex];
+  int get nextEpisodeResumeKey => _epLinks.isEmpty ? 1 : EpisodeProgress.resumeKey(_epLinks, nextEpisodeIndex);
+  String get nextEpisodeLabel => nextEpisode == null ? 'Episode 1' : EpisodeProgress.label(nextEpisode!);
+  bool episodeIsWatched(EpisodeDetails ep) => EpisodeProgress.isWatched(ep, _watched);
   int get viewMode => _viewMode;
   int get currentPageIndex => _currentPageIndex;
   int get viewModeIndexLength => 3;
@@ -281,7 +287,7 @@ class InfoProvider extends ChangeNotifier {
       _watched = item == -1 ? 0 : item;
       _started = item != -1;
 
-      final supposedPageIndex = watched ~/ 25; //index increases when the episodes are >24
+      final supposedPageIndex = nextEpisodeIndex ~/ 24; //index increases when the episodes are >24
 
       _currentPageIndex = supposedPageIndex >= visibleEpList.length ? visibleEpList.length - 1 : supposedPageIndex;
 
@@ -408,7 +414,7 @@ class InfoProvider extends ChangeNotifier {
     for (int i = 0; i < _epLinks.length; i++) {
       final hasDub = links[i].hasDub ?? false;
       if (!_preferDubs || hasDub) {
-        if (watched == i) watchedProgressIndex = filteredList.length;
+        if (nextEpisodeIndex == i) watchedProgressIndex = filteredList.length;
         filteredList.add({'realIndex': i, 'epLink': links[i]});
       }
     }

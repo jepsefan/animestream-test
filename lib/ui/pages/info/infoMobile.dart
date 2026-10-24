@@ -1002,7 +1002,7 @@ class _InfoMobileState extends State<InfoMobile> {
                 Padding(
                   padding: const EdgeInsets.only(left: 10, right: 10),
                   child: Text(
-                    "Episode ${provider.visibleEpList[provider.currentPageIndex][index]['epLink'].episodeNumber}",
+                    (provider.visibleEpList[provider.currentPageIndex][index]['epLink'].episodeLabel ?? 'Episode ${provider.visibleEpList[provider.currentPageIndex][index]['epLink'].episodeNumber}'),
                     style: TextStyle(
                       color:
                           !provider.episodeIsWatched(provider.visibleEpList[provider.currentPageIndex][index]['epLink'])
@@ -1101,7 +1101,7 @@ class _InfoMobileState extends State<InfoMobile> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  "Episode ${provider.visibleEpList[provider.currentPageIndex][index]['epLink'].episodeNumber}",
+                                  (provider.visibleEpList[provider.currentPageIndex][index]['epLink'].episodeLabel ?? 'Episode ${provider.visibleEpList[provider.currentPageIndex][index]['epLink'].episodeNumber}'),
                                   style: TextStyle(
                                     color: !provider.episodeIsWatched(provider.visibleEpList[provider.currentPageIndex][index]['epLink'])
                                         ? appTheme.textMainColor

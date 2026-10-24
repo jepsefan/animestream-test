@@ -690,7 +690,7 @@ class _InfoMobileState extends State<InfoMobile> {
             builder: (BuildContext context) {
               return ServerSelectionBottomSheet(
                 provider: provider,
-                episodeIndex: provider.watched,
+                episodeIndex: provider.nextEpisodeIndex,
                 type: ServerSheetType.watch,
               );
             },
@@ -722,7 +722,7 @@ class _InfoMobileState extends State<InfoMobile> {
                         ),
                       ),
                       Text(
-                        'Episode ${provider.watched < provider.epLinks.length ? provider.watched + 1 : provider.watched}',
+                        'Episode ${provider.nextEpisodeResumeKey}',
                         style: TextStyle(
                           color: appTheme.textMainColor,
                           fontFamily: "Rubik",
@@ -734,13 +734,13 @@ class _InfoMobileState extends State<InfoMobile> {
                 ),
               ),
               if (provider.lastWatchedDurationMap?[
-                      provider.watched < provider.epLinks.length ? provider.watched + 1 : provider.watched] !=
+                      provider.nextEpisodeResumeKey] !=
                   null)
                 Container(
                   width: 285 *
                       (() {
                         final raw = provider.lastWatchedDurationMap?[
-                                provider.watched < provider.epLinks.length ? provider.watched + 1 : provider.watched] ??
+                                provider.nextEpisodeResumeKey] ??
                             0;
                         final val = (raw is num) ? raw.toDouble() : double.tryParse(raw.toString()) ?? 0.0;
                         if (val.isNaN || val.isInfinite) return 0.0;
@@ -946,7 +946,7 @@ class _InfoMobileState extends State<InfoMobile> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Opacity(
-                  opacity: provider.visibleEpList[provider.currentPageIndex][index]['realIndex'] + 1 > provider.watched
+                  opacity: !provider.episodeIsWatched(provider.visibleEpList[provider.currentPageIndex][index]['epLink'])
                       ? 1.0
                       : 0.5,
                   child: Container(
@@ -1002,10 +1002,10 @@ class _InfoMobileState extends State<InfoMobile> {
                 Padding(
                   padding: const EdgeInsets.only(left: 10, right: 10),
                   child: Text(
-                    "Episode ${provider.visibleEpList[provider.currentPageIndex][index]['realIndex'] + 1}",
+                    "Episode ${provider.visibleEpList[provider.currentPageIndex][index]['epLink'].episodeNumber}",
                     style: TextStyle(
                       color:
-                          provider.visibleEpList[provider.currentPageIndex][index]['realIndex'] + 1 > provider.watched
+                          !provider.episodeIsWatched(provider.visibleEpList[provider.currentPageIndex][index]['epLink'])
                               ? appTheme.textMainColor
                               : appTheme.textSubColor,
                       fontFamily: 'Poppins',
@@ -1069,7 +1069,7 @@ class _InfoMobileState extends State<InfoMobile> {
                     child: Stack(
                       children: [
                         Opacity(
-                          opacity: provider.visibleEpList[provider.currentPageIndex][index]['realIndex'] + 1 >
+                          opacity: provider.visibleEpList[provider.currentPageIndex][index]['epLink'].episodeNumber >
                                   provider.watched
                               ? 1.0
                               : 0.5,
@@ -1102,9 +1102,9 @@ class _InfoMobileState extends State<InfoMobile> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  "Episode ${provider.visibleEpList[provider.currentPageIndex][index]['realIndex'] + 1}",
+                                  "Episode ${provider.visibleEpList[provider.currentPageIndex][index]['epLink'].episodeNumber}",
                                   style: TextStyle(
-                                    color: provider.visibleEpList[provider.currentPageIndex][index]['realIndex'] + 1 >
+                                    color: provider.visibleEpList[provider.currentPageIndex][index]['epLink'].episodeNumber >
                                             provider.watched
                                         ? appTheme.textMainColor
                                         : appTheme.textSubColor,
@@ -1157,7 +1157,7 @@ class _InfoMobileState extends State<InfoMobile> {
                 ),
               ),
             ),
-            if (provider.watched > provider.visibleEpList[provider.currentPageIndex][index]['realIndex'])
+            if (provider.episodeIsWatched(provider.visibleEpList[provider.currentPageIndex][index]['epLink']))
               Align(
                 alignment: Alignment.topRight,
                 child: Padding(

@@ -1,5 +1,6 @@
 import 'package:animestream/core/anime/providers/aniyomiRepositoryManager.dart';
 import 'package:flutter/material.dart';
+import 'package:animestream/ui/pages/settingPages/extensionSourceSettings.dart';
 import 'package:animestream/core/anime/providers/aniyomiExtensionBridge.dart';
 
 /// Browse user-added Aniyomi extension repositories without executing APKs.
@@ -440,8 +441,11 @@ class _AniyomiRepositoriesPageState extends State<AniyomiRepositoriesPage> with 
                         tooltip: 'Extension options',
                         onSelected: (value) {
                           if (value == 'uninstall') _uninstall(_installed[entry.packageName]!);
+                          if (value == 'settings') Navigator.of(context).push(MaterialPageRoute(
+                            builder: (_) => ExtensionSourceSettingsPage(extension: _installed[entry.packageName]!)));
                         },
                         itemBuilder: (_) => const [
+                          PopupMenuItem(value: 'settings', child: Text('Source settings')),
                           PopupMenuItem(value: 'uninstall', child: Text('Uninstall')),
                         ],
                       ),
@@ -455,11 +459,13 @@ class _AniyomiRepositoriesPageState extends State<AniyomiRepositoriesPage> with 
                 ListTile(
                   title: Text(ext.name),
                   subtitle: Text('Installed v' + ext.version),
-                  trailing: IconButton(
-                    icon: const Icon(Icons.delete_outline),
-                    tooltip: 'Uninstall',
-                    onPressed: () => _uninstall(ext),
-                  ),
+                  trailing: Row(mainAxisSize: MainAxisSize.min, children: [
+                    IconButton(icon: const Icon(Icons.tune), tooltip: 'Source settings',
+                      onPressed: () => Navigator.of(context).push(MaterialPageRoute(
+                        builder: (_) => ExtensionSourceSettingsPage(extension: ext)))),
+                    IconButton(icon: const Icon(Icons.delete_outline), tooltip: 'Uninstall',
+                      onPressed: () => _uninstall(ext)),
+                  ]),
                 ),
             ],
             if (matching.isEmpty && extraInstalled.isEmpty && !_loadingCatalogs)

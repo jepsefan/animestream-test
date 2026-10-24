@@ -199,6 +199,7 @@ class _SearchState extends State<Search> {
                     imageUrl: image,
                     rating: it.rating ?? 0,
                     isAdult: it.isAdult,
+                    ageRating: it.ageRating,
                     customWidth: 450,
                     totalEpisodes: it.totalEpisodes,
                     surfaceColor: appTheme.backgroundSubColor.withAlpha(100),
@@ -210,7 +211,7 @@ class _SearchState extends State<Search> {
                   final id = it.id;
                   return Container(
                     child: Cards.animeCard(id, nativeTitle ? it.title['native'] ?? title : title, image,
-                        rating: it.rating, isAdult: it.isAdult, isAnime: true, isMobile: Platform.isAndroid),
+                        rating: it.rating, isAdult: it.isAdult, ageRating: it.ageRating, isAnime: true, isMobile: Platform.isAndroid),
                   );
                 }
               },

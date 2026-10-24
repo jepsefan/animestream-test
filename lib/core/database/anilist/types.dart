@@ -111,6 +111,8 @@ class UserAnimeListItem {
 
 class AnilistAnimeRelatedRecommendation extends DatabaseRelatedRecommendation {
   @override
+  final String? ageRating;
+  @override
   final bool isAdult;
   final int id;
   final Map<String, String?> title;
@@ -127,10 +129,13 @@ class AnilistAnimeRelatedRecommendation extends DatabaseRelatedRecommendation {
     required this.type,
     this.relationType,
     this.isAdult = false,
+    this.ageRating,
   });
 }
 
 class AnilistInfo extends DatabaseInfo {
+  @override
+  final String? ageRating;
   @override
   final bool isAdult;
   final Map<String, String?> title;
@@ -178,6 +183,7 @@ class AnilistInfo extends DatabaseInfo {
     required this.alternateDatabases,
     required this.listId,
     this.isAdult = false,
+    this.ageRating,
   });
 }
 
@@ -218,6 +224,8 @@ class CurrentlyAiringResult {
 
 class AnilistSearchResult extends DatabaseSearchResult {
   @override
+  final String? ageRating;
+  @override
   final bool isAdult;
   final int id;
   final int? idMal;
@@ -234,6 +242,7 @@ class AnilistSearchResult extends DatabaseSearchResult {
     required this.rating,
     required this.totalEpisodes,
     this.isAdult = false,
+    this.ageRating,
   });
 }
 

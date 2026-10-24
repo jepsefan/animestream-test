@@ -165,60 +165,62 @@ class _InfoMobileState extends State<InfoMobile> {
                                   child: Stack(
                                     alignment: Alignment.centerLeft,
                                     children: [
-                              if (provider.loggedIn)
-                                Container(
-                                  child: ElevatedButton(
-                                    onPressed: () {
-                                      showModalBottomSheet(
-                                        context: context,
-                                        backgroundColor: appTheme.backgroundColor,
-                                        showDragHandle: true,
-                                        isScrollControlled: true,
-                                        builder: (context) => MediaListStatusBottomSheet(
-                                          provider: provider,
-                                        ),
-                                      );
-                                    },
-                                    style: ElevatedButton.styleFrom(
-                                      shape: CircleBorder(
-                                        side: BorderSide(
-                                          color: appTheme.accentColor,
-                                        ),
-                                      ),
-                                      fixedSize: Size(50, 50),
-                                      backgroundColor: appTheme.backgroundColor,
-                                      padding: EdgeInsets.zero,
-                                    ),
-                                    child: Icon(
-                                      InfoProvider.getTrackerIcon(provider.mediaListStatus),
-                                      color: appTheme.accentColor,
-                                      size: 28,
-                                    ),
-                                  ),
-                                ),
-                              if (!provider.loggedIn && provider.started)
-                                ElevatedButton(
-                                  onPressed: () {
-                                    showDialog(
-                                        context: context,
-                                        builder: (context) {
-                                          return AlertDialog(
-                                            actions: [
-                                              TextButton(
-                                                  onPressed: () => Navigator.of(context).pop(), child: Text("No")),
-                                              TextButton(
-                                                onPressed: () async {
-                                                  await removeWatching(provider.id);
-                                                  provider.clearLastWatchDuration();
-                                                  await provider.getWatched(refreshLastWatchDuration: true);
-                                                  Navigator.pop(context);
-                                                },
-                                                child: Text("Yes"),
-                                                style: TextButton.styleFrom(
-                                                  backgroundColor: appTheme.accentColor,
-                                                  foregroundColor: appTheme.onAccent,
+                                      // Ensure the Stack also sizes safely if no action is available.
+                                      const SizedBox.shrink(),
+                                      if (provider.loggedIn)
+                                        Container(
+                                          child: ElevatedButton(
+                                            onPressed: () {
+                                              showModalBottomSheet(
+                                                context: context,
+                                                backgroundColor: appTheme.backgroundColor,
+                                                showDragHandle: true,
+                                                isScrollControlled: true,
+                                                builder: (context) => MediaListStatusBottomSheet(
+                                                  provider: provider,
                                                 ),
-                                              )
+                                              );
+                                            },
+                                            style: ElevatedButton.styleFrom(
+                                              shape: CircleBorder(
+                                                side: BorderSide(
+                                                  color: appTheme.accentColor,
+                                                ),
+                                              ),
+                                              fixedSize: Size(50, 50),
+                                              backgroundColor: appTheme.backgroundColor,
+                                              padding: EdgeInsets.zero,
+                                            ),
+                                            child: Icon(
+                                              InfoProvider.getTrackerIcon(provider.mediaListStatus),
+                                              color: appTheme.accentColor,
+                                              size: 28,
+                                            ),
+                                          ),
+                                        ),
+                                      if (!provider.loggedIn && provider.started)
+                                        ElevatedButton(
+                                          onPressed: () {
+                                            showDialog(
+                                                context: context,
+                                                builder: (context) {
+                                                  return AlertDialog(
+                                                    actions: [
+                                                      TextButton(
+                                                          onPressed: () => Navigator.of(context).pop(), child: Text("No")),
+                                                      TextButton(
+                                                        onPressed: () async {
+                                                          await removeWatching(provider.id);
+                                                          provider.clearLastWatchDuration();
+                                                          await provider.getWatched(refreshLastWatchDuration: true);
+                                                          Navigator.pop(context);
+                                                        },
+                                                        child: Text("Yes"),
+                                                        style: TextButton.styleFrom(
+                                                          backgroundColor: appTheme.accentColor,
+                                                          foregroundColor: appTheme.onAccent,
+                                                        ),
+                                                      )
                                             ],
                                             content: Padding(
                                               padding: const EdgeInsets.all(10),

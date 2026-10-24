@@ -3,6 +3,7 @@
 Complete development history. Published GitHub Releases use the concise [RELEASE_NOTES.md](RELEASE_NOTES.md) for the latest three beta versions. Older entries remain here for reference.
 
 ## v1.4.9-beta34.86 — Extension source settings
+- MAL age badges now preserve the actual `rating` class: R = R in a complete circle, R+ = centered R with an open ring and plus at upper-right, Rx = original open-ring 18+ symbol. AniList retains its generic 18+ icon when `isAdult=true`. Applies to search, information, related, and recommended UI.
 - MAL adult badge now requests age rating from the API and counts R+ and Rx as 18+ (not plain R); added unit tests.
 - Increased the gap in the 18+ icon's circular outline only; plus sign, placement and sizing unchanged.
 - Add open-ring 18+ symbol matching the selected artwork, at full 55px height next to the Watch/Info button and a smaller overlay on search, Related, and Recommended cards. Propagate AniList adult classification through search, information, and related metadata; use provider NSFW flags where available. The icon appears only when global 18+ is enabled and the specific title is classified adult.
@@ -13,7 +14,7 @@ Complete development history. Published GitHub Releases use the concise [RELEASE
 - Added **Source settings** for installed Aniyomi/Anikku extensions, including extensions installed outside repository catalogs.
 - List the selected extension source's actual configurable preferences: lists, checkboxes, multi-select and non-sensitive text fields such as custom domains. Settings persist in per-source Android preferences; no fabricated domains.
 - Changing a setting invalidates cached extension source objects so later search/episode/video calls see updated preferences. Existing stream picker/player code unchanged.
-- Version `1.4.9-beta34.86+105`. APK build/device verification pending.
+- Version `1.4.9-beta34.86+106`. APK build/device verification pending.
 
 ## v1.4.9-beta34.85 — Extension episode identity and selection safety
 - Episode 0 can be locally marked watched when 75% played, without updating AniList/MAL/SIMKL; info page displays the local checkmark. AniZone server names now normalize extra whitespace extracted from site buttons.

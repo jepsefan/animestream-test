@@ -175,7 +175,9 @@ class AniZone extends AnimeProvider {
     final String? firstSubUrl = subs.firstOrNull?['file']?.replaceAll("\\", "");
     // print(subs);
 
-    final srcName = doc.querySelector("button.flex.gap-2.relative")?.text.trim() ?? "Default";
+    final srcName = (doc.querySelector("button.flex.gap-2.relative")?.text ?? "Default")
+        .replaceAll(RegExp(r'\\s+'), ' ')
+        .trim();
 
     update([
       VideoStream(

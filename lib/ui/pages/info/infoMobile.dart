@@ -102,6 +102,24 @@ class _InfoMobileState extends State<InfoMobile> {
                             mainAxisAlignment: MainAxisAlignment.center,
                             crossAxisAlignment: CrossAxisAlignment.center,
                             children: [
+                              // Keep equally wide side slots so Watch stays centered,
+                              // whether the content rating or tracker button is visible.
+                              SizedBox(
+                                width: 75,
+                                child: Align(
+                                  alignment: Alignment.centerRight,
+                                  child: ((provider.data.isAdult || provider.data.ageRating == 'r') &&
+                                          currentUserSettings?.showAdultContent == true)
+                                      ? Padding(
+                                          padding: const EdgeInsets.only(right: 12),
+                                          child: AdultRatingIcon(
+                                            size: 55,
+                                            ageRating: provider.data.ageRating,
+                                          ),
+                                        )
+                                      : const SizedBox.shrink(),
+                                ),
+                              ),
                               Container(
                                 // width: 120,
                                 child: ElevatedButton(
@@ -140,9 +158,13 @@ class _InfoMobileState extends State<InfoMobile> {
                                   ),
                                 ),
                               ),
-                              if ((provider.data.isAdult || provider.data.ageRating == 'r') && currentUserSettings?.showAdultContent == true)
-                                Padding(padding: const EdgeInsets.only(left: 12),
-                                  child: AdultRatingIcon(size: 55, ageRating: provider.data.ageRating)),
+                              SizedBox(
+                                width: 75,
+                                child: Padding(
+                                  padding: const EdgeInsets.only(left: 12),
+                                  child: Stack(
+                                    alignment: Alignment.centerLeft,
+                                    children: [
                               if (provider.loggedIn)
                                 Container(
                                   child: ElevatedButton(
@@ -229,7 +251,11 @@ class _InfoMobileState extends State<InfoMobile> {
                                     color: appTheme.accentColor,
                                     size: 28,
                                   ),
-                                )
+                                ),
+                                    ],
+                                  ),
+                                ),
+                              ),
                             ],
                           ),
                         ),

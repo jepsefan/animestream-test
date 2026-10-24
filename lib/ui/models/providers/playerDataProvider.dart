@@ -31,6 +31,7 @@ class PlayerDataProvider extends ChangeNotifier {
   List<AlternateDatabaseId> altDatabases;
   double? lastWatchDuration;
   bool preferDubs;
+  int trackedProgress; // Last confirmed ordinary episode on the current tracker
 
   PlayerDataProvider({
     required List<VideoStream> initialStreams,
@@ -44,6 +45,7 @@ class PlayerDataProvider extends ChangeNotifier {
     required this.lastWatchDuration,
     this.coverImageUrl, // just for presence updation
     this.preferDubs = false,
+    this.trackedProgress = 0,
   }) : _state = PlayerDataProviderState(
           streams: initialStreams,
           currentStream: initialStream,

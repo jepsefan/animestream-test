@@ -1,6 +1,8 @@
 import 'package:animestream/core/database/database.dart';
 
 abstract class DatabaseSearchResult {
+  /// Original MAL age classification, when available (r, r+, rx).
+  String? get ageRating => null;
   bool get isAdult => false;
   int get id;
   Map<String, String?> get title;
@@ -10,6 +12,7 @@ abstract class DatabaseSearchResult {
 }
 
 abstract class DatabaseRelatedRecommendation {
+  String? get ageRating => null;
   bool get isAdult => false;
   int get id;
   Map<String, String?> get title;
@@ -49,6 +52,7 @@ abstract class DatabaseMutationResult {
 }
 
 abstract class DatabaseInfo {
+  String? get ageRating => null;
   bool get isAdult => false;
   Map<String, String?> get title;
   Map<String, String?> get aired;

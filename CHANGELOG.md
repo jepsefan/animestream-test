@@ -3,6 +3,7 @@
 Complete development history. Published GitHub Releases use the concise [RELEASE_NOTES.md](RELEASE_NOTES.md) for the latest three beta versions. Older entries remain here for reference.
 
 ## v1.4.9-beta34.86 — Extension source settings
+- Increased the gap in the 18+ icon's circular outline only; plus sign, placement and sizing unchanged.
 - Add open-ring 18+ symbol matching the selected artwork, at full 55px height next to the Watch/Info button and a smaller overlay on search, Related, and Recommended cards. Propagate AniList adult classification through search, information, and related metadata; use provider NSFW flags where available. The icon appears only when global 18+ is enabled and the specific title is classified adult.
 - Metadata search uses exactly one provider: AniList when enabled, otherwise the first enabled MAL/Kitsu backup. Empty results and failures never cascade to another source. The 18+ switch now controls MAL `nsfw` requests and Kitsu local NSFW filtering.
 - AniList search and extension AniList matching now respect the 18+ metadata setting: adult content remains excluded by default; enabling it removes the `isAdult: false` GraphQL filter. Search input is safely JSON-escaped.
@@ -11,7 +12,7 @@ Complete development history. Published GitHub Releases use the concise [RELEASE
 - Added **Source settings** for installed Aniyomi/Anikku extensions, including extensions installed outside repository catalogs.
 - List the selected extension source's actual configurable preferences: lists, checkboxes, multi-select and non-sensitive text fields such as custom domains. Settings persist in per-source Android preferences; no fabricated domains.
 - Changing a setting invalidates cached extension source objects so later search/episode/video calls see updated preferences. Existing stream picker/player code unchanged.
-- Version `1.4.9-beta34.86+103`. APK build/device verification pending.
+- Version `1.4.9-beta34.86+104`. APK build/device verification pending.
 
 ## v1.4.9-beta34.85 — Extension episode identity and selection safety
 - Episode 0 can be locally marked watched when 75% played, without updating AniList/MAL/SIMKL; info page displays the local checkmark. AniZone server names now normalize extra whitespace extracted from site buttons.

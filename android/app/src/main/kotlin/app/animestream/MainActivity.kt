@@ -361,6 +361,7 @@ class MainActivity: FlutterActivity() {
                     @Suppress("DEPRECATION")
                     pkg.versionCode.toLong()
                 }),
+                "isNsfw" to (metadata?.getInt("tachiyomi.animeextension.nsfw", 0) == 1),
                 "sourceClass" to sourceClass,
                 "sourceFactory" to sourceFactory,
                 "hasExtensionFeature" to hasExtensionFeature,

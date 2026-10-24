@@ -1,3 +1,4 @@
+import 'package:animestream/core/app/runtimeDatas.dart';
 import 'dart:convert';
 
 import 'package:animestream/core/commons/enums.dart';
@@ -49,7 +50,7 @@ class ExtensionAniListMatcher {
     final gql = '''
       query {
         Page(perPage: 25) {
-          media(search: $escaped, type: ANIME, isAdult: false) {
+          media(search: $escaped, type: ANIME${currentUserSettings?.showAdultContent == true ? '' : ', isAdult: false'}) {
             id
             title { english romaji native }
             synonyms

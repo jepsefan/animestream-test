@@ -8,6 +8,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:animestream/ui/models/widgets/infoPageWidgets/simklEpisodeImage.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:animestream/ui/models/widgets/adultRatingIcon.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
@@ -138,6 +139,9 @@ class _InfoMobileState extends State<InfoMobile> {
                                   ),
                                 ),
                               ),
+                              if (provider.data.isAdult && currentUserSettings?.showAdultContent == true)
+                                const Padding(padding: EdgeInsets.only(left: 12),
+                                  child: AdultRatingIcon(size: 55)),
                               if (provider.loggedIn)
                                 Container(
                                   child: ElevatedButton(
@@ -1396,12 +1400,13 @@ class _InfoMobileState extends State<InfoMobile> {
             child: Container(
                 width: 130,
                 child: recommended
-                    ? Cards.animeCard(item.id, getTitle(item.title), item.cover, rating: item.rating)
+                    ? Cards.animeCard(item.id, getTitle(item.title), item.cover, rating: item.rating, isAdult: item.isAdult)
                     : Cards.characterCard(
                         getTitle(item.title),
                         recommended ? item.type : item.relationType!,
                         item.cover,
                         animeId: item.type.toLowerCase() == 'anime' ? item.id : null,
+                        isAdult: item.isAdult,
                       )),
           );
         },

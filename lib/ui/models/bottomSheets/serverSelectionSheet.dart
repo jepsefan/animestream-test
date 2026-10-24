@@ -182,6 +182,7 @@ class ServerSelectionBottomSheetState extends State<ServerSelectionBottomSheet> 
   int? hoveredIndex;
 
   Future<void> _navigateToPlayer(String title, int index) async {
+    final provider = widget.provider;
     // return print(streamSources[index]);
 
     await storeWatching(
@@ -195,7 +196,6 @@ class ServerSelectionBottomSheetState extends State<ServerSelectionBottomSheet> 
     );
 
     final controller = Platform.isAndroid ? BetterPlayerWrapper() : FvpWrapper();
-    final provider = widget.provider;
     final navigatorState = (Platform.isWindows ? AppWrapper.navKey.currentState : Navigator.of(context));
 
     Navigator.pop(context, true);

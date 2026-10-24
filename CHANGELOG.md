@@ -2,6 +2,12 @@
 
 Complete development history. Published GitHub Releases use the concise [RELEASE_NOTES.md](RELEASE_NOTES.md) for the latest three beta versions. Older entries remain here for reference.
 
+## v1.4.9-beta34.87 — Centered Watch button and relocated R+ badge
+- Moved the R+/18+ age-rating badge to the left of Watch/Info on the mobile series details page, retaining the existing rating classification and visibility rules.
+- Reserved equal-width slots on both sides of Watch so the button stays horizontally centered regardless of whether the rating badge, tracker action or delete action is visible.
+- Existing tracker buttons, watch/info action, subtitle behavior and provider logic are unchanged.
+- Version `1.4.9-beta34.87+113`. APK build/device verification pending.
+
 ## v1.4.9-beta34.86 — Extension source settings
 - Continue Watching now displays the same small outlined rating badges as other cards. Lazy, cached metadata lookups identify AniList adult entries and MAL R/R+/Rx entries without delaying cards or changing playback.
 - Fix the small 18+/R+ badge plus: square black stroke caps surround all four ends, and the plus is inset to avoid clipping against the image boundary.

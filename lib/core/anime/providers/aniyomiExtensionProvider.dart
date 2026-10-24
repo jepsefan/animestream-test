@@ -92,7 +92,8 @@ class AniyomiExtensionProvider extends AnimeProvider {
       final url = item['url']?.toString() ?? '';
       if (url.isEmpty) continue;
       final episodeName = (item['name'] ?? '').toString();
-      final parsed = ExtensionEpisodeNumber.parse(item['number'], episodeName);
+      final parsed = ExtensionEpisodeNumber.parse(item['number'], episodeName,
+          episodeUrl: url);
       // The native host resolves relative preview URLs against the selected
       // extension domain. Reject unsupported schemes before displaying them.
       final preview = item['preview']?.toString().trim() ?? '';
@@ -143,7 +144,15 @@ class AniyomiExtensionProvider extends AnimeProvider {
       result.setRange(start, end, group.map((entry) => entry.value));
       start = end;
     }
-    return result;
+    // The extension may list Episode 0 last (Animenosub does this for
+    // Mushoku Tensei II). Move only explicit Episode 0 to the beginning:
+    // never elevate an unknown number, a decimal, or a generic special.
+    // Episode URLs stay attached to their original source entries.
+    return ExtensionEpisodeNumber.episodeZeroFirst(
+      result,
+      (episode) => episode['episodeNumber'] == 0 &&
+          episode['episodeLabel'] == 'Episode 0',
+    );
   }
 
   @override

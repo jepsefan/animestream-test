@@ -114,6 +114,7 @@ class MalAnimeMetadata implements AnimeMetadataProvider {
 
     final summary = AnimeMetadataSummary(
       source: 'mal',
+      isAdult: (node['nsfw'] == true || node['nsfw'] == 'true' || node['nsfw'] == 1 || node['rating'] == 'rx'),
       providerId: node['id'].toString(),
       title: _titleMap(node),
       cover: cover ?? '',

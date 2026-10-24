@@ -18,6 +18,7 @@ class MetadataUnavailableException implements Exception {
 /// before handing a result to the UI, so the rest of the app never has to know
 /// which site a card came from.
 class AnimeMetadataSummary {
+  final bool isAdult;
   final String source;
   final String providerId;
   final Map<String, String?> title;
@@ -34,6 +35,7 @@ class AnimeMetadataSummary {
 
   AnimeMetadataSummary({
     required this.source,
+    this.isAdult = false,
     required this.providerId,
     required this.title,
     required this.cover,

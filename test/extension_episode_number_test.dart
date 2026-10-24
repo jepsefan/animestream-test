@@ -23,6 +23,26 @@ void main() {
       final parsed = ExtensionEpisodeNumber.parse('0', '');
       expect(parsed.label, 'Episode 0');
     });
+    test('explicit Ep. 0 title overrides a synthetic list index 13', () {
+      final parsed = ExtensionEpisodeNumber.parse(13, 'Ep. 0 Fitz the Guardian');
+      expect(parsed.number, 0);
+      expect(parsed.label, 'Episode 0');
+    });
+    test('explicit episode-zero URL overrides a synthetic index', () {
+      final parsed = ExtensionEpisodeNumber.parse(13, 'Fitz the Guardian',
+          episodeUrl: '/mushoku-tensei-season-2-episode-0');
+      expect(parsed.number, 0);
+    });
+    test('episode 01 and episode 10 never match episode zero', () {
+      expect(ExtensionEpisodeNumber.parse(1, 'Episode 01').number, 1);
+      expect(ExtensionEpisodeNumber.parse(10, 'Episode 10').number, 10);
+    });
+    test('episode zero is moved first while generic specials stay last', () {
+      final source = ['Episode 1', 'Episode 2', 'OVA 1', 'Episode 0'];
+      expect(ExtensionEpisodeNumber.episodeZeroFirst(
+          source, (episode) => episode == 'Episode 0'),
+          ['Episode 0', 'Episode 1', 'Episode 2', 'OVA 1']);
+    });
     test('unnumbered specials do not receive invented ordinals', () {
       final parsed = ExtensionEpisodeNumber.parse(-1, 'Special: Recap');
       expect(parsed.number, 0);

@@ -16,7 +16,7 @@ class ContinueWatchingSideBox extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
   final raw = provider.lastWatchedDurationMap?[
-      provider.watched < provider.epLinks.length ? provider.watched + 1 : provider.watched] ??
+      provider.nextEpisodeResumeKey] ??
     0;
   final double value = (raw is num) ? raw.toDouble() : double.tryParse(raw.toString()) ?? 0.0;
   final int watchedProgress = (value.isNaN || value.isInfinite) ? 0 : value.toInt();
@@ -84,7 +84,7 @@ class ContinueWatchingSideBox extends StatelessWidget {
                               width: size.width / 3,
                               child: ServerSelectionBottomSheet(
                                 provider: provider,
-                                episodeIndex: provider.watched,
+                                episodeIndex: provider.nextEpisodeIndex,
                                 type: ServerSheetType.watch,
                               ),
                             ),
@@ -205,7 +205,7 @@ class ContinueWatchingSideBox extends StatelessWidget {
                                   ),
                                   SizedBox(height: 4),
                                   Text(
-                                    "Episode ${provider.watched >= provider.epLinks.length ? provider.watched : provider.watched + 1}",
+                                    "Episode ${provider.nextEpisode?.episodeNumber ?? 1}",
                                     style: TextStyle(
                                       color: Colors.white.withAlpha(204),
                                       fontFamily: "Poppins",
@@ -325,7 +325,7 @@ class ContinueWatchingBodyBox extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
   final raw = provider.lastWatchedDurationMap?[
-      provider.watched < provider.epLinks.length ? provider.watched + 1 : provider.watched] ??
+      provider.nextEpisodeResumeKey] ??
     0;
   final double value = (raw is num) ? raw.toDouble() : double.tryParse(raw.toString()) ?? 0.0;
   final watchedProgress = (value.isNaN || value.isInfinite) ? 0 : value.toInt();
@@ -346,7 +346,7 @@ class ContinueWatchingBodyBox extends StatelessWidget {
                 width: size.width / 3,
                 child: ServerSelectionBottomSheet(
                   provider: provider,
-                  episodeIndex: provider.watched,
+                  episodeIndex: provider.nextEpisodeIndex,
                   type: ServerSheetType.watch,
                 ),
               ),
@@ -398,7 +398,7 @@ class ContinueWatchingBodyBox extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      "Continue Episode ${provider.watched >= provider.epLinks.length ? provider.watched : provider.watched + 1}",
+                      "Continue Episode ${provider.nextEpisode?.episodeNumber ?? 1}",
                       style: TextStyle(
                         color: appTheme.textMainColor,
                         fontFamily: "Poppins",
@@ -521,7 +521,7 @@ class ContinueWatchingBodyBox extends StatelessWidget {
                                 width: size.width / 3,
                                 child: ServerSelectionBottomSheet(
                                   provider: provider,
-                                  episodeIndex: provider.watched,
+                                  episodeIndex: provider.nextEpisodeIndex,
                                   type: ServerSheetType.watch,
                                 ),
                               ),

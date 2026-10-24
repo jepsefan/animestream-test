@@ -3,13 +3,14 @@
 Complete history: [CHANGELOG.md](CHANGELOG.md). These notes cover beta34.86, beta34.85 and beta34.84.
 
 ## v1.4.9-beta34.86 — Extension source settings
+- Metadata search uses exactly one provider: AniList when enabled, otherwise the first enabled MAL/Kitsu backup. Empty results and failures never cascade to another source. The 18+ switch now controls MAL `nsfw` requests and Kitsu local NSFW filtering.
 - AniList search and extension AniList matching now respect the 18+ metadata setting: adult content remains excluded by default; enabling it removes the `isAdult: false` GraphQL filter. Search input is safely JSON-escaped.
 - Added an off-by-default global 18+ content switch at the bottom of Metadata in Built-in providers. It hides APKs officially marked NSFW in the source picker and guards stream access. On change, it synchronizes unambiguously named on/off adult settings from approved extension sources only. Incompatible sources are skipped; no invented extension settings or changes to AniList/MAL/SIMKL tracking.
 - Source settings gear added directly to Manage Providers > Installed and the nested Installed extension catalog, including apps installed outside catalogs. Available now defaults to Installed when APK extensions exist and Browse otherwise; manual tab choice is respected.
 - Installed extensions now have a Source settings page exposing their actual Aniyomi/Anikku preference options: list, on/off, multiple choice, and non-sensitive text fields for source domains.
 - Preferences are stored locally per extension source and cached source instances are refreshed after saving; unsupported extensions show a clear message.
 - No change to BetterPlayer, audio, subtitles, or existing stream selection.
-- Version `1.4.9-beta34.86+101`. APK build/device tests not yet run.
+- Version `1.4.9-beta34.86+102`. APK build/device tests not yet run.
 
 ## v1.4.9-beta34.85 — Extension episode identity and selection safety
 - Episode 0 can be locally marked watched when 75% played, without updating AniList/MAL/SIMKL; info page displays the local checkmark. AniZone server names now normalize extra whitespace extracted from site buttons.

@@ -46,7 +46,7 @@ class _AdultRingPainter extends CustomPainter {
     } else {
       // The '+' occupies the opening at upper right, as in the original icon.
       canvas.drawArc(const Rect.fromLTWH(3, 3, 49, 49),
-          -0.90, 5.35, false, stroke);
+          -0.55, 5.58, false, stroke);
     }
     final number = TextPainter(
       text: TextSpan(text: isR || isRPlus ? 'R' : '18', style: TextStyle(

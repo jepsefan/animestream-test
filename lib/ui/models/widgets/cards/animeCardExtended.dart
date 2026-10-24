@@ -215,7 +215,7 @@ class AnimeCardExtended extends StatelessWidget {
                   ),
                 ),
                 if ((isAdult || ageRating == 'r') && currentUserSettings?.showAdultContent == true)
-                  const Positioned(left: 12, bottom: 12, child: AdultRatingIcon(size: 28, ageRating: ageRating)),
+                  Positioned(left: 12, bottom: 12, child: AdultRatingIcon(size: 28, ageRating: ageRating)),
               ],
             ),
           ),

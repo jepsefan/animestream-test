@@ -1,4 +1,5 @@
 import 'package:animestream/core/network/sourceVerificationSession.dart';
+import 'package:animestream/core/app/values.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 
@@ -48,6 +49,9 @@ class _SourceVerificationPageState extends State<SourceVerificationPage> {
       body: Column(children: [
         Expanded(child: InAppWebView(
           initialUrlRequest: URLRequest(url: WebUri('https://animepahe.pw/')),
+          initialSettings: InAppWebViewSettings(
+            userAgent: AppValues.defaultClientUserAgent,
+          ),
           onLoadStop: (controller, url) {
             if (url?.host == SourceVerificationSession.host) _check();
           },

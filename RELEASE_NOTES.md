@@ -1,6 +1,14 @@
 # AnimeStream — Latest three beta development versions
 
-Complete history: [CHANGELOG.md](CHANGELOG.md). These notes cover beta34.90.4, beta34.90.3 and beta34.90.2.
+Complete history: [CHANGELOG.md](CHANGELOG.md). These notes cover beta34.90.5, beta34.90.4 and beta34.90.3.
+
+## v1.4.9-beta34.90.5 — Experimental source browser verification
+- Add a disabled-by-default experimental Web verification toggle in General settings.
+- When the selected AnimePahe source fails to load episodes, display a Verify button. Open an embedded WebView for user-completed website verification.
+- Save accepted website cookies locally with secure storage, restrict reuse to animepahe.pw HTTP requests, and use a consistent WebView/HTTP user-agent. Never log cookie values.
+- Test the source's JSON API before closing verification. On success return to the series page and reload episodes without restarting the metadata page. Failed/cancelled verification leaves the selected provider unchanged.
+- This is an experimental AnimePahe integration; website anti-bot checks may still reject API calls, and Aniyomi extension networking is not integrated.
+- Version `1.4.9-beta34.90.5+121`. Android APK/device validation pending.
 
 ## v1.4.9-beta34.90.4 — Scrollable provider picker and TV focus
 - Completed AniList anime cards now keep the existing dimmed poster but render score badges on a dark theme-derived background, with accent-colored star and score digits without white outlines for a cleaner look. Applies to standard and extended cards; other statuses remain unchanged. No extra AniList API calls.
@@ -13,9 +21,3 @@ Complete history: [CHANGELOG.md](CHANGELOG.md). These notes cover beta34.90.4, b
 - Display missing MAL recommendation scores by lazily fetching `mean` alongside age ratings, with shared cached requests.
 - Preserve Tenrai MAL Characters and Related changes from beta34.90.2.
 - Version `1.4.9-beta34.90.3+119`; APK build not yet verified.
-
-## v1.4.9-beta34.90.2 — Tenrai MAL extras API
-- MAL Recommended cards now fetch missing mean scores together with age ratings via one cached MAL API request per visible card; unknown scores remain `??`. Unit tests cover score conversion. No version bump for this incremental fix.
-- Replace the discontinued Jikan public endpoint with Tenrai v1 for MAL Characters and Related requests.
-- Retain the separate non-blocking loaders, diagnostic messages and lazy related cover fetching from beta34.90.1.
-- Version `1.4.9-beta34.90.2+118`; API response validation and APK/device verification pending.

@@ -10,6 +10,8 @@ import 'package:animestream/core/network/network.dart';
 /// of [MALLogin] and the list sync code.
 class MalAnimeMetadata implements AnimeMetadataProvider {
   static const String _base = 'https://api.myanimelist.net/v2';
+  // Tenrai replaces the discontinued Jikan public API for MAL extras.
+  static const String _extrasBase = 'https://api.tenrai.org/v1';
 
   static const Map<String, String> _headers = <String, String>{
     'X-MAL-CLIENT-ID': '165c40bb79c803049c4badcaa90cfd74',
@@ -265,15 +267,15 @@ class MalAnimeMetadata implements AnimeMetadataProvider {
   /// can distinguish unavailable data from a genuine empty character list.
   static Future<List<Map<String, dynamic>>> loadCharacters(String malId) async {
     final response = await get(
-      'https://api.jikan.moe/v4/anime/$malId/characters',
+      '$_extrasBase/anime/$malId/characters',
       cacheDuration: const Duration(hours: 12),
     ).timeout(const Duration(seconds: 7));
-    return parseJikanCharacters(response.json);
+    return parseMalCharacters(response.json);
   }
 
-  static List<Map<String, dynamic>> parseJikanCharacters(Object? payload) {
+  static List<Map<String, dynamic>> parseMalCharacters(Object? payload) {
     if (payload is! Map || payload['data'] is! List) {
-      throw const FormatException('Unexpected Jikan characters response');
+      throw const FormatException('Unexpected MAL characters response');
     }
     return (payload['data'] as List).whereType<Map>().map((entry) {
       final character = entry['character'];
@@ -294,19 +296,19 @@ class MalAnimeMetadata implements AnimeMetadataProvider {
     }).whereType<Map<String, dynamic>>().toList(growable: false);
   }
 
-  /// Jikan includes MAL manga and light-novel relations missing from the
+  /// Tenrai includes MAL manga and light-novel relations missing from the
   /// official anime details endpoint. No image requests are awaited here.
-  static Future<List<AnimeMetadataSummary>> loadRelatedFromJikan(String malId) async {
+  static Future<List<AnimeMetadataSummary>> loadRelatedFromTenrai(String malId) async {
     final response = await get(
-      'https://api.jikan.moe/v4/anime/$malId/relations',
+      '$_extrasBase/anime/$malId/relations',
       cacheDuration: const Duration(hours: 12),
     ).timeout(const Duration(seconds: 7));
-    return parseJikanRelations(response.json);
+    return parseMalRelations(response.json);
   }
 
-  static List<AnimeMetadataSummary> parseJikanRelations(Object? payload) {
+  static List<AnimeMetadataSummary> parseMalRelations(Object? payload) {
     if (payload is! Map || payload['data'] is! List) {
-      throw const FormatException('Unexpected Jikan relations response');
+      throw const FormatException('Unexpected MAL relations response');
     }
     final results = <AnimeMetadataSummary>[];
     final seen = <String>{};

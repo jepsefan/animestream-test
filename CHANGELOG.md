@@ -3,6 +3,7 @@
 Complete development history. Published GitHub Releases use the concise [RELEASE_NOTES.md](RELEASE_NOTES.md) for the latest three beta versions. Older entries remain here for reference.
 
 ## v1.4.9-beta34.90.9 — Hanime HLS playback compatibility
+- Build fix: restore the missing `extensionVerificationOutcome.dart` source required by Verify's status switch. No version bump; resolves missing import and related enum errors.
 - Promote the existing hanime.tv [Ext] playback correction to a new beta: recognize signed, extensionless HLS playlist URLs and apply the HLS buffering profile automatically.
 - Include the general extension Verify flow and separate missing-title diagnostics from the previous beta.
 - Original solution applied to external sources. Version `1.4.9-beta34.90.9+125`; APK compilation and device playback still require testing.

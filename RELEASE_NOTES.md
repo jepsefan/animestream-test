@@ -1,6 +1,11 @@
 # AnimeStream — Latest three beta development versions
 
-Complete history: [CHANGELOG.md](CHANGELOG.md). These notes cover beta34.90.8, beta34.90.7 and beta34.90.6.
+Complete history: [CHANGELOG.md](CHANGELOG.md). These notes cover beta34.90.9, beta34.90.8 and beta34.90.7.
+
+## v1.4.9-beta34.90.9 — Hanime HLS playback compatibility
+- Promote the existing hanime.tv [Ext] playback correction to a new beta: recognize signed, extensionless HLS playlist URLs and apply the HLS buffering profile automatically.
+- Include the general extension Verify flow and separate missing-title diagnostics from the previous beta.
+- Original solution applied to external sources. Version `1.4.9-beta34.90.9+125`; APK compilation and device playback still require testing.
 
 ## v1.4.9-beta34.90.8 — General extension verification
 - Extension playback fix: recognize the original hanime.tv extension's signed, extensionless `/hls/{id}/{token}` playlists as HLS before HEAD probing; retain source-supplied headers, distinguish other streaming formats, and add format-detection regression tests. Browser verification alone does not guarantee media CDN access; Android playback still requires testing.
@@ -13,10 +18,3 @@ Complete history: [CHANGELOG.md](CHANGELOG.md). These notes cover beta34.90.8, b
 
 ## v1.4.9-beta34.90.7 — Playback
 - Från originallösningen, tillämpad på extern källa.
-
-## v1.4.9-beta34.90.6 — AnimePahe extension verification
-- Dart compilation fix: remove 195 duplicate trailing lines accidentally left after `AniyomiExtensionProvider`'s closing brace. Prevents parser errors and misleading cascading `StateError` errors; version unchanged.
-- Android build fix: pin `flutter_inappwebview_android` to `1.2.0-beta.3` for AGP 9 and validate the resolved package before compilation. App version remains `1.4.9-beta34.90.6+122`.
-- Promote the updated AnimePahe [Ext] verification flow to its own beta. Verify tests the selected Aniyomi extension using its OkHttp client and WebView-shared cookies, reports safe HTTP diagnostics and reloads episodes on success.
-- Retain previous beta34.90.5 improvements and the existing experimental opt-in setting.
-- Version `1.4.9-beta34.90.6+122`; APK/device validation pending.

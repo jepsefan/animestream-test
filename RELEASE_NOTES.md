@@ -3,6 +3,7 @@
 Complete history: [CHANGELOG.md](CHANGELOG.md). These notes cover beta34.90.9, beta34.90.8 and beta34.90.7.
 
 ## v1.4.9-beta34.90.9 — Hanime HLS playback compatibility
+- Diagnostic update in the linked BetterPlayer fork: Media3 player errors now report sanitized error code, HTTP status when available, and exception type chain; never expose signed stream URLs or headers. Use the next PLAYER log to distinguish HTTP access denial from manifest/segment/decoder failures. Version unchanged; APK and device validation pending.
 - Build fix: restore the missing `extensionVerificationOutcome.dart` source required by Verify's status switch. No version bump; resolves missing import and related enum errors.
 - Promote the existing hanime.tv [Ext] playback correction to a new beta: recognize signed, extensionless HLS playlist URLs and apply the HLS buffering profile automatically.
 - Include the general extension Verify flow and separate missing-title diagnostics from the previous beta.

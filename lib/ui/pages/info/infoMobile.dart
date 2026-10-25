@@ -1329,13 +1329,15 @@ class _InfoMobileState extends State<InfoMobile> {
             child: Column(
               children: [
                 _categoryTitle('Characters'),
-                if (provider.malExtrasLoading && provider.data.characters.isEmpty)
+                if (provider.malCharactersLoading && provider.data.characters.isEmpty)
                   const Padding(
                     padding: EdgeInsets.all(12),
                     child: Text('Loading MAL characters...'),
                   ),
+                if (provider.malCharactersError != null && provider.data.characters.isEmpty)
+                  const Text('MAL characters could not be loaded.'),
                 SizedBox(
-                  height: 260,
+                  height: provider.data.characters.isEmpty ? 0 : 260,
                   child: ListView.builder(
                     itemCount: provider.data.characters.length,
                     scrollDirection: Axis.horizontal,
@@ -1360,11 +1362,13 @@ class _InfoMobileState extends State<InfoMobile> {
             child: Column(
               children: [
                 _categoryTitle('Related'),
-                if (provider.malExtrasLoading && provider.data.related.isEmpty)
+                if (provider.malRelatedLoading && provider.data.related.isEmpty)
                   const Padding(
                     padding: EdgeInsets.all(12),
                     child: Text('Loading MAL relations...'),
                   )
+                else if (provider.malRelatedError != null && provider.data.related.isEmpty)
+                  const Text('MAL related entries could not be loaded.')
                 else
                   _buildRecAndRel(provider.data.related, false, context),
               ],
@@ -1453,17 +1457,48 @@ class _InfoMobileState extends State<InfoMobile> {
                           )
                         : Cards.animeCard(item.id, getTitle(item.title), item.cover,
                             rating: item.rating, isAdult: item.isAdult, ageRating: item.ageRating))
-                    : Cards.characterCard(
-                        getTitle(item.title),
-                        recommended ? item.type : item.relationType!,
-                        item.cover,
-                        animeId: item.type.toLowerCase() == 'anime' ? item.id : null,
-                        isAdult: item.isAdult,
-                        ageRating: item.ageRating,
-                      )),
+                    : (item.cover.isEmpty && item.id < 0
+                        ? FutureBuilder<String?>(
+                            future: MalAnimeMetadata.relationCover(
+                              -item.id, isManga: item.type.toLowerCase() == 'manga'),
+                            builder: (context, snapshot) => _relatedCard(item, snapshot.data ?? ''),
+                          )
+                        : _relatedCard(item, item.cover))),
           );
         },
       ),
+    );
+  }
+
+  Widget _relatedCard(DatabaseRelatedRecommendation item, String imageUrl) {
+    if (imageUrl.isEmpty) {
+      return Column(
+        children: [
+          Container(
+            width: 115, height: 175,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: appTheme.modalSheetBackgroundColor,
+              borderRadius: BorderRadius.circular(15),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(8),
+              child: Text(getTitle(item.title), maxLines: 5,
+                overflow: TextOverflow.ellipsis, textAlign: TextAlign.center),
+            ),
+          ),
+          Text(item.relationType ?? 'Related', maxLines: 2,
+            overflow: TextOverflow.ellipsis),
+        ],
+      );
+    }
+    return Cards.characterCard(
+      getTitle(item.title),
+      item.relationType ?? 'Related',
+      imageUrl,
+      animeId: item.type.toLowerCase() == 'anime' ? item.id : null,
+      isAdult: item.isAdult,
+      ageRating: item.ageRating,
     );
   }
 

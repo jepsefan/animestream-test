@@ -34,6 +34,7 @@ class _SourceVerificationPageState extends State<SourceVerificationPage> {
   String host = SourceVerificationSession.host;
   String userAgent = AppValues.defaultClientUserAgent;
   bool initialized = false;
+  bool supported = true;
 
   @override
   void initState() {
@@ -45,15 +46,24 @@ class _SourceVerificationPageState extends State<SourceVerificationPage> {
     if (widget.extensionPackage != null) {
       try {
         final data = await AniyomiExtensionBridge.extensionVerificationInfo(
-            widget.extensionPackage!);
-        final proposed = data['host']?.toString().toLowerCase() ?? '';
-        if (RegExp(r'^(?:[a-z0-9-]+\.)?animepahe\.[a-z]{2,12}$').hasMatch(proposed)) {
-          host = proposed;
+          widget.extensionPackage!,
+          sourceId: widget.extensionSourceId!,
+          sourceName: widget.extensionSourceName!,
+          sourceLanguage: widget.extensionLanguage!,
+        );
+        final candidate = data['host']?.toString().toLowerCase() ?? '';
+        final valid = RegExp(r'^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,24}$');
+        if (data['status'] == 'ok' && valid.hasMatch(candidate)) {
+          host = candidate;
+          final ua = data['userAgent']?.toString() ?? '';
+          if (ua.isNotEmpty) userAgent = ua;
+        } else {
+          supported = false;
+          message = 'This source has no supported HTTPS verification website.';
         }
-        final ua = data['userAgent']?.toString() ?? '';
-        if (ua.isNotEmpty) userAgent = ua;
       } catch (_) {
-        // Fall back to a known public source host. Never expose bridge errors.
+        supported = false;
+        message = 'Could not load the selected extension website.';
       }
     }
     if (mounted) setState(() => initialized = true);
@@ -64,19 +74,18 @@ class _SourceVerificationPageState extends State<SourceVerificationPage> {
     final parts = <String>[];
     for (final item in diagnostics.whereType<Map>()) {
       final hostName = item['host']?.toString() ?? '';
-      if (!RegExp(r'^(?:[a-z0-9-]+\.)?animepahe\.[a-z]{2,12}$').hasMatch(hostName)) continue;
+      if (hostName != host && !hostName.endsWith('.$host')) continue;
       final status = item['status']?.toString() ?? 'unknown';
-      if (status == '403' || status == '503' || status == '429' ||
-          status == 'network_error' || status == '200') {
-        parts.add('$hostName: HTTP $status');
+      if (const {'200', '403', '429', '503', 'network_error'}.contains(status)) {
+        parts.add('$hostName: $status');
       }
     }
-    return parts.isEmpty ? 'Extension search: ${data['status'] ?? 'unknown'}'
+    return parts.isEmpty ? 'Source search: ${data['status'] ?? 'unknown'}'
         : parts.toSet().join(' • ');
   }
 
   Future<void> _check() async {
-    if (checking || finished || !initialized) return;
+    if (checking || finished || !initialized || !supported) return;
     setState(() { checking = true; message = 'Checking source access...'; });
     try {
       final bool accepted;
@@ -124,10 +133,12 @@ class _SourceVerificationPageState extends State<SourceVerificationPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Verify AnimePahe')),
+      appBar: AppBar(title: const Text('Verify source')),
       body: !initialized
           ? const Center(child: CircularProgressIndicator())
-          : Column(children: [
+          : !supported
+              ? Center(child: Padding(padding: const EdgeInsets.all(20), child: Text(message)))
+              : Column(children: [
               Expanded(child: InAppWebView(
                 initialUrlRequest: URLRequest(url: WebUri('https://$host/')),
                 initialSettings: InAppWebViewSettings(userAgent: userAgent),

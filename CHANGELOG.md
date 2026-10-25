@@ -3,6 +3,7 @@
 Complete development history. Published GitHub Releases use the concise [RELEASE_NOTES.md](RELEASE_NOTES.md) for the latest three beta versions. Older entries remain here for reference.
 
 ## v1.4.9-beta34.90.5 — Experimental source browser verification
+- Build fix: use flutter_inappwebview 6.2.0-beta.3 to avoid removed `proguard-android.txt` in Android Gradle Plugin 9; keeps version `1.4.9-beta34.90.5+121` unchanged.
 - Add a disabled-by-default experimental Web verification toggle in General settings.
 - When the selected AnimePahe source fails to load episodes, display a Verify button. Open an embedded WebView for user-completed website verification.
 - Save accepted website cookies locally with secure storage, restrict reuse to animepahe.pw HTTP requests, and use a consistent WebView/HTTP user-agent. Never log cookie values.

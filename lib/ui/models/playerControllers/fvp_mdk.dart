@@ -54,7 +54,7 @@ class FvpWrapper implements VideoController {
   }
 
   @override
-  Future<void> initiateVideo(String url, {Map<String, String>? headers = null, bool offline = false}) async {
+  Future<void> initiateVideo(String url, {Map<String, String>? headers = null, bool offline = false, bool shareWebViewCookies = false}) async {
     _player.state = mdk.PlaybackState.stopped;
 
     _player.setMedia('', mdk.MediaType.audio);

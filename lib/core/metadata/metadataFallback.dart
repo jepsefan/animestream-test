@@ -251,7 +251,7 @@ class AnimeMetadataRouter {
         'end': details.endDate ?? '',
       },
       banner: details.banner ?? summary.banner,
-      characters: details.characters,
+      characters: List<Map<String, dynamic>>.of(details.characters),
       cover: summary.cover,
       duration: details.duration ?? '??',
       episodes: details.episodes ?? summary.totalEpisodes,
@@ -289,7 +289,7 @@ class AnimeMetadataRouter {
             relationType: summary.relationType ?? (summary.isManga ? 'Adaptation' : 'Related'),
           ),
         )
-        .toList(growable: false);
+        .toList(growable: true);
   }
 }
 

@@ -3,11 +3,12 @@
 Complete development history. Published GitHub Releases use the concise [RELEASE_NOTES.md](RELEASE_NOTES.md) for the latest three beta versions. Older entries remain here for reference.
 
 ## v1.4.9-beta34.90.9 — Hanime HLS playback compatibility
-- Diagnostic update in the linked BetterPlayer fork: Media3 player errors now report sanitized error code, HTTP status when available, and exception type chain; never expose signed stream URLs or headers. Use the next PLAYER log to distinguish HTTP access denial from manifest/segment/decoder failures. Version unchanged; APK and device validation pending.
+- Build number updated to `+126` for a fresh APK with the BetterPlayer Media3 error diagnostics; beta version remains 34.90.9.
+- Diagnostic update in the linked BetterPlayer fork: Media3 player errors now report sanitized error code, HTTP status when available, and exception type chain; never expose signed stream URLs or headers. Use the next PLAYER log to distinguish HTTP access denial from manifest/segment/decoder failures. Beta designation unchanged; APK and device validation pending.
 - Build fix: restore the missing `extensionVerificationOutcome.dart` source required by Verify's status switch. No version bump; resolves missing import and related enum errors.
 - Promote the existing hanime.tv [Ext] playback correction to a new beta: recognize signed, extensionless HLS playlist URLs and apply the HLS buffering profile automatically.
 - Include the general extension Verify flow and separate missing-title diagnostics from the previous beta.
-- Original solution applied to external sources. Version `1.4.9-beta34.90.9+125`; APK compilation and device playback still require testing.
+- Original solution applied to external sources. Version `1.4.9-beta34.90.9+126`; APK compilation and device playback still require testing.
 
 ## v1.4.9-beta34.90.8 — General extension verification
 - Extension playback fix: recognize the original hanime.tv extension's signed, extensionless `/hls/{id}/{token}` playlists as HLS before HEAD probing; retain source-supplied headers, distinguish other streaming formats, and add format-detection regression tests. Browser verification alone does not guarantee media CDN access; Android playback still requires testing.

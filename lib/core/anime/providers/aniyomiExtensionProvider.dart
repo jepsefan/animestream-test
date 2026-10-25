@@ -48,19 +48,23 @@ class AniyomiExtensionProvider extends AnimeProvider {
       final status = (response['status'] ?? '').toString();
       if (status != 'search_completed' &&
           status != 'search_completed_unverified') {
-        // Only whitelisted HTTP statuses, never URLs or cookie values.
+        // Use only fixed status/type identifiers. Never log source exception
+        // messages: native extension errors can contain signed media URLs.
         final statuses = <String>{};
         for (final entry in ((response['networkDiagnostics'] as List?) ?? const [])) {
           if (entry is! Map) continue;
-          final hostname = entry['host']?.toString() ?? '';
-          if (!hostname.startsWith('animepahe.') &&
-              !hostname.endsWith('.animepahe.pw')) continue;
           final code = entry['status']?.toString() ?? '';
-          if (const {'200', '403', '429', '503', 'network_error'}
-              .contains(code)) statuses.add(code);
+          if (const {'200', '401', '403', '404', '429', '500', '502', '503',
+              'network_error'}.contains(code)) statuses.add(code);
         }
-        throw StateError('Aniyomi search failed: $status'
-            '${statuses.isEmpty ? '' : ' (HTTP ${statuses.join(', ')})'}');
+        final reason = response['rootErrorType']?.toString() ?? 'Unknown';
+        final safeReason = RegExp(r'^[a-zA-Z][a-zA-Z0-9_]{0,69}$')
+                .hasMatch(reason) ? reason : 'Unknown';
+        throw StateError('Extension search failed: $status'
+            ' (reason=$safeReason'
+            '${statuses.isEmpty ? '' : ', HTTP=${statuses.join(',')}'}'
+            ')');
+
       }
       // A successful HTTP response can be an unrelated browse page.
       if (response['resultRelevance'] == 'unverified_unrelated_catalogue') continue;

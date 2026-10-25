@@ -450,7 +450,7 @@ class InfoProvider extends ChangeNotifier {
       notifyListeners();
     });
 
-    MalAnimeMetadata.loadRelatedFromJikan(malId).then((relations) {
+    MalAnimeMetadata.loadRelatedFromTenrai(malId).then((relations) {
       if (generation != _malExtrasGeneration || !_dataLoaded) return;
       final current = _data as AnilistInfo;
       final oldIds = current.related.map((item) => item.id).toSet();

@@ -3,6 +3,8 @@
 Complete history: [CHANGELOG.md](CHANGELOG.md). These notes cover beta34.90.8, beta34.90.7 and beta34.90.6.
 
 ## v1.4.9-beta34.90.8 — General extension verification
+- Extension playback fix: recognize the original hanime.tv extension's signed, extensionless `/hls/{id}/{token}` playlists as HLS before HEAD probing; retain source-supplied headers, distinguish other streaming formats, and add format-detection regression tests. Browser verification alone does not guarantee media CDN access; Android playback still requires testing.
+- Verify now distinguishes completed searches with no matching title from network/access failures instead of suggesting the website challenge failed.
 - Automatically apply the HLS buffer profile only to detected HLS playlists (`.m3u8`/`.m3u` or HLS MIME type), for built-in and external sources alike. DASH and direct files retain default buffer settings; direct file detection avoids unnecessary HEAD requests. The single-seek timeline behavior remains in place. No version bump.
 - General Verify for user-approved Aniyomi/Anikku HTTP extensions when source episode lookup fails, using the extension's declared public HTTPS base domain and User-Agent.
 - Browser verification is manual and remains opt-in. The selected extension's own search through the native OkHttp runtime validates access before returning to the series page to retry episodes.

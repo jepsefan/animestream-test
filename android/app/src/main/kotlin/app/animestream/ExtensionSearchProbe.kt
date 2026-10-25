@@ -25,35 +25,42 @@ internal class ExtensionSearchProbe(private val context: Context) {
         return try {
             runSearch(packageName, query.trim(), sourceId, approvedName, approvedLanguage)
         } catch (error: Throwable) {
-            val chain = mutableListOf<String>()
+            // Third-party exceptions may contain signed URLs, cookies and
+            // response bodies. Only expose exception *types* and whitelisted
+            // HTTP status codes to Flutter, never throwable messages/stacks.
+            val types = mutableListOf<String>()
             val visited = java.util.Collections.newSetFromMap(
                 java.util.IdentityHashMap<Throwable, Boolean>()
             )
             var current: Throwable? = error
-            while (current != null && visited.add(current) && chain.size < 8) {
-                chain.add(current.javaClass.name + ": " + (current.message ?: "(no message)"))
+            while (current != null && visited.add(current) && types.size < 8) {
+                types.add(current.javaClass.simpleName.take(70))
                 current = if (current is java.lang.reflect.InvocationTargetException) {
                     current.targetException ?: current.cause
                 } else {
                     current.cause
                 }
             }
-            val okhttpBody = okhttp3.ResponseBody::class.java
-            val sourceSignatures = okhttpBody.methods
-                .filter { it.name == "source" || it.name == "getSource" }
-                .map { it.toGenericString() }
-            val networkTrace = try {
+            val trace = try {
                 NetworkHelper.requireInstance().searchNetworkDiagnostics()
             } catch (_: IllegalStateException) { emptyList() }
+            val safeTrace = trace.map { item ->
+                mapOf(
+                    "host" to (item["host"]?.toString()?.take(180) ?: ""),
+                    "status" to (item["status"] ?: "network_error"),
+                    "contentType" to (item["contentType"]?.toString()?.take(64) ?: ""),
+                    "cfMitigated" to (item["cfMitigated"]?.toString()?.take(32) ?: ""),
+                    "path" to when (item["path"]) {
+                        "/indexes/content/search", "/search", "/filter" -> item["path"]
+                        else -> "[redacted]"
+                    }
+                )
+            }
             mapOf(
-                "networkDiagnostics" to networkTrace,
                 "status" to "search_failed",
-                "okhttpRuntime" to (okhttpBody.classLoader?.javaClass?.name ?: "bootstrap"),
-                "okhttpSourceSignatures" to sourceSignatures,
-                "error" to (chain.joinToString(" -> ") +
-                    "\nOkHttp ResponseBody source methods: " + sourceSignatures.joinToString("; ")),
-                "errorChain" to chain,
-                "stackTrace" to error.stackTraceToString().take(12000)
+                "errorTypes" to types,
+                "rootErrorType" to (types.lastOrNull() ?: "Unknown"),
+                "networkDiagnostics" to safeTrace
             )
         }
     }

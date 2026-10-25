@@ -425,8 +425,14 @@ class InfoProvider extends ChangeNotifier {
     notifyListeners();
     try {
       final results = await Future.wait<dynamic>([
-        MalAnimeMetadata.loadCharacters(malId),
-        MalAnimeMetadata.loadRelatedFromJikan(malId),
+        MalAnimeMetadata.loadCharacters(malId).catchError((Object error) {
+          Logs.app.log('[MAL CHARACTERS] $error');
+          return <Map<String, dynamic>>[];
+        }),
+        MalAnimeMetadata.loadRelatedFromJikan(malId).catchError((Object error) {
+          Logs.app.log('[MAL RELATED] $error');
+          return <AnimeMetadataSummary>[];
+        }),
       ]);
       if (generation != _malExtrasGeneration || !_dataLoaded) return;
       final characters = results[0] as List<Map<String, dynamic>>;

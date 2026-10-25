@@ -397,9 +397,28 @@ class _InfoMobileState extends State<InfoMobile> {
             child: ElevatedButton.icon(
               onPressed: () async {
                 final sourceId = provider.selectedSource.identifier;
+                final isExtension = sourceId.startsWith('aniyomi:');
+                final extensionParts = isExtension
+                    ? sourceId.substring('aniyomi:'.length).split('#')
+                    : <String>[];
+                final packageName = extensionParts.isNotEmpty
+                    ? extensionParts.first : null;
+                final nativeSourceId = extensionParts.length > 1
+                    ? int.tryParse(extensionParts[1]) : null;
+                final sourceInfo = packageName != null && nativeSourceId != null
+                    ? SourceManager.instance.approvedExtensionSource(
+                        packageName, nativeSourceId)
+                    : null;
                 final verified = await Navigator.of(context).push<bool>(
                   MaterialPageRoute(
-                    builder: (_) => const SourceVerificationPage(),
+                    builder: (_) => SourceVerificationPage(
+                      extensionPackage: packageName,
+                      extensionSourceId: nativeSourceId,
+                      extensionSourceName: sourceInfo?.name,
+                      extensionLanguage: sourceInfo?.language,
+                      searchQuery: provider.data.title['english'] ??
+                          provider.data.title['romaji'] ?? 'naruto',
+                    ),
                   ),
                 );
                 if (!mounted || verified != true ||

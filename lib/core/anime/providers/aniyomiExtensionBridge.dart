@@ -59,6 +59,14 @@ class AniyomiExtensionBridge {
     return ((raw?['sources'] as List?) ?? const []).whereType<Map>()
         .map((item) => AniyomiExtensionSourceInfo.fromMap(item)).toList();
   }
+  /// Public host and User-Agent used by the extension's OkHttp runtime.
+  /// Never sends session cookies through the Dart bridge.
+  static Future<Map<String, dynamic>> extensionVerificationInfo(String packageName) async {
+    final raw = await _channel.invokeMethod<Map<dynamic, dynamic>>(
+      'extensionVerificationInfo', {'packageName': packageName});
+    return Map<String, dynamic>.from(raw ?? const {});
+  }
+
   /// Runs an installed extension's search code only after explicit user consent.
   static Future<Map<String, dynamic>> testExtensionSearch(
       String packageName, String query,

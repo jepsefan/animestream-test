@@ -260,46 +260,55 @@ class MalAnimeMetadata implements AnimeMetadataProvider {
 
   /// Jikan exposes MAL's character list separately from the official v2
   /// details endpoint. It is optional and must not hide the anime details.
+
+  /// Read-only third-party metadata. Errors intentionally propagate so the UI
+  /// can distinguish unavailable data from a genuine empty character list.
   static Future<List<Map<String, dynamic>>> loadCharacters(String malId) async {
-    try {
-      final response = await get(
-        'https://api.jikan.moe/v4/anime/$malId/characters',
-        cacheDuration: const Duration(hours: 12),
-      ).timeout(const Duration(seconds: 8));
-      final data = response.json;
-      if (data is! Map || data['data'] is! List) return const [];
-      return (data['data'] as List).whereType<Map>().map((entry) {
-        final character = entry['character'];
-        if (character is! Map) return null;
-        final name = character['name']?.toString() ?? '';
-        final images = character['images'];
-        final jpg = images is Map ? images['jpg'] : null;
-        final webp = images is Map ? images['webp'] : null;
-        final image = jpg is Map ? (jpg['image_url'] ?? jpg['small_image_url'])?.toString()
-            : webp is Map ? webp['image_url']?.toString() : null;
-        if (name.isEmpty || image == null || image.isEmpty) return null;
-        return <String, dynamic>{
-          'name': name,
-          'role': entry['role']?.toString() ?? '',
-          'image': image,
-        };
-      }).whereType<Map<String, dynamic>>().toList(growable: false);
-    } catch (_) {
-      return const <Map<String, dynamic>>[];
-    }
+    final response = await get(
+      'https://api.jikan.moe/v4/anime/$malId/characters',
+      cacheDuration: const Duration(hours: 12),
+    ).timeout(const Duration(seconds: 7));
+    return parseJikanCharacters(response.json);
   }
 
-  /// Jikan returns the manga/adaptation relations that MAL API v2 sometimes
-  /// omits even when its website shows them. Called after the series is visible.
+  static List<Map<String, dynamic>> parseJikanCharacters(Object? payload) {
+    if (payload is! Map || payload['data'] is! List) {
+      throw const FormatException('Unexpected Jikan characters response');
+    }
+    return (payload['data'] as List).whereType<Map>().map((entry) {
+      final character = entry['character'];
+      if (character is! Map) return null;
+      final name = character['name']?.toString().trim() ?? '';
+      if (name.isEmpty) return null;
+      final images = character['images'];
+      final jpg = images is Map ? images['jpg'] : null;
+      final webp = images is Map ? images['webp'] : null;
+      final image = jpg is Map
+          ? (jpg['image_url'] ?? jpg['small_image_url'])?.toString()
+          : webp is Map ? webp['image_url']?.toString() : null;
+      return <String, dynamic>{
+        'name': name,
+        'role': entry['role']?.toString() ?? '',
+        'image': image ?? '',
+      };
+    }).whereType<Map<String, dynamic>>().toList(growable: false);
+  }
+
+  /// Jikan includes MAL manga and light-novel relations missing from the
+  /// official anime details endpoint. No image requests are awaited here.
   static Future<List<AnimeMetadataSummary>> loadRelatedFromJikan(String malId) async {
     final response = await get(
       'https://api.jikan.moe/v4/anime/$malId/relations',
       cacheDuration: const Duration(hours: 12),
-    ).timeout(const Duration(seconds: 8));
-    final payload = response.json;
-    if (payload is! Map || payload['data'] is! List) return const [];
+    ).timeout(const Duration(seconds: 7));
+    return parseJikanRelations(response.json);
+  }
 
-    final found = <AnimeMetadataSummary>[];
+  static List<AnimeMetadataSummary> parseJikanRelations(Object? payload) {
+    if (payload is! Map || payload['data'] is! List) {
+      throw const FormatException('Unexpected Jikan relations response');
+    }
+    final results = <AnimeMetadataSummary>[];
     final seen = <String>{};
     for (final group in (payload['data'] as List).whereType<Map>()) {
       final label = group['relation']?.toString() ?? 'Related';
@@ -308,12 +317,12 @@ class MalAnimeMetadata implements AnimeMetadataProvider {
       for (final entry in entries.whereType<Map>()) {
         final type = entry['type']?.toString().toLowerCase();
         if (type != 'anime' && type != 'manga') continue;
-        final rawId = entry['mal_id'];
-        final relatedId = rawId is num ? rawId.toInt() : int.tryParse(rawId?.toString() ?? '');
+        final value = entry['mal_id'];
+        final relatedId = value is num ? value.toInt() : int.tryParse(value?.toString() ?? '');
         if (relatedId == null || relatedId <= 0 || !seen.add('$type:$relatedId')) continue;
-        final name = entry['name']?.toString() ?? '';
+        final name = entry['name']?.toString().trim() ?? '';
         if (name.isEmpty) continue;
-        found.add(AnimeMetadataSummary(
+        results.add(AnimeMetadataSummary(
           source: 'mal',
           providerId: relatedId.toString(),
           title: <String, String?>{'english': null, 'romaji': name, 'native': null},
@@ -324,38 +333,31 @@ class MalAnimeMetadata implements AnimeMetadataProvider {
         ));
       }
     }
-
-    // Add covers with a small, bounded number of official MAL requests.
-    // Even if one fails, the title and relation are still usable.
-    final results = await Future.wait(found.take(8).map((item) async {
-      try {
-        final mediaType = item.isManga ? 'manga' : 'anime';
-        final response = await get(
-          '$_base/$mediaType/${item.providerId}',
-          headers: _headers,
-          queryParameters: const <String, String>{
-            'fields': 'id,title,main_picture,media_type,rating,nsfw',
-          },
-          cacheDuration: const Duration(days: 1),
-        ).timeout(const Duration(seconds: 4));
-        final json = response.json;
-        final picture = json is Map ? json['main_picture'] : null;
-        final cover = picture is Map ? (picture['large'] ?? picture['medium'])?.toString() ?? '' : '';
-        return AnimeMetadataSummary(
-          source: 'mal',
-          providerId: item.providerId,
-          title: item.title,
-          cover: cover,
-          format: item.format,
-          isManga: item.isManga,
-          relationType: item.relationType,
-        );
-      } catch (_) {
-        return item;
-      }
-    }));
-    if (found.length > 8) results.addAll(found.skip(8));
     return results;
+  }
+
+  // Covers are fetched lazily only when a related card is rendered.
+  static final Map<String, Future<String?>> _relationCovers = {};
+  static Future<String?> relationCover(int malId, {required bool isManga}) {
+    final key = '${isManga ? 'manga' : 'anime'}:$malId';
+    return _relationCovers.putIfAbsent(key, () async {
+      try {
+        final type = isManga ? 'manga' : 'anime';
+        final res = await get(
+          '$_base/$type/$malId',
+          headers: _headers,
+          queryParameters: const <String, String>{'fields': 'main_picture'},
+          cacheDuration: const Duration(hours: 24),
+        ).timeout(const Duration(seconds: 5));
+        final json = res.json;
+        final image = json is Map ? json['main_picture'] : null;
+        if (image is! Map) return null;
+        return (image['large'] ?? image['medium'])?.toString();
+      } catch (_) {
+        _relationCovers.remove(key);
+        return null;
+      }
+    });
   }
 
   static Map<String, String?> _titleMap(Map<String, dynamic> node) {

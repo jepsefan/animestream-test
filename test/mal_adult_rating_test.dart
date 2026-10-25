@@ -14,6 +14,21 @@ void main() {
     expect(MalAnimeMetadata.isAdultRating(null, null), isFalse);
   });
 
+  test('MAL recommendation metadata extracts mean score and rating', () {
+    final data = MalAnimeMetadata.parseRecommendationMetadata({
+      'mean': 7.91, 'rating': 'r+', 'nsfw': 'black',
+    });
+    expect(data.score, 7.9);
+    expect(data.ageRating, 'r+');
+    expect(data.isAdult, isTrue);
+  });
+
+  test('MAL recommendation metadata handles missing and string scores', () {
+    expect(MalAnimeMetadata.parseRecommendationMetadata({'mean': '8.23'}).score, 8.2);
+    expect(MalAnimeMetadata.parseRecommendationMetadata({}).score, isNull);
+    expect(MalAnimeMetadata.parseRecommendationMetadata({'mean': 'n/a'}).score, isNull);
+  });
+
   test('explicit NSFW flags are retained', () {
     expect(MalAnimeMetadata.isAdultRating('r', true), isTrue);
     expect(MalAnimeMetadata.isAdultRating(null, 'black'), isTrue);

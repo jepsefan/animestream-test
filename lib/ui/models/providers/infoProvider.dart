@@ -24,6 +24,7 @@ import 'package:animestream/core/anime/providers/externalAssPreferences.dart';
 import 'package:animestream/core/database/simkl/episodeArtwork.dart';
 import 'package:animestream/core/metadata/metadataFallback.dart';
 import 'package:animestream/core/metadata/malMetadata.dart';
+import 'package:animestream/core/metadata/metadataTypes.dart';
 import 'package:animestream/core/database/anilist/types.dart';
 
 class InfoProvider extends ChangeNotifier {

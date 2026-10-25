@@ -27,7 +27,9 @@ class PlayerProvider extends ChangeNotifier {
   Future<void> initiateStream(VideoStream stream, {String? selectedAudioUrl}) async {
     final url = await _audioBridge.prepare(stream, selectedAudioUrl: selectedAudioUrl);
     _usingExternalAudioManifest = url != stream.url;
-    await _controller.initiateVideo(url, headers: stream.customHeaders);
+    await _controller.initiateVideo(url,
+        headers: stream.customHeaders,
+        shareWebViewCookies: stream.server.contains('[Ext]'));
   }
 
   final bool _isOffline;

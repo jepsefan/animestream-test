@@ -22,7 +22,7 @@ abstract class VideoController {
   Future<void> pause();
 
   // initiate a source
-  Future<void> initiateVideo(String url, {Map<String, String>? headers = null, bool offline = false});
+  Future<void> initiateVideo(String url, {Map<String, String>? headers = null, bool offline = false, bool shareWebViewCookies = false});
 
   /// Retuns the Widget of the player
   Widget getWidget();

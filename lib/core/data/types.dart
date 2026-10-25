@@ -90,6 +90,9 @@ class SettingsModal {
   /// Enable logging throughout the app [defaults to false]
   final bool? enableLogging;
 
+  /// Opt-in, experimental browser verification for protected source websites.
+  final bool? experimentalWebVerification;
+
   /// Tap and Hold to speed up the player [defaults to true]
   final bool? enableHoldToSpeedUp;
 
@@ -137,6 +140,7 @@ class SettingsModal {
     this.enablePipOnMinimize,
     this.autoOpEdSkip,
     this.enableLogging,
+    this.experimentalWebVerification,
     this.enableHoldToSpeedUp,
     this.enablePlayerGestures,
     this.useOldNavbar,
@@ -182,6 +186,7 @@ class SettingsModal {
       enablePipOnMinimize: map['enablePipOnMinimize'] ?? false,
       autoOpEdSkip: map['autoOpEdSkip'] ?? false,
       enableLogging: map['enableLogging'] ?? false,
+      experimentalWebVerification: map['experimentalWebVerification'] == true,
       enableHoldToSpeedUp: map['enableHoldToSpeedUp'] ?? true,
       enablePlayerGestures: map['enablePlayerGestures'] ?? false,
       useOldNavbar: map['useOldNavbar'] ?? false,
@@ -222,6 +227,7 @@ class SettingsModal {
       'enablePipOnMinimize': enablePipOnMinimize,
       'autoOpEdSkip': autoOpEdSkip,
       'enableLogging': enableLogging,
+      'experimentalWebVerification': experimentalWebVerification,
       'enableHoldToSpeedUp': enableHoldToSpeedUp,
       'enablePlayerGestures': enablePlayerGestures,
       'useOldNavbar': useOldNavbar,

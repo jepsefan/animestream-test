@@ -2,6 +2,11 @@
 
 Complete development history. Published GitHub Releases use the concise [RELEASE_NOTES.md](RELEASE_NOTES.md) for the latest three beta versions. Older entries remain here for reference.
 
+## v1.4.9-beta34.90.6 — AnimePahe extension verification
+- Promote the updated AnimePahe [Ext] verification flow to its own beta. Verify tests the selected Aniyomi extension using its OkHttp client and WebView-shared cookies, reports safe HTTP diagnostics and reloads episodes on success.
+- Retain previous beta34.90.5 improvements and the existing experimental opt-in setting.
+- Version `1.4.9-beta34.90.6+122`; APK/device validation pending.
+
 ## v1.4.9-beta34.90.5 — Experimental source browser verification
 - AnimePahe [Ext] verification now tests the selected Aniyomi source through its own native OkHttp network stack using Android WebView-shared cookies and the same extension User-Agent. Verify only succeeds after a nonempty source search result; the page then retries episodes. Sanitize diagnostics to source host and HTTP status (403/429/503/network_error); no token or cookie logging. No app version change for this fix.
 - Build fix: use flutter_inappwebview 6.2.0-beta.3 to avoid removed `proguard-android.txt` in Android Gradle Plugin 9; keeps version `1.4.9-beta34.90.5+121` unchanged.

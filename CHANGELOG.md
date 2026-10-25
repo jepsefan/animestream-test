@@ -2,6 +2,11 @@
 
 Complete development history. Published GitHub Releases use the concise [RELEASE_NOTES.md](RELEASE_NOTES.md) for the latest three beta versions. Older entries remain here for reference.
 
+## v1.4.9-beta34.90 — Fix MAL extras build
+- Import `metadataTypes.dart` in `infoProvider.dart` so `AnimeMetadataSummary` resolves during release compilation.
+- Retain beta34.89's non-blocking Characters/Related loading and update version to `1.4.9-beta34.90+116`.
+- APK build and device testing not yet verified.
+
 ## v1.4.9-beta34.89 — Non-blocking MAL characters and related entries
 - Fixed the beta34.88 series-page delay: Jikan characters no longer block initial metadata. Optional characters and relations load after the page appears, and each endpoint may fail independently without suppressing the other.
 - Removed unsupported MAL anime details `related_manga` field and separated lightweight search/ranking fields from the detail request, preventing the MAL details request from discarding all metadata due to a field error.

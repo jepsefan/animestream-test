@@ -390,7 +390,8 @@ class _InfoMobileState extends State<InfoMobile> {
         ),
         _searchStatus(),
         if (currentUserSettings?.experimentalWebVerification == true &&
-            provider.selectedSource.identifier.toLowerCase().contains('animepahe') &&
+            (provider.selectedSource.identifier.startsWith('aniyomi:') ||
+                provider.selectedSource.identifier.toLowerCase() == 'animepahe') &&
             provider.epSearcherror)
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 8),
@@ -409,6 +410,7 @@ class _InfoMobileState extends State<InfoMobile> {
                     ? SourceManager.instance.approvedExtensionSource(
                         packageName, nativeSourceId)
                     : null;
+                if (isExtension && (sourceInfo == null || nativeSourceId == null)) return;
                 final verified = await Navigator.of(context).push<bool>(
                   MaterialPageRoute(
                     builder: (_) => SourceVerificationPage(

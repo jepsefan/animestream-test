@@ -23,6 +23,8 @@ import 'package:animestream/ui/models/sources.dart';
 import 'package:animestream/core/anime/providers/externalAssPreferences.dart';
 import 'package:animestream/core/database/simkl/episodeArtwork.dart';
 import 'package:animestream/core/metadata/metadataFallback.dart';
+import 'package:animestream/core/metadata/malMetadata.dart';
+import 'package:animestream/core/database/anilist/types.dart';
 
 class InfoProvider extends ChangeNotifier {
   int id;
@@ -97,6 +99,9 @@ class InfoProvider extends ChangeNotifier {
   bool _epSearcherror = false;
   bool _loggedIn = false;
   bool _dataLoaded = false;
+  bool _malExtrasLoading = false;
+  bool get malExtrasLoading => _malExtrasLoading;
+  int _malExtrasGeneration = 0;
   bool _infoPage = true;
   bool _infoLoadError = false;
   bool _preferDubs = false;
@@ -322,6 +327,7 @@ class InfoProvider extends ChangeNotifier {
   Future<void> _getInfo(int id) async {
     final isFallback = AnimeMetadataRouter.instance.isFallbackId(id);
     final s = _altDatabases.toSet();
+    final generation = ++_malExtrasGeneration;
 
     try {
       final info = await DatabaseHandler().getAnimeInfo(id);
@@ -398,6 +404,9 @@ class InfoProvider extends ChangeNotifier {
       _data = info;
       _mediaListStatus = isFallback ? null : assignItemEnum(data.mediaListStatus);
       notifyListeners();
+      if (isFallback && id < 0 && id > -1000000000) {
+        _loadMalExtras((-id).toString(), generation);
+      }
     } catch (err) {
       Logs.app.log(err.toString());
       if (currentUserSettings!.showErrors != null &&
@@ -407,6 +416,45 @@ class InfoProvider extends ChangeNotifier {
       _infoLoadError = true;
       notifyListeners();
       rethrow;
+    }
+  }
+
+  /// Never block the series header/episodes waiting for third-party MAL extras.
+  Future<void> _loadMalExtras(String malId, int generation) async {
+    _malExtrasLoading = true;
+    notifyListeners();
+    try {
+      final results = await Future.wait<dynamic>([
+        MalAnimeMetadata.loadCharacters(malId),
+        MalAnimeMetadata.loadRelatedFromJikan(malId),
+      ]);
+      if (generation != _malExtrasGeneration || !_dataLoaded) return;
+      final characters = results[0] as List<Map<String, dynamic>>;
+      final relations = results[1] as List<AnimeMetadataSummary>;
+      final current = _data as AnilistInfo;
+      final oldIds = current.related.map((item) => item.id).toSet();
+      current.characters.addAll(characters);
+      for (final relation in relations) {
+        final relatedId = int.tryParse(relation.providerId);
+        if (relatedId == null) continue;
+        final localId = -relatedId;
+        if (!oldIds.add(localId)) continue;
+        current.related.add(AnilistAnimeRelatedRecommendation(
+          cover: relation.cover,
+          id: localId,
+          rating: relation.rating,
+          title: relation.title,
+          type: relation.isManga ? 'MANGA' : 'ANIME',
+          relationType: relation.relationType ?? 'Related',
+        ));
+      }
+    } catch (err) {
+      Logs.app.log('[MAL EXTRAS] optional data unavailable: $err');
+    } finally {
+      if (generation == _malExtrasGeneration) {
+        _malExtrasLoading = false;
+        notifyListeners();
+      }
     }
   }
 

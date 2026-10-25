@@ -26,6 +26,7 @@ import 'package:animestream/ui/models/sources.dart';
 import 'package:animestream/ui/models/widgets/cards.dart';
 import 'package:animestream/ui/models/widgets/loader.dart';
 import 'package:animestream/ui/pages/info.dart';
+import 'package:animestream/ui/pages/info/sourceVerificationPage.dart';
 
 class InfoMobile extends StatefulWidget {
   const InfoMobile({super.key});
@@ -388,6 +389,27 @@ class _InfoMobileState extends State<InfoMobile> {
           ),
         ),
         _searchStatus(),
+        if (currentUserSettings?.experimentalWebVerification == true &&
+            provider.selectedSource.identifier.toLowerCase().contains('animepahe') &&
+            provider.epSearcherror)
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            child: ElevatedButton.icon(
+              onPressed: () async {
+                final sourceId = provider.selectedSource.identifier;
+                final verified = await Navigator.of(context).push<bool>(
+                  MaterialPageRoute(
+                    builder: (_) => const SourceVerificationPage(),
+                  ),
+                );
+                if (!mounted || verified != true ||
+                    provider.selectedSource.identifier != sourceId) return;
+                await provider.getEpisodes();
+              },
+              icon: const Icon(Icons.verified_user_outlined),
+              label: const Text('Verify'),
+            ),
+          ),
         _manualSearch(context),
         if (provider.foundName != null && provider.epLinks.length > 0) _continueButton(),
         Container(

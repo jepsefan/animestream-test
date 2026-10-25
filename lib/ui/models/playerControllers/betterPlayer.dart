@@ -37,10 +37,11 @@ class BetterPlayerWrapper implements VideoController {
   );
 
   @override
-  Future<void> initiateVideo(String url, {Map<String, String>? headers, bool offline = false}) async {
+  Future<void> initiateVideo(String url, {Map<String, String>? headers, bool offline = false, bool shareWebViewCookies = false}) async {
     final ds = offline
         ? BetterPlayerDataSource.file(url)
-        : await dataSourceConfig(url, headers: headers);
+        : await dataSourceConfig(url, headers: headers,
+            shareWebViewCookies: shareWebViewCookies);
     await controller.setupDataSource(ds);
   }
 

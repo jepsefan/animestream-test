@@ -5,20 +5,25 @@ import 'package:better_player/better_player.dart';
 import 'package:flutter/material.dart';
 
 Future<BetterPlayerDataSource> dataSourceConfig(String url, {Map<String, String>? headers = null}) async {
+  // Determine the stream format once, before configuring the Android player.
+  // Apply the original HLS buffer profile to both built-in and [Ext] sources.
+  final format = await _getFormat(url, headers);
+  final isHls = format == BetterPlayerVideoFormat.hls;
+
   return BetterPlayerDataSource(
     BetterPlayerDataSourceType.network,
     url,
-    videoFormat: await _getFormat(url, headers),
+    videoFormat: format,
     useAsmsAudioTracks: true,
     useAsmsTracks: true,
-    // Match FrostNova721's current HLS/DASH recovery thresholds. With the
-    // defaults, a seek outside the buffered range waits longer to resume.
-    bufferingConfiguration: const BetterPlayerBufferingConfiguration(
-      minBufferMs: 15000,
-      maxBufferMs: 120000,
-      bufferForPlaybackMs: 2000,
-      bufferForPlaybackAfterRebufferMs: 4000,
-    ),
+    bufferingConfiguration: isHls
+        ? const BetterPlayerBufferingConfiguration(
+            minBufferMs: 15000,
+            maxBufferMs: 120000,
+            bufferForPlaybackMs: 2000,
+            bufferForPlaybackAfterRebufferMs: 4000,
+          )
+        : const BetterPlayerBufferingConfiguration(),
     cacheConfiguration: BetterPlayerCacheConfiguration(
       useCache: true,
       maxCacheFileSize: 50 * 1024 * 1024,
@@ -39,6 +44,12 @@ Future<BetterPlayerVideoFormat> _getFormat(String url, Map<String, String>? head
   if (path.endsWith('.m3u8') || path.endsWith('.m3u')) {
     return BetterPlayerVideoFormat.hls;
   }
+  // Direct files are not manifests. Avoid an unnecessary HTTP HEAD request,
+  // which some extension media CDNs reject or incorrectly identify.
+  if (const ['.mp4', '.mkv', '.webm', '.mov', '.avi', '.flv', '.ts']
+      .any(path.endsWith)) {
+    return BetterPlayerVideoFormat.other;
+  }
   String? mime;
   try {
     mime = (await getMediaMimeType(url, headers))?.toLowerCase();
@@ -55,7 +66,9 @@ Future<BetterPlayerVideoFormat> _getFormat(String url, Map<String, String>? head
     if (urlPath.endsWith(".mpd") || urlPath.endsWith(".dash")) return BetterPlayerVideoFormat.dash;
     return BetterPlayerVideoFormat.other;
 
-  } else if (mime.contains("mpegurl") || mime.contains("mp2t")) {
+  } else if (mime.contains("mpegurl")) {
+    // MPEG-2 transport stream (video/mp2t) is a media segment, not an HLS
+    // playlist; only actual HLS manifests get the tuned buffering profile.
     return BetterPlayerVideoFormat.hls;
 
   } else if (mime.contains("dash")) {

@@ -2,6 +2,11 @@
 
 Complete development history. Published GitHub Releases use the concise [RELEASE_NOTES.md](RELEASE_NOTES.md) for the latest three beta versions. Older entries remain here for reference.
 
+## v1.4.9-beta34.90.2 — Tenrai MAL extras API
+- Replace the discontinued Jikan public endpoint with Tenrai v1 for MAL Characters and Related requests.
+- Retain the separate non-blocking loaders, diagnostic messages and lazy related cover fetching from beta34.90.1.
+- Version `1.4.9-beta34.90.2+118`; API response validation and APK/device verification pending.
+
 ## v1.4.9-beta34.90.1 — Progressive MAL extras diagnostics
 - Load MAL Characters and Related separately, so each section updates immediately on its own successful response.
 - Remove the wait for up to eight MAL cover requests before publishing Related entries; each card retrieves its cover lazily and can display a text placeholder.

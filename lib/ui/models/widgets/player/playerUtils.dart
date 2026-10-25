@@ -11,8 +11,13 @@ Future<BetterPlayerDataSource> dataSourceConfig(String url, {Map<String, String>
     videoFormat: await _getFormat(url, headers),
     useAsmsAudioTracks: true,
     useAsmsTracks: true,
-    bufferingConfiguration: BetterPlayerBufferingConfiguration(
+    // Match FrostNova721's current HLS/DASH recovery thresholds. With the
+    // defaults, a seek outside the buffered range waits longer to resume.
+    bufferingConfiguration: const BetterPlayerBufferingConfiguration(
+      minBufferMs: 15000,
       maxBufferMs: 120000,
+      bufferForPlaybackMs: 2000,
+      bufferForPlaybackAfterRebufferMs: 4000,
     ),
     cacheConfiguration: BetterPlayerCacheConfiguration(
       useCache: true,

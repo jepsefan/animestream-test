@@ -3,6 +3,7 @@
 Complete development history. Published GitHub Releases use the concise [RELEASE_NOTES.md](RELEASE_NOTES.md) for the latest three beta versions. Older entries remain here for reference.
 
 ## v1.4.9-beta34.90.6 — AnimePahe extension verification
+- Playback seek mitigation based on current FrostNova721 buffering settings: use 15s minimum/120s maximum buffer, 2s start/4s rebuffer thresholds; send one seek on slider release instead of seeking on every drag update. HLS playback still requires on-device verification.
 - Dart compilation fix: remove 195 duplicate trailing lines accidentally left after `AniyomiExtensionProvider`'s closing brace. Prevents parser errors and misleading cascading `StateError` errors; version unchanged.
 - Android build fix: pin `flutter_inappwebview_android` to `1.2.0-beta.3` for AGP 9 and validate the resolved package before compilation. App version remains `1.4.9-beta34.90.6+122`.
 - Promote the updated AnimePahe [Ext] verification flow to its own beta. Verify tests the selected Aniyomi extension using its OkHttp client and WebView-shared cookies, reports safe HTTP diagnostics and reloads episodes on success.

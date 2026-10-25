@@ -162,29 +162,53 @@ class MainActivity: FlutterActivity() {
                         }.start()
                     }
                 }
-                // Website/UA for the AnimePahe extension, based on its
-                // last sanitized OkHttp search trace. Never cross channels with
-                // cookies, challenge tokens, or private query parameters.
+                // Source-declared website only; never guess a domain from a
+                // package name or reuse another extension's HTTP trace.
+                // The source was approved by the Flutter source manager.
                 "extensionVerificationInfo" -> {
                     val pkg = call.argument<String>("packageName")
-                    if (pkg != "eu.kanade.tachiyomi.animeextension.en.animepahe") {
-                        result.error("UNSUPPORTED_SOURCE",
-                            "Only AnimePahe [Ext] is supported", null)
+                    val sourceId = call.argument<Number>("sourceId")?.toLong()
+                    if (pkg.isNullOrBlank() || sourceId == null) {
+                        result.success(mapOf("status" to "invalid_source"))
                     } else {
-                        val helper = eu.kanade.tachiyomi.network.NetworkHelper
-                            .initialize(application)
-                        val records = helper.searchNetworkDiagnostics()
-                        val hostPattern = Regex(
-                            """^(?:[a-z0-9-]+\.)?animepahe\.[a-z]{2,12}$""",
-                            RegexOption.IGNORE_CASE)
-                        val foundHost = records.asReversed()
-                            .mapNotNull { it["host"] as? String }
-                            .firstOrNull { hostPattern.matches(it) }
-                        result.success(mapOf(
-                            "host" to (foundHost ?: "animepahe.pw"),
-                            "fromSearchTrace" to (foundHost != null),
-                            "userAgent" to helper.defaultUserAgentProvider()
-                        ))
+                        Thread {
+                            val info: Map<String, Any?> = try {
+                                val source = ExtensionHostRuntime(this).load(
+                                    pkg, sourceId,
+                                    call.argument<String>("sourceName"),
+                                    call.argument<String>("sourceLanguage")
+                                ).source
+                                val website = source as?
+                                    eu.kanade.tachiyomi.animesource.online.AnimeHttpSource
+                                val uri = website?.baseUrl?.let { java.net.URI(it) }
+                                val domain = uri?.host?.lowercase(java.util.Locale.ROOT)
+                                val validDomain = domain != null &&
+                                    domain.length <= 253 &&
+                                    Regex("""^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,24}$""")
+                                        .matches(domain) &&
+                                    !domain.endsWith(".local") &&
+                                    !domain.endsWith(".internal") &&
+                                    !domain.endsWith(".test") &&
+                                    !domain.endsWith(".invalid")
+                                if (uri?.scheme != "https" || uri.rawUserInfo != null ||
+                                    (uri.port != -1 && uri.port != 443) || !validDomain) {
+                                    mapOf("status" to "unsupported",
+                                        "reason" to "Source has no public HTTPS website")
+                                } else {
+                                    val helper = eu.kanade.tachiyomi.network.NetworkHelper
+                                        .initialize(application)
+                                    val userAgent = website.headers["User-Agent"]
+                                        ?: helper.defaultUserAgentProvider()
+                                    mapOf("status" to "ok", "host" to domain,
+                                        "userAgent" to userAgent,
+                                        "sourceName" to source.name.take(100))
+                                }
+                            } catch (_: Throwable) {
+                                mapOf("status" to "unsupported",
+                                    "reason" to "Could not load selected source website")
+                            }
+                            runOnUiThread { result.success(info) }
+                        }.start()
                     }
                 }
                 "testExtensionSearch" -> {

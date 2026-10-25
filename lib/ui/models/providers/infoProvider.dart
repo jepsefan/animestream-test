@@ -723,8 +723,12 @@ class InfoProvider extends ChangeNotifier {
           final stage = _extensionLookupStage ?? 'unknown';
           failedStages[stage] = (failedStages[stage] ?? 0) + 1;
           lastErrorType = error.runtimeType.toString();
+          final safeError = error is StateError &&
+                  error.toString().startsWith('Bad state: Aniyomi search failed:')
+              ? error.toString()
+              : error.runtimeType.toString();
           Logs.app.log(
-              'Aniyomi attempt $attempts failed at $stage: ${error.runtimeType}');
+              'Aniyomi attempt $attempts failed at $stage: $safeError');
         }
       }
       final orderedStages = failedStages.entries.toList()

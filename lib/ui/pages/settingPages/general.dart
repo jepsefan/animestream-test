@@ -41,6 +41,7 @@ class _GeneralSettingState extends State<GeneralSetting> {
       fasterDownloads = settings.fasterDownloads!;
       useQueuedDownloads = settings.useQueuedDownloads!;
       enableLogging = settings.enableLogging!;
+      experimentalWebVerification = settings.experimentalWebVerification == true;
     });
   }
 
@@ -59,6 +60,7 @@ class _GeneralSettingState extends State<GeneralSetting> {
   bool enableDiscordPresence = false;
   bool useDesktopNativeDiscordPresence = false;
   bool enableLogging = false;
+  bool experimentalWebVerification = false;
 
   List<ProviderDetails> get sources => SourceManager.instance.sources;
 
@@ -160,6 +162,16 @@ class _GeneralSettingState extends State<GeneralSetting> {
                         MaterialPageRoute(builder: (context) => const BuiltInProvidersPage()),
                       ).then((_) { if (mounted) setState(() {}); }),
                       suffixIcon: Icon(Icons.navigate_next_rounded),
+                    ),
+                    ToggleItem(
+                      label: "Web verification (experimental)",
+                      description: "Manually verify protected source sites (AnimePahe test)",
+                      value: experimentalWebVerification,
+                      onTapFunction: () async {
+                        final enabled = !experimentalWebVerification;
+                        setState(() => experimentalWebVerification = enabled);
+                        await writeSettings(SettingsModal(experimentalWebVerification: enabled));
+                      },
                     ),
                     ClickableItem(
                       label: "Cache Manager",

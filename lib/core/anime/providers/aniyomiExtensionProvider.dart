@@ -48,13 +48,20 @@ class AniyomiExtensionProvider extends AnimeProvider {
       final status = (response['status'] ?? '').toString();
       if (status != 'search_completed' &&
           status != 'search_completed_unverified') {
-        // Only whitelisted HTTP status codes from the native network trace
-        // are safe to log. Never include source exceptions, URLs or cookies.
+        // Only whitelisted HTTP statuses, never URLs or cookie values.
         final statuses = <String>{};
         for (final entry in ((response['networkDiagnostics'] as List?) ?? const [])) {
           if (entry is! Map) continue;
-          final host = entry['host']?.toString() ?? '';
-          if (!RegExp(r'^(?:[a-z0-9-]+\\.)?animepahe\\.[a-z]{2,12}
+          final hostname = entry['host']?.toString() ?? '';
+          if (!hostname.startsWith('animepahe.') &&
+              !hostname.endsWith('.animepahe.pw')) continue;
+          final code = entry['status']?.toString() ?? '';
+          if (const {'200', '403', '429', '503', 'network_error'}
+              .contains(code)) statuses.add(code);
+        }
+        throw StateError('Aniyomi search failed: $status'
+            '${statuses.isEmpty ? '' : ' (HTTP ${statuses.join(', ')})'}');
+      }
       // A successful HTTP response can be an unrelated browse page.
       if (response['resultRelevance'] == 'unverified_unrelated_catalogue') continue;
       final items = (response['results'] as List?) ?? const [];

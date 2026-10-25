@@ -6,6 +6,8 @@ import 'package:animestream/core/database/handler/syncHandler.dart';
 import 'package:animestream/ui/models/snackBar.dart';
 import 'package:animestream/ui/models/widgets/ContextMenu.dart';
 import 'package:animestream/ui/models/widgets/completedCoverOverlay.dart';
+import 'package:animestream/ui/models/completedCoverStatus.dart';
+import 'package:animestream/ui/models/widgets/cards/completedScoreContent.dart';
 import 'package:animestream/ui/pages/info.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
@@ -169,43 +171,61 @@ class _AnimeCardState extends State<AnimeCard> {
                   Positioned(
                     right: 0,
                     bottom: 10,
-                    child: AnimatedContainer(
-                      duration: Duration(milliseconds: 200),
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.only(
-                            topLeft: Radius.circular(15),
-                            bottomRight: Radius.circular(widget.isMobile
-                                ? 15
-                                : isFocused
-                                    ? 4
-                                    : 9)),
-                        color: appTheme.accentColor,
-                      ),
-                      width: width / 2,
-                      padding: EdgeInsets.only(left: 5, right: 5, top: 2, bottom: 2),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.star,
-                            color: appTheme.onAccent,
-                            size: 13,
-                          ),
-                          Text(
-                            " ${widget.rating ?? '??'}",
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: appTheme.onAccent,
-                              fontFamily: "NotoSans",
-                              fontWeight: FontWeight.bold,
+                    child: AnimatedBuilder(
+                      animation: CompletedCoverStatus.instance,
+                      builder: (context, child) {
+                        final isCompleted =
+                            CompletedCoverStatus.instance.contains(widget.id);
+                        return AnimatedContainer(
+                          duration: const Duration(milliseconds: 200),
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.only(
+                              topLeft: const Radius.circular(15),
+                              bottomRight: Radius.circular(widget.isMobile
+                                  ? 15
+                                  : isFocused
+                                      ? 4
+                                      : 9),
                             ),
+                            color: isCompleted
+                                ? CompletedScoreContent.backgroundColor
+                                : appTheme.accentColor,
                           ),
-                        ],
-                      ),
+                          width: width / 2,
+                          padding: const EdgeInsets.only(
+                            left: 5, right: 5, top: 2, bottom: 2,
+                          ),
+                          child: isCompleted
+                              ? CompletedScoreContent(
+                                  rating: '${widget.rating ?? '??'}',
+                                  starSize: 13,
+                                  textSize: 14,
+                                )
+                              : Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  crossAxisAlignment: CrossAxisAlignment.center,
+                                  children: [
+                                    Icon(
+                                      Icons.star,
+                                      color: appTheme.onAccent,
+                                      size: 13,
+                                    ),
+                                    Text(
+                                      " ${widget.rating ?? '??'}",
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        color: appTheme.onAccent,
+                                        fontFamily: "NotoSans",
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                        );
+                      },
                     ),
-                  )
+                  ),
                 ],
               ),
               Text(

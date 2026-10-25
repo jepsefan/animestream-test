@@ -2,6 +2,8 @@ import 'dart:ui';
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:animestream/ui/models/widgets/completedCoverOverlay.dart';
+import 'package:animestream/ui/models/completedCoverStatus.dart';
+import 'package:animestream/ui/models/widgets/cards/completedScoreContent.dart';
 import 'package:flutter/material.dart';
 import 'package:animestream/ui/models/widgets/adultRatingIcon.dart';
 
@@ -140,37 +142,52 @@ class AnimeCardExtended extends StatelessWidget {
                                   // mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                   crossAxisAlignment: CrossAxisAlignment.center,
                                   children: [
-                                    Container(
-                                      width: 52,
-                                      padding: EdgeInsets.all(5),
-                                      decoration: BoxDecoration(
-                                          color: appTheme.accentColor.withValues(alpha: 0.8),
-                                          borderRadius: BorderRadius.circular(10)),
-                                      child: Row(
-                                        crossAxisAlignment: CrossAxisAlignment.center,
-                                        children: [
-                                          Icon(
-                                            Icons.star,
-                                            color: appTheme.onAccent,
-                                            // (currentUserSettings?.darkMode ?? true) ? appTheme.backgroundColor : appTheme.textMainColor,
-                                            size: 15,
+                                    AnimatedBuilder(
+                                      animation: CompletedCoverStatus.instance,
+                                      builder: (context, child) {
+                                        final isCompleted =
+                                            CompletedCoverStatus.instance.contains(id);
+                                        return Container(
+                                          width: 52,
+                                          padding: EdgeInsets.all(5),
+                                          decoration: BoxDecoration(
+                                            color: isCompleted
+                                                ? CompletedScoreContent.backgroundColor
+                                                : appTheme.accentColor.withValues(alpha: 0.8),
+                                            borderRadius: BorderRadius.circular(10),
                                           ),
-                                          Padding(
-                                            padding: const EdgeInsets.only(left: 3),
-                                            child: Text(
-                                              "$rating",
-                                              style: TextStyle(
-                                                color: appTheme.onAccent,
-                                                //  (currentUserSettings?.darkMode ?? true) ? appTheme.backgroundColor : appTheme.textMainColor,
-                                                fontFamily: "NotoSans",
-                                                fontWeight: FontWeight.w600,
-                                                fontSize: 14,
-                                              ),
-                                              maxLines: 2,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
+                                          child: isCompleted
+                                              ? CompletedScoreContent(
+                                                  rating: '$rating',
+                                                  starSize: 15,
+                                                  textSize: 14,
+                                                  weight: FontWeight.w600,
+                                                )
+                                              : Row(
+                                                  crossAxisAlignment: CrossAxisAlignment.center,
+                                                  children: [
+                                                    Icon(
+                                                      Icons.star,
+                                                      color: appTheme.onAccent,
+                                                      size: 15,
+                                                    ),
+                                                    Padding(
+                                                      padding: const EdgeInsets.only(left: 3),
+                                                      child: Text(
+                                                        "$rating",
+                                                        style: TextStyle(
+                                                          color: appTheme.onAccent,
+                                                          fontFamily: "NotoSans",
+                                                          fontWeight: FontWeight.w600,
+                                                          fontSize: 14,
+                                                        ),
+                                                        maxLines: 2,
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                        );
+                                      },
                                     ),
                                     // if (totalEpisodes != null || watchedEpisodeCount != null)
                                     Padding(

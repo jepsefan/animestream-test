@@ -2,6 +2,11 @@
 
 Complete development history. Published GitHub Releases use the concise [RELEASE_NOTES.md](RELEASE_NOTES.md) for the latest three beta versions. Older entries remain here for reference.
 
+## v1.4.9-beta34.90.3 — MAL Recommended score fix
+- Display missing MAL recommendation scores by lazily fetching `mean` alongside age ratings, with shared cached requests.
+- Preserve Tenrai MAL Characters and Related changes from beta34.90.2.
+- Version `1.4.9-beta34.90.3+119`; APK build not yet verified.
+
 ## v1.4.9-beta34.90.2 — Tenrai MAL extras API
 - MAL Recommended cards now fetch missing mean scores together with age ratings via one cached MAL API request per visible card; unknown scores remain `??`. Unit tests cover score conversion. No version bump for this incremental fix.
 - Replace the discontinued Jikan public endpoint with Tenrai v1 for MAL Characters and Related requests.

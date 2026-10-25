@@ -44,6 +44,8 @@ class InfoProvider extends ChangeNotifier {
   final Set<String> _attemptedSavedExtensionLinks = {};
   String? _extensionLookupStage;
   String? _extensionEpisodeDiagnostic;
+  bool _extensionAccessFailure = false;
+  bool get extensionAccessFailure => _extensionAccessFailure;
 
   /// Safe diagnostic stages without video URLs, headers or credentials.
   String? get extensionEpisodeDiagnostic => _extensionEpisodeDiagnostic;
@@ -659,6 +661,7 @@ class InfoProvider extends ChangeNotifier {
     _foundName = null;
     _epSearcherror = false;
     _extensionEpisodeDiagnostic = null;
+    _extensionAccessFailure = false;
     _extensionLookupStage = null;
     _attemptedSavedExtensionLinks.clear();
     // Never display episodes from the previous provider while a new source loads.
@@ -724,9 +727,17 @@ class InfoProvider extends ChangeNotifier {
           failedStages[stage] = (failedStages[stage] ?? 0) + 1;
           lastErrorType = error.runtimeType.toString();
           final safeError = error is StateError &&
-                  error.toString().startsWith('Bad state: Aniyomi search failed:')
+                  error.toString().startsWith('Bad state: Extension search failed:')
               ? error.toString()
               : error.runtimeType.toString();
+          // A missing catalogue match is not an access challenge. Only
+          // offer Verify after evidence of HTTP authorization/anti-bot denial.
+          if (safeError.contains('HTTP=403') ||
+              safeError.contains('HTTP=401') ||
+              safeError.contains('HTTP=429') ||
+              safeError.contains('HTTP=503')) {
+            _extensionAccessFailure = true;
+          }
           Logs.app.log(
               'Aniyomi attempt $attempts failed at $stage: $safeError');
         }
@@ -736,9 +747,13 @@ class InfoProvider extends ChangeNotifier {
       final summary = orderedStages.isNotEmpty
           ? orderedStages.map((e) => '${e.key}=${e.value}').join(', ')
           : 'no_matching_results';
-      _extensionEpisodeDiagnostic =
-          'No episodes after $attempts searches; stages: $summary; '
-          'last error: ${lastErrorType ?? 'none'}. Use Manual Search.';
+      _extensionEpisodeDiagnostic = _extensionAccessFailure
+          ? 'Extension access was denied. Try Verify or Manual Search.'
+          : failedStages.containsKey('source_search')
+              ? 'Extension search did not return a usable match; '
+                  'check APP logs for source error type, or use Manual Search.'
+              : 'No verified title match after $attempts searches; '
+                  'stages: $summary. Use Manual Search.';
       // A missing catalog entry is not a network/decoder failure. The user
       // can still choose a result explicitly via the Manual Search sheet.
       _epSearcherror = true;

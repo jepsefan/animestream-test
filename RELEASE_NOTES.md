@@ -1,6 +1,13 @@
 # AnimeStream — Latest three beta development versions
 
-Complete history: [CHANGELOG.md](CHANGELOG.md). These notes cover beta34.87, beta34.86 and beta34.85.
+Complete history: [CHANGELOG.md](CHANGELOG.md). These notes cover beta34.88, beta34.87 and beta34.86.
+
+## v1.4.9-beta34.88 — MAL Related and Characters
+- When MAL supplies series metadata, Related now includes both anime and manga/light-novel adaptations from MAL API v2; relation labels are preserved.
+- MAL character cards load independently from Jikan's MAL character endpoint with an eight-second timeout and twelve-hour cache. Failure leaves only Characters empty without losing series details.
+- Manga and light-novel adaptation cards are marked non-playable, retaining the existing guard against opening those entries as anime.
+- Added regression tests for manga/adaptation and anime/sequel relation parsing.
+- Version `1.4.9-beta34.88+114`. Flutter build and APK/device verification pending.
 
 ## v1.4.9-beta34.87 — Centered Watch button and relocated R+ badge
 - Moved the R+/18+ age-rating badge to the left of Watch/Info on the mobile series details page, retaining the existing rating classification and visibility rules.
@@ -27,16 +34,3 @@ Complete history: [CHANGELOG.md](CHANGELOG.md). These notes cover beta34.87, bet
 - Preferences are stored locally per extension source and cached source instances are refreshed after saving; unsupported extensions show a clear message.
 - No change to BetterPlayer, audio, subtitles, or existing stream selection.
 - Version `1.4.9-beta34.86+112`. APK build/device tests not yet run.
-
-## v1.4.9-beta34.85 — Extension episode identity and selection safety
-- Episode 0 can be locally marked watched when 75% played, without updating AniList/MAL/SIMKL; info page displays the local checkmark. AniZone server names now normalize extra whitespace extracted from site buttons.
-- Extension Episode 0 ordering: explicitly numbered Episode 0 is placed before ordinary episodes even if Animenosub returns it last. Recognize explicit `Ep. 0` names or `episode-0` URLs if an extension reports a conflicting list index; other specials keep their ordering and streams keep their original URLs. Added regression tests.
-- Tracker safety: progress now uses the actual regular episode number, not list index + 1. Episode 0/specials do not advance AniList, MAL or SIMKL; replaying an earlier episode does not downgrade progress. Continue buttons, resume timestamps and watched indicators use canonical episode IDs, with special resume keys separated. Added unit tests for episode-zero progress behavior.
-- AniZone: distinguish regular /1–/12 episodes from /s1 specials. Guardian Fitz (Mushoku Tensei II 2023) is shown as Episode 0 before Episode 1 based on its verified source identity; other specials keep their source-defined position and do not shift regular episode numbers. Unit tests added.
-- Explicit episode number 0 displays as `Episode 0` instead of being classified as unknown; missing numbers retain their source title. Fixed the parser source formatting.
-- Preserve the actual episode number supplied by each approved extension; never silently replace a missing/invalid number with the position in the list.
-- Keep decimal episodes and unnumbered specials labeled distinctly instead of rounding them to a potentially wrong canonical episode number. Sorting keeps their source-defined positions and uses stable numeric ordering within consecutive regular episodes.
-- Episode grid and compact views show source episode identities; watch, context-menu and download actions resolve the original global list index even after pagination or filtering.
-- Add Flutter unit coverage for One Piece episode 1000, decimal 1000.5, and unnumbered specials.
-- Keep beta34.84 player audio switching, Android TV controls, 123Anime and existing extension search unchanged. The actual content of One Piece episode 1000 still needs user verification.
-- Version `1.4.9-beta34.85+97`. APK build/device tests not run.

@@ -1,4 +1,5 @@
 import 'package:animestream/core/anime/providers/aniyomiExtensionBridge.dart';
+import 'package:animestream/core/anime/providers/extensionVerificationOutcome.dart';
 import 'package:animestream/core/app/values.dart';
 import 'package:animestream/core/network/sourceVerificationSession.dart';
 import 'package:flutter/material.dart';
@@ -98,13 +99,19 @@ class _SourceVerificationPageState extends State<SourceVerificationPage> {
           sourceName: widget.extensionSourceName,
           sourceLanguage: widget.extensionLanguage,
         );
-        final status = result['status']?.toString();
-        final count = (result['resultCount'] as num?)?.toInt() ??
-            ((result['results'] as List?)?.length ?? 0);
-        accepted = (status == 'search_completed' ||
-            status == 'search_completed_unverified') && count > 0 &&
-            result['resultRelevance'] != 'unverified_unrelated_catalogue';
-        diagnostic = _diagnosis(result);
+        final outcome = extensionVerificationOutcome(result);
+        accepted = outcome == ExtensionVerificationOutcome.matchFound;
+        diagnostic = switch (outcome) {
+          ExtensionVerificationOutcome.noTitleResults =>
+            'Source search completed, but this title was not found in the catalogue. '
+            'Website verification alone cannot add a missing title. '
+            'Try Manual Search with a title listed on this source',
+          ExtensionVerificationOutcome.unrelatedTitleResults =>
+            'The source returned results unrelated to this title. '
+            'Try Manual Search to select an exact match',
+          ExtensionVerificationOutcome.blockedOrFailed => _diagnosis(result),
+          ExtensionVerificationOutcome.matchFound => 'Source search completed',
+        };
       } else {
         final url = WebUri('https://$host/');
         final cookies = await CookieManager.instance().getCookies(url: url);
@@ -120,7 +127,7 @@ class _SourceVerificationPageState extends State<SourceVerificationPage> {
         Navigator.of(context).pop(true);
       } else {
         setState(() => message =
-            '$diagnostic. The selected source is still unavailable. Verify in the browser and try again.');
+            '$diagnostic.');
       }
     } catch (_) {
       if (mounted) setState(() => message =

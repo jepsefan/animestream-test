@@ -1329,6 +1329,11 @@ class _InfoMobileState extends State<InfoMobile> {
             child: Column(
               children: [
                 _categoryTitle('Characters'),
+                if (provider.malExtrasLoading && provider.data.characters.isEmpty)
+                  const Padding(
+                    padding: EdgeInsets.all(12),
+                    child: Text('Loading MAL characters...'),
+                  ),
                 SizedBox(
                   height: 260,
                   child: ListView.builder(
@@ -1355,7 +1360,13 @@ class _InfoMobileState extends State<InfoMobile> {
             child: Column(
               children: [
                 _categoryTitle('Related'),
-                _buildRecAndRel(provider.data.related, false, context),
+                if (provider.malExtrasLoading && provider.data.related.isEmpty)
+                  const Padding(
+                    padding: EdgeInsets.all(12),
+                    child: Text('Loading MAL relations...'),
+                  )
+                else
+                  _buildRecAndRel(provider.data.related, false, context),
               ],
             ),
           ),

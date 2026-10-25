@@ -4,7 +4,7 @@ import 'package:animestream/core/commons/utils.dart';
 import 'package:better_player/better_player.dart';
 import 'package:flutter/material.dart';
 
-Future<BetterPlayerDataSource> dataSourceConfig(String url, {Map<String, String>? headers = null}) async {
+Future<BetterPlayerDataSource> dataSourceConfig(String url, {Map<String, String>? headers = null, bool shareWebViewCookies = false}) async {
   // Determine the stream format once, before configuring the Android player.
   // Apply the original HLS buffer profile to both built-in and [Ext] sources.
   final format = await _getFormat(url, headers);
@@ -14,6 +14,7 @@ Future<BetterPlayerDataSource> dataSourceConfig(String url, {Map<String, String>
     BetterPlayerDataSourceType.network,
     url,
     videoFormat: format,
+    shareWebViewCookies: shareWebViewCookies,
     useAsmsAudioTracks: true,
     useAsmsTracks: true,
     bufferingConfiguration: isHls

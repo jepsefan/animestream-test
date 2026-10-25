@@ -15,6 +15,7 @@ import 'package:animestream/ui/pages/settingPages/plugin.dart';
 import 'package:animestream/ui/pages/settingPages/providers.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 class GeneralSetting extends StatefulWidget {
   const GeneralSetting({super.key});
@@ -258,67 +259,189 @@ class _GeneralSettingState extends State<GeneralSetting> {
     );
   }
 
-  StatefulBuilder _providerSheet(BuildContext context) {
-    return StatefulBuilder(
-      builder: (context, setcState) => Container(
-        padding: const EdgeInsets.only(
-          top: 10,
-          left: 20,
-          right: 20,
-        ),
+  Widget _providerSheet(BuildContext context) {
+    return _ScrollableProviderSheet(
+      sources: List<ProviderDetails>.of(sources),
+      selectedProvider: currentUserSettings?.preferredProvider ??
+          (sources.isEmpty ? '' : sources.first.identifier),
+      onSelected: (identifier) async {
+        await writeSettings(SettingsModal(preferredProvider: identifier));
+      },
+    );
+  }
+}
+
+/// Keeps the original provider row appearance while constraining the sheet to
+/// the screen and allowing DPAD focus to follow a fully built, scrolling list.
+/// A Column (rather than a lazy builder) ensures offscreen rows have FocusNodes
+/// so Android TV can navigate to them before they become visible.
+class _ScrollableProviderSheet extends StatefulWidget {
+  final List<ProviderDetails> sources;
+  final String selectedProvider;
+  final Future<void> Function(String identifier) onSelected;
+
+  const _ScrollableProviderSheet({
+    required this.sources,
+    required this.selectedProvider,
+    required this.onSelected,
+  });
+
+  @override
+  State<_ScrollableProviderSheet> createState() => _ScrollableProviderSheetState();
+}
+
+class _ScrollableProviderSheetState extends State<_ScrollableProviderSheet> {
+  late final List<FocusNode> _focusNodes;
+  late final List<GlobalKey> _rowKeys;
+  late String _selectedProvider;
+  late int _focusedIndex;
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedProvider = widget.selectedProvider;
+    _focusedIndex = widget.sources.indexWhere(
+      (source) => source.identifier == _selectedProvider,
+    );
+    if (_focusedIndex < 0) _focusedIndex = 0;
+    _focusNodes = List.generate(widget.sources.length, (_) => FocusNode());
+    _rowKeys = List.generate(widget.sources.length, (_) => GlobalKey());
+  }
+
+  @override
+  void dispose() {
+    for (final node in _focusNodes) {
+      node.dispose();
+    }
+    super.dispose();
+  }
+
+  void _focusRow(int index) {
+    if (index < 0 || index >= _focusNodes.length) return;
+    _focusNodes[index].requestFocus();
+  }
+
+  void _onRowFocus(int index, bool hasFocus) {
+    if (!hasFocus || !mounted) return;
+    final wasFocused = _focusedIndex;
+    setState(() => _focusedIndex = index);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !_focusNodes[index].hasFocus) return;
+      final rowContext = _rowKeys[index].currentContext;
+      if (rowContext == null) return;
+      Scrollable.ensureVisible(
+        rowContext,
+        duration: const Duration(milliseconds: 180),
+        curve: Curves.easeOutCubic,
+        alignmentPolicy: index < wasFocused
+            ? ScrollPositionAlignmentPolicy.keepVisibleAtStart
+            : ScrollPositionAlignmentPolicy.keepVisibleAtEnd,
+      );
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // Constrain only the sheet's viewport; keep the original row styling.
+    final maxHeight = MediaQuery.sizeOf(context).height * 0.9;
+    final contentHeight = 80.0 + widget.sources.length * 75.0;
+    final sheetHeight = contentHeight < maxHeight ? contentHeight : maxHeight;
+    return SizedBox(
+      height: sheetHeight,
+      child: Container(
+        padding: const EdgeInsets.only(top: 10, left: 20, right: 20),
         margin: EdgeInsets.only(bottom: MediaQuery.paddingOf(context).bottom),
         child: Column(
-          mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Padding(
               padding: const EdgeInsets.only(bottom: 20),
               child: Text(
-                "Select Provider",
+                'Select Provider',
                 style: textStyle().copyWith(fontSize: 23),
                 textAlign: TextAlign.left,
               ),
             ),
-            ListView.builder(
-                shrinkWrap: true,
-                itemCount: sources.length,
-                itemBuilder: (context, index) {
-                  final activeProvider = currentUserSettings?.preferredProvider ??
-                      (sources.isEmpty ? '' : sources.first.identifier);
-                  return Container(
-                    margin: const EdgeInsets.symmetric(vertical: 5),
-                    clipBehavior: Clip.hardEdge,
-                    decoration: BoxDecoration(
-                      color: sources[index].identifier == activeProvider
-                          ? appTheme.accentColor
-                          : appTheme.backgroundSubColor,
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Material(
-                      color: Colors.transparent,
-                      child: InkWell(
-                        borderRadius: BorderRadius.circular(20),
-                        onTap: () async {
-                          await writeSettings(SettingsModal(preferredProvider: sources[index].identifier));
-                          setState(() {});
-                          setcState(() {});
-                        },
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
-                          child: Text(
-                            sources[index].name,
-                            style: textStyle().copyWith(
-                              color: sources[index].identifier == activeProvider
-                                  ? appTheme.onAccent
-                                  : appTheme.textMainColor,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  );
-                }),
+            Expanded(
+              child: Focus(
+                canRequestFocus: false,
+                skipTraversal: true,
+                onKeyEvent: (node, event) {
+                  if (event is! KeyDownEvent && event is! KeyRepeatEvent) {
+                    return KeyEventResult.ignored;
+                  }
+                  if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
+                    _focusRow(_focusedIndex + 1);
+                    return KeyEventResult.handled;
+                  }
+                  if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
+                    _focusRow(_focusedIndex - 1);
+                    return KeyEventResult.handled;
+                  }
+                  return KeyEventResult.ignored;
+                },
+                child: SingleChildScrollView(
+                  child: Column(
+                    children: [
+                      for (var index = 0; index < widget.sources.length; index++)
+                        _providerRow(index),
+                    ],
+                  ),
+                ),
+              ),
+            ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _providerRow(int index) {
+    final source = widget.sources[index];
+    final isSelected = source.identifier == _selectedProvider;
+    final isFocused = _focusedIndex == index && _focusNodes[index].hasFocus;
+    return Container(
+      key: _rowKeys[index],
+      margin: const EdgeInsets.symmetric(vertical: 5),
+      clipBehavior: Clip.hardEdge,
+      decoration: BoxDecoration(
+        color: isSelected ? appTheme.accentColor : appTheme.backgroundSubColor,
+        borderRadius: BorderRadius.circular(20),
+        // Focus ring is distinct from the green selected-provider fill.
+        border: isFocused
+            ? Border.all(
+                color: isSelected ? appTheme.onAccent : appTheme.accentColor,
+                width: 2.5,
+              )
+            : null,
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          focusNode: _focusNodes[index],
+          autofocus: index == _focusedIndex,
+          onFocusChange: (focused) => _onRowFocus(index, focused),
+          borderRadius: BorderRadius.circular(20),
+          onTap: () async {
+            try {
+              await widget.onSelected(source.identifier);
+              if (mounted) setState(() => _selectedProvider = source.identifier);
+            } catch (_) {
+              // Leave the previous green selection intact if saving fails.
+            }
+          },
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                source.name,
+                style: textStyle().copyWith(
+                  color: isSelected ? appTheme.onAccent : appTheme.textMainColor,
+                ),
+              ),
+            ),
+          ),
         ),
       ),
     );

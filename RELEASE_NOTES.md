@@ -3,6 +3,7 @@
 Complete history: [CHANGELOG.md](CHANGELOG.md). These notes cover beta34.90.6, beta34.90.5 and beta34.90.4.
 
 ## v1.4.9-beta34.90.6 — AnimePahe extension verification
+- Android build fix: pin `flutter_inappwebview_android` to `1.2.0-beta.3` for AGP 9 and validate the resolved package before compilation. App version remains `1.4.9-beta34.90.6+122`.
 - Promote the updated AnimePahe [Ext] verification flow to its own beta. Verify tests the selected Aniyomi extension using its OkHttp client and WebView-shared cookies, reports safe HTTP diagnostics and reloads episodes on success.
 - Retain previous beta34.90.5 improvements and the existing experimental opt-in setting.
 - Version `1.4.9-beta34.90.6+122`; APK/device validation pending.

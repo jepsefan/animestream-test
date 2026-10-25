@@ -177,6 +177,25 @@ jobs:
       - name: Get dependencies
         run: flutter pub get
 
+      - name: Verify WebView Android plugin compatibility
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "Building $(git rev-parse --short HEAD)"
+          echo "App version: $(grep '^version:' pubspec.yaml)"
+          python3 - <<'PY'
+          import re
+          from pathlib import Path
+          lock = Path("pubspec.lock").read_text()
+          match = re.search(r'^  flutter_inappwebview_android:\n(?:(?:    ).*\n)*?    version: "([^"]+)"', lock, re.M)
+          if not match:
+              raise SystemExit("::error::flutter_inappwebview_android is missing from pubspec.lock")
+          actual = match.group(1)
+          print(f"Resolved flutter_inappwebview_android: {actual}")
+          if actual != "1.2.0-beta.3":
+              raise SystemExit(f"::error::Android WebView plugin {actual} is not AGP-9-compatible; expected 1.2.0-beta.3")
+          PY
+
       - name: Setup env File
         env:
           ANILIST_PIN_CLIENT_ID: ${{ secrets.ANILIST_PIN_CLIENT_ID }}

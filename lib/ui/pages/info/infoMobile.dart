@@ -392,7 +392,9 @@ class _InfoMobileState extends State<InfoMobile> {
         if (currentUserSettings?.experimentalWebVerification == true &&
             (provider.selectedSource.identifier.startsWith('aniyomi:') ||
                 provider.selectedSource.identifier.toLowerCase() == 'animepahe') &&
-            provider.epSearcherror)
+            provider.epSearcherror &&
+            (provider.extensionAccessFailure ||
+                provider.selectedSource.identifier.toLowerCase() == 'animepahe'))
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 8),
             child: ElevatedButton.icon(
@@ -840,7 +842,12 @@ class _InfoMobileState extends State<InfoMobile> {
     if (provider.foundName != null) {
       text = "found: ${provider.foundName}";
     } else if (provider.epSearcherror) {
-      text = "couldnt't find any matches";
+      text = provider.extensionAccessFailure
+          ? "source access denied – Verify"
+          : (provider.extensionEpisodeDiagnostic?.contains(
+                  'Extension search did not return') == true
+              ? "source search failed – check APP logs"
+              : "couldn't find any matches");
     }
     return Container(
       width: 300,

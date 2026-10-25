@@ -3,6 +3,7 @@
 Complete history: [CHANGELOG.md](CHANGELOG.md). These notes cover beta34.90.9, beta34.90.8 and beta34.90.7.
 
 ## v1.4.9-beta34.90.9 — Hanime HLS playback compatibility
+- Compilation fix: align `fvp_mdk.dart` with the new `VideoController.initiateVideo` named `shareWebViewCookies` parameter. MDK behavior unchanged; build remains `+127`.
 - Build number raised to `+127` for a fresh APK including extension playback cookie forwarding; beta remains 34.90.9.
 - Investigated actual Media3 `HTTP 403`: extension requests use Aniyomi's cookie-enabled OkHttp while BetterPlayer used a separate media client. Updated the BetterPlayer fork with opt-in, per-request, host-scoped Android WebView cookie forwarding for extension streams only; existing source headers retained, cookies excluded from Flutter bridges/logs. Source error remediation requires new APK/device test.
 - Redact full network cache keys, signed media paths, and request queries in APP logs. Beta designation unchanged; included in build `1.4.9-beta34.90.9+127`.

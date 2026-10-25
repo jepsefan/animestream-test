@@ -20,6 +20,10 @@ class MetadataUnavailableException implements Exception {
 class AnimeMetadataSummary {
   final bool isAdult;
   final String? ageRating;
+  /// True for MAL manga/light novel relations (not playable anime).
+  final bool isManga;
+  /// MAL relation label, such as Adaptation, Sequel or Prequel.
+  final String? relationType;
   final String source;
   final String providerId;
   final Map<String, String?> title;
@@ -38,6 +42,8 @@ class AnimeMetadataSummary {
     required this.source,
     this.isAdult = false,
     this.ageRating,
+    this.isManga = false,
+    this.relationType,
     required this.providerId,
     required this.title,
     required this.cover,
@@ -65,6 +71,8 @@ class AnimeMetadataDetails {
   final double? rating;
   final List<AnimeMetadataSummary> related;
   final List<AnimeMetadataSummary> recommended;
+  /// Character rows match the existing Info page: name, role, image.
+  final List<Map<String, dynamic>> characters;
   final List<String> synonyms;
 
   AnimeMetadataDetails({
@@ -82,11 +90,13 @@ class AnimeMetadataDetails {
     this.rating,
     List<AnimeMetadataSummary> related = const <AnimeMetadataSummary>[],
     List<AnimeMetadataSummary> recommended = const <AnimeMetadataSummary>[],
+    List<Map<String, dynamic>> characters = const <Map<String, dynamic>>[],
     List<String> synonyms = const <String>[],
   })  : genres = List<String>.unmodifiable(genres),
         studios = List<String>.unmodifiable(studios),
         related = List<AnimeMetadataSummary>.unmodifiable(related),
         recommended = List<AnimeMetadataSummary>.unmodifiable(recommended),
+        characters = List<Map<String, dynamic>>.unmodifiable(characters),
         synonyms = List<String>.unmodifiable(synonyms);
 }
 

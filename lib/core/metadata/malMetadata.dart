@@ -49,7 +49,7 @@ class MalAnimeMetadata implements AnimeMetadataProvider {
   static const String _animeFields =
       'id,title,main_picture,alternative_titles,start_date,end_date,synopsis,'
       'mean,media_type,status,genres,rating,nsfw,num_episodes,average_episode_duration,'
-      'studios,related_anime,recommendations';
+      'studios,related_anime,related_manga,recommendations';
 
   static const String _mangaFields =
       'id,title,main_picture,alternative_titles,start_date,end_date,synopsis,'
@@ -202,8 +202,12 @@ class MalAnimeMetadata implements AnimeMetadataProvider {
         startDate: node['start_date']?.toString(),
         endDate: node['end_date']?.toString(),
         rating: summary.rating,
-        related: _relations(node['related_anime']),
-        recommended: _relations(node['recommendations']),
+        related: <AnimeMetadataSummary>[
+          ...parseRelations(node['related_anime']),
+          ...parseRelations(node['related_manga'], isManga: true),
+        ],
+        recommended: parseRelations(node['recommendations']),
+        characters: await _loadCharacters(providerId),
         synonyms: alt is Map && alt['synonyms'] is List
             ? (alt['synonyms'] as List).whereType<String>().toList()
             : const <String>[],
@@ -223,14 +227,66 @@ class MalAnimeMetadata implements AnimeMetadataProvider {
     }
   }
 
-  static List<AnimeMetadataSummary> _relations(Object? value) {
+  /// MAL relation entries have a node and relation_type; manga adaptations
+  /// must remain identifiable as non-playable media.
+  static List<AnimeMetadataSummary> parseRelations(Object? value, {bool isManga = false}) {
     if (value is! List) return const <AnimeMetadataSummary>[];
-    return value
-        .whereType<Map>()
-        .map((row) => row['node'])
-        .whereType<Map>()
-        .map((node) => _summaryAnime(Map<String, dynamic>.from(node)))
-        .toList();
+    final results = <AnimeMetadataSummary>[];
+    for (final entry in value.whereType<Map>()) {
+      final node = entry['node'];
+      if (node is! Map || node['id'] == null) continue;
+      final data = Map<String, dynamic>.from(node);
+      final relation = entry['relation_type_formatted']?.toString() ??
+          entry['relation_type']?.toString();
+      final picture = data['main_picture'];
+      final cover = picture is Map
+          ? (picture['large'] ?? picture['medium'])?.toString() ?? ''
+          : '';
+      results.add(AnimeMetadataSummary(
+        source: 'mal',
+        providerId: data['id'].toString(),
+        title: _titleMap(data),
+        cover: cover,
+        rating: _double(data['mean']),
+        format: isManga ? 'MANGA' : _format(data['media_type']),
+        isManga: isManga,
+        relationType: relation,
+        isAdult: isAdultRating(data['rating'], data['nsfw']),
+        ageRating: data['rating']?.toString().toLowerCase(),
+      ));
+    }
+    return results;
+  }
+
+  /// Jikan exposes MAL's character list separately from the official v2
+  /// details endpoint. It is optional and must not hide the anime details.
+  static Future<List<Map<String, dynamic>>> _loadCharacters(String malId) async {
+    try {
+      final response = await get(
+        'https://api.jikan.moe/v4/anime/$malId/characters',
+        cacheDuration: const Duration(hours: 12),
+      ).timeout(const Duration(seconds: 8));
+      final data = response.json;
+      if (data is! Map || data['data'] is! List) return const [];
+      return (data['data'] as List).whereType<Map>().map((entry) {
+        final character = entry['character'];
+        if (character is! Map) return null;
+        final name = character['name']?.toString() ?? '';
+        final images = character['images'];
+        final jpg = images is Map ? images['jpg'] : null;
+        final webp = images is Map ? images['webp'] : null;
+        final image = jpg is Map ? (jpg['image_url'] ?? jpg['small_image_url'])?.toString()
+            : webp is Map ? webp['image_url']?.toString() : null;
+        if (name.isEmpty || image == null || image.isEmpty) return null;
+        return <String, dynamic>{
+          'name': name,
+          'role': entry['role']?.toString() ?? '',
+          'image': image,
+        };
+      }).whereType<Map<String, dynamic>>().toList(growable: false);
+    } catch (_) {
+      return const <Map<String, dynamic>>[];
+    }
   }
 
   static Map<String, String?> _titleMap(Map<String, dynamic> node) {

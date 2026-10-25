@@ -162,6 +162,31 @@ class MainActivity: FlutterActivity() {
                         }.start()
                     }
                 }
+                // Website/UA for the AnimePahe extension, based on its
+                // last sanitized OkHttp search trace. Never cross channels with
+                // cookies, challenge tokens, or private query parameters.
+                "extensionVerificationInfo" -> {
+                    val pkg = call.argument<String>("packageName")
+                    if (pkg != "eu.kanade.tachiyomi.animeextension.en.animepahe") {
+                        result.error("UNSUPPORTED_SOURCE",
+                            "Only AnimePahe [Ext] is supported", null)
+                    } else {
+                        val helper = eu.kanade.tachiyomi.network.NetworkHelper
+                            .initialize(application)
+                        val records = helper.searchNetworkDiagnostics()
+                        val hostPattern = Regex(
+                            """^(?:[a-z0-9-]+\\.)?animepahe\\.[a-z]{2,12}$""",
+                            RegexOption.IGNORE_CASE)
+                        val foundHost = records.asReversed()
+                            .mapNotNull { it["host"] as? String }
+                            .firstOrNull { hostPattern.matches(it) }
+                        result.success(mapOf(
+                            "host" to (foundHost ?: "animepahe.pw"),
+                            "fromSearchTrace" to (foundHost != null),
+                            "userAgent" to helper.defaultUserAgentProvider()
+                        ))
+                    }
+                }
                 "testExtensionSearch" -> {
                     val pkg = call.argument<String>("packageName")
                     val query = call.argument<String>("query")

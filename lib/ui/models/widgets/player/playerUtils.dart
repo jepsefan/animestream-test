@@ -34,22 +34,42 @@ Future<BetterPlayerDataSource> dataSourceConfig(String url, {Map<String, String>
   );
 }
 
-Future<BetterPlayerVideoFormat> _getFormat(String url, Map<String, String>? headers) async {
-  // Select manifest formats by path before sending HEAD: some CDN-backed DASH
-  // endpoints reject HEAD although ExoPlayer can fetch the manifest via GET.
-  final path = Uri.tryParse(url)?.path.toLowerCase() ?? '';
+/// Identifies formats that can be determined without a network request.
+/// Some extension HLS URLs are opaque and have no .m3u8 suffix. In
+/// particular, the original hanime.tv source returns /hls/{id}/{token}.
+/// Do not apply this route shape to arbitrary websites.
+BetterPlayerVideoFormat? inferVideoFormatFromUrl(String url) {
+  final uri = Uri.tryParse(url);
+  if (uri == null) return null;
+  final path = uri.path.toLowerCase();
   if (path.endsWith('.mpd') || path.endsWith('.dash')) {
     return BetterPlayerVideoFormat.dash;
   }
   if (path.endsWith('.m3u8') || path.endsWith('.m3u')) {
     return BetterPlayerVideoFormat.hls;
   }
-  // Direct files are not manifests. Avoid an unnecessary HTTP HEAD request,
-  // which some extension media CDNs reject or incorrectly identify.
   if (const ['.mp4', '.mkv', '.webm', '.mov', '.avi', '.flv', '.ts']
       .any(path.endsWith)) {
     return BetterPlayerVideoFormat.other;
   }
+
+  // The original extension advertises these as HLS playlists despite
+  // their extensionless, signed URLs. Resolving via a HEAD request may
+  // return HTML/403 from the website's anti-bot layer instead.
+  final isHanime = const {'hanime.tv', 'player.hanime.tv'}
+      .contains(uri.host.toLowerCase());
+  final segments = uri.pathSegments;
+  if (uri.scheme == 'https' && isHanime &&
+      segments.length >= 3 && segments.first.toLowerCase() == 'hls' &&
+      segments[1].isNotEmpty && segments[2].isNotEmpty) {
+    return BetterPlayerVideoFormat.hls;
+  }
+  return null;
+}
+
+Future<BetterPlayerVideoFormat> _getFormat(String url, Map<String, String>? headers) async {
+  final inferred = inferVideoFormatFromUrl(url);
+  if (inferred != null) return inferred;
   String? mime;
   try {
     mime = (await getMediaMimeType(url, headers))?.toLowerCase();
@@ -57,15 +77,11 @@ Future<BetterPlayerVideoFormat> _getFormat(String url, Map<String, String>? head
     // Unsupported HEAD requests must not block player initialization.
   }
 
-  // lets assume stuff if something goes wrong
+  // HEAD is not reliable for every protected media endpoint.
+  // Preserve the format detected from the URL, if one was available;
+  // otherwise let the player select its regular progressive reader.
   if (mime == null || mime.contains("octet-stream")) {
-    final urlPath = Uri.parse(url).path.toLowerCase(); //wrong variable name btw!
-
-    //guessing game
-    if (urlPath.endsWith(".m3u8") || urlPath.endsWith(".m3u")) return BetterPlayerVideoFormat.hls;
-    if (urlPath.endsWith(".mpd") || urlPath.endsWith(".dash")) return BetterPlayerVideoFormat.dash;
     return BetterPlayerVideoFormat.other;
-
   } else if (mime.contains("mpegurl")) {
     // MPEG-2 transport stream (video/mp2t) is a media segment, not an HLS
     // playlist; only actual HLS manifests get the tuned buffering profile.

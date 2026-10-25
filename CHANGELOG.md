@@ -2,6 +2,12 @@
 
 Complete development history. Published GitHub Releases use the concise [RELEASE_NOTES.md](RELEASE_NOTES.md) for the latest three beta versions. Older entries remain here for reference.
 
+## v1.4.9-beta34.90.4 — Scrollable provider picker and TV focus
+- Keep the existing Select Provider bottom-sheet design, colors and source ordering.
+- Constrain the provider list to the screen and enable touch scrolling for all providers.
+- On Android TV, DPAD up/down moves focus between source rows, Scrollable.ensureVisible follows focus, and a contrast focus border shows which source has keyboard focus independently of the selected green source.
+- Version `1.4.9-beta34.90.4+120`; APK build/device verification pending.
+
 ## v1.4.9-beta34.90.3 — MAL Recommended score fix
 - Display missing MAL recommendation scores by lazily fetching `mean` alongside age ratings, with shared cached requests.
 - Preserve Tenrai MAL Characters and Related changes from beta34.90.2.

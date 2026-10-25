@@ -3,6 +3,7 @@
 Complete development history. Published GitHub Releases use the concise [RELEASE_NOTES.md](RELEASE_NOTES.md) for the latest three beta versions. Older entries remain here for reference.
 
 ## v1.4.9-beta34.90.9 — Hanime HLS playback compatibility
+- Improve 123Anime/AnimeToki extension troubleshooting: log only sanitized native exception types and HTTP status codes; distinguish search failures from missing title matches. Offer Verify only when a source reports access-denial HTTP status rather than for every unsuccessful search. Original extension search implementations remain unchanged; device validation pending.
 - Compilation fix: align `fvp_mdk.dart` with the new `VideoController.initiateVideo` named `shareWebViewCookies` parameter. MDK behavior unchanged; build remains `+127`.
 - Build number raised to `+127` for a fresh APK including extension playback cookie forwarding; beta remains 34.90.9.
 - Investigated actual Media3 `HTTP 403`: extension requests use Aniyomi's cookie-enabled OkHttp while BetterPlayer used a separate media client. Updated the BetterPlayer fork with opt-in, per-request, host-scoped Android WebView cookie forwarding for extension streams only; existing source headers retained, cookies excluded from Flutter bridges/logs. Source error remediation requires new APK/device test.

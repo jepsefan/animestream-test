@@ -4,6 +4,17 @@ import 'package:animestream/core/network/caching/domain/cache_entry.dart';
 import 'package:animestream/core/network/caching/storage/cache_storage.dart';
 import 'package:animestream/core/network/caching/storage/hive_cache_storage.dart';
 
+// Signed media paths and API queries must never be written to APP logs.
+String _safeCacheLogKey(String key) {
+  final parsed = Uri.tryParse(key);
+  if (parsed != null &&
+      (parsed.scheme == 'https' || parsed.scheme == 'http') &&
+      parsed.host.isNotEmpty) {
+    return '${parsed.scheme}://${parsed.host}/[redacted]';
+  }
+  return key.length > 140 ? '[non-url cache key, length=${key.length}]' : key;
+}
+
 class _CacheLog {
   final String scope;
   _CacheLog(this.scope);
@@ -91,20 +102,20 @@ class CacheManager {
       final entry = await _storage.get(key);
 
       if (entry == null) {
-        log.v('MISS: $key');
+        log.v('MISS: ${_safeCacheLogKey(key)}');
         return null;
       }
 
       if (entry.expiry.isBefore(DateTime.now())) {
-        log.i('EXPIRED: $key → deleting');
+        log.i('EXPIRED: ${_safeCacheLogKey(key)} → deleting');
         await delete(key);
         return null;
       }
 
-      log.s('HIT: $key');
+      log.s('HIT: ${_safeCacheLogKey(key)}');
       return entry;
     } catch (e, st) {
-      log.e('READ FAILED: $key', e, st);
+      log.e('READ FAILED: ${_safeCacheLogKey(key)}', e, st);
       return null;
     }
   }
@@ -118,9 +129,9 @@ class CacheManager {
 
       await _storage.put(key, entry);
 
-      log.s('STORED: $key (ttl: ${cacheDuration.inMinutes}m)');
+      log.s('STORED: ${_safeCacheLogKey(key)} (ttl: ${cacheDuration.inMinutes}m)');
     } catch (e, st) {
-      log.e('WRITE FAILED: $key', e, st);
+      log.e('WRITE FAILED: ${_safeCacheLogKey(key)}', e, st);
     }
   }
 
@@ -129,9 +140,9 @@ class CacheManager {
 
     try {
       await _storage.delete(key);
-      log.s('DELETED: $key');
+      log.s('DELETED: ${_safeCacheLogKey(key)}');
     } catch (e, st) {
-      log.e('DELETE FAILED: $key', e, st);
+      log.e('DELETE FAILED: ${_safeCacheLogKey(key)}', e, st);
     }
   }
 

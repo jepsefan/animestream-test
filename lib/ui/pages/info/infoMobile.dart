@@ -1444,15 +1444,21 @@ class _InfoMobileState extends State<InfoMobile> {
             child: Container(
                 width: 130,
                 child: recommended
-                    ? (item.id < 0 && item.id > -1000000000 && item.ageRating == null
-                        ? FutureBuilder<String?>(
-                            future: MalAnimeMetadata.recommendationAgeRating(-item.id),
+                    ? (item.id < 0 && item.id > -1000000000 &&
+                            (item.rating == null || item.ageRating == null)
+                        ? FutureBuilder<MalRecommendationMetadata?>(
+                            future: MalAnimeMetadata.recommendationMetadata(-item.id),
                             builder: (context, snapshot) {
-                              final grade = snapshot.data;
-                              return Cards.animeCard(item.id, getTitle(item.title), item.cover,
-                                  rating: item.rating,
-                                  isAdult: item.isAdult || grade == 'r+' || grade == 'rx',
-                                  ageRating: grade);
+                              final metadata = snapshot.data;
+                              final grade = item.ageRating ?? metadata?.ageRating;
+                              return Cards.animeCard(
+                                item.id,
+                                getTitle(item.title),
+                                item.cover,
+                                rating: item.rating ?? metadata?.score,
+                                isAdult: item.isAdult || (metadata?.isAdult ?? false),
+                                ageRating: grade,
+                              );
                             },
                           )
                         : Cards.animeCard(item.id, getTitle(item.title), item.cover,

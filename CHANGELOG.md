@@ -2,6 +2,13 @@
 
 Complete development history. Published GitHub Releases use the concise [RELEASE_NOTES.md](RELEASE_NOTES.md) for the latest three beta versions. Older entries remain here for reference.
 
+## v1.4.9-beta34.90.1 — Progressive MAL extras diagnostics
+- Load MAL Characters and Related separately, so each section updates immediately on its own successful response.
+- Remove the wait for up to eight MAL cover requests before publishing Related entries; each card retrieves its cover lazily and can display a text placeholder.
+- Report character and relation request errors independently instead of silently treating network/rate-limit failures as empty results. Log counts and sanitized per-endpoint failures.
+- Keep the series header responsive, preserve MAL manga/novel non-playable behavior and carry over beta34.90's compilation fix.
+- Version `1.4.9-beta34.90.1+117`. APK and device verification pending.
+
 ## v1.4.9-beta34.90 — Fix MAL extras build
 - Import `metadataTypes.dart` in `infoProvider.dart` so `AnimeMetadataSummary` resolves during release compilation.
 - Retain beta34.89's non-blocking Characters/Related loading and update version to `1.4.9-beta34.90+116`.

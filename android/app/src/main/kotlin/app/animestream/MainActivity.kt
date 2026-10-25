@@ -175,7 +175,7 @@ class MainActivity: FlutterActivity() {
                             .initialize(application)
                         val records = helper.searchNetworkDiagnostics()
                         val hostPattern = Regex(
-                            """^(?:[a-z0-9-]+\\.)?animepahe\\.[a-z]{2,12}$""",
+                            """^(?:[a-z0-9-]+\.)?animepahe\.[a-z]{2,12}$""",
                             RegexOption.IGNORE_CASE)
                         val foundHost = records.asReversed()
                             .mapNotNull { it["host"] as? String }

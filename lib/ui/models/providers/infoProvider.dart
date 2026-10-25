@@ -102,6 +102,10 @@ class InfoProvider extends ChangeNotifier {
   bool _dataLoaded = false;
   bool _malExtrasLoading = false;
   bool get malExtrasLoading => _malExtrasLoading;
+  String? malCharactersError;
+  String? malRelatedError;
+  bool malCharactersLoading = false;
+  bool malRelatedLoading = false;
   int _malExtrasGeneration = 0;
   bool _infoPage = true;
   bool _infoLoadError = false;
@@ -423,27 +427,36 @@ class InfoProvider extends ChangeNotifier {
   /// Never block the series header/episodes waiting for third-party MAL extras.
   Future<void> _loadMalExtras(String malId, int generation) async {
     _malExtrasLoading = true;
+    malCharactersLoading = true;
+    malRelatedLoading = true;
+    malCharactersError = null;
+    malRelatedError = null;
     notifyListeners();
-    try {
-      final results = await Future.wait<dynamic>([
-        MalAnimeMetadata.loadCharacters(malId).catchError((Object error) {
-          Logs.app.log('[MAL CHARACTERS] $error');
-          return <Map<String, dynamic>>[];
-        }),
-        MalAnimeMetadata.loadRelatedFromJikan(malId).catchError((Object error) {
-          Logs.app.log('[MAL RELATED] $error');
-          return <AnimeMetadataSummary>[];
-        }),
-      ]);
+
+    // Independently commit the two results. One failed endpoint cannot hide
+    // data from the other, and a slower endpoint cannot delay the first.
+    MalAnimeMetadata.loadCharacters(malId).then((characters) {
       if (generation != _malExtrasGeneration || !_dataLoaded) return;
-      final characters = results[0] as List<Map<String, dynamic>>;
-      final relations = results[1] as List<AnimeMetadataSummary>;
+      (_data as AnilistInfo).characters.addAll(characters);
+      Logs.app.log('[MAL CHARACTERS] id=$malId count=${characters.length}');
+    }).catchError((Object error) {
+      if (generation != _malExtrasGeneration) return;
+      malCharactersError = error.toString();
+      Logs.app.log('[MAL CHARACTERS] id=$malId error=$error');
+    }).whenComplete(() {
+      if (generation != _malExtrasGeneration) return;
+      malCharactersLoading = false;
+      _malExtrasLoading = malRelatedLoading;
+      notifyListeners();
+    });
+
+    MalAnimeMetadata.loadRelatedFromJikan(malId).then((relations) {
+      if (generation != _malExtrasGeneration || !_dataLoaded) return;
       final current = _data as AnilistInfo;
       final oldIds = current.related.map((item) => item.id).toSet();
-      current.characters.addAll(characters);
       for (final relation in relations) {
         final relatedId = int.tryParse(relation.providerId);
-        if (relatedId == null) continue;
+        if (relatedId == null || relatedId <= 0) continue;
         final localId = -relatedId;
         if (!oldIds.add(localId)) continue;
         current.related.add(AnilistAnimeRelatedRecommendation(
@@ -455,14 +468,17 @@ class InfoProvider extends ChangeNotifier {
           relationType: relation.relationType ?? 'Related',
         ));
       }
-    } catch (err) {
-      Logs.app.log('[MAL EXTRAS] optional data unavailable: $err');
-    } finally {
-      if (generation == _malExtrasGeneration) {
-        _malExtrasLoading = false;
-        notifyListeners();
-      }
-    }
+      Logs.app.log('[MAL RELATED] id=$malId fetched=${relations.length} displayed=${current.related.length}');
+    }).catchError((Object error) {
+      if (generation != _malExtrasGeneration) return;
+      malRelatedError = error.toString();
+      Logs.app.log('[MAL RELATED] id=$malId error=$error');
+    }).whenComplete(() {
+      if (generation != _malExtrasGeneration) return;
+      malRelatedLoading = false;
+      _malExtrasLoading = malCharactersLoading;
+      notifyListeners();
+    });
   }
 
   // cleaned, refactored and pretty good ig

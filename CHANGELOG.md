@@ -2,6 +2,11 @@
 
 Complete development history. Published GitHub Releases use the concise [RELEASE_NOTES.md](RELEASE_NOTES.md) for the latest three beta versions. Older entries remain here for reference.
 
+## v1.4.9-beta34.90.9 — Hanime HLS playback compatibility
+- Promote the existing hanime.tv [Ext] playback correction to a new beta: recognize signed, extensionless HLS playlist URLs and apply the HLS buffering profile automatically.
+- Include the general extension Verify flow and separate missing-title diagnostics from the previous beta.
+- Original solution applied to external sources. Version `1.4.9-beta34.90.9+125`; APK compilation and device playback still require testing.
+
 ## v1.4.9-beta34.90.8 — General extension verification
 - Extension playback fix: recognize the original hanime.tv extension's signed, extensionless `/hls/{id}/{token}` playlists as HLS before HEAD probing; retain source-supplied headers, distinguish other streaming formats, and add format-detection regression tests. Browser verification alone does not guarantee media CDN access; Android playback still requires testing.
 - Verify now distinguishes completed searches with no matching title from network/access failures instead of suggesting the website challenge failed.

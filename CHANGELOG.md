@@ -3,6 +3,7 @@
 Complete development history. Published GitHub Releases use the concise [RELEASE_NOTES.md](RELEASE_NOTES.md) for the latest three beta versions. Older entries remain here for reference.
 
 ## v1.4.9-beta34.90.2 — Tenrai MAL extras API
+- MAL Recommended cards now fetch missing mean scores together with age ratings via one cached MAL API request per visible card; unknown scores remain `??`. Unit tests cover score conversion. No version bump for this incremental fix.
 - Replace the discontinued Jikan public endpoint with Tenrai v1 for MAL Characters and Related requests.
 - Retain the separate non-blocking loaders, diagnostic messages and lazy related cover fetching from beta34.90.1.
 - Version `1.4.9-beta34.90.2+118`; API response validation and APK/device verification pending.

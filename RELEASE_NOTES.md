@@ -3,7 +3,7 @@
 Complete history: [CHANGELOG.md](CHANGELOG.md). These notes cover beta34.90.4, beta34.90.3 and beta34.90.2.
 
 ## v1.4.9-beta34.90.4 — Scrollable provider picker and TV focus
-- Completed AniList anime cards now keep the existing dimmed poster but render score badges on a dark theme-derived background, with accent-colored star and score digits individually outlined in white for contrast. Applies to standard and extended cards; other statuses remain unchanged. No extra AniList API calls.
+- Completed AniList anime cards now keep the existing dimmed poster but render score badges on a dark theme-derived background, with accent-colored star and score digits without white outlines for a cleaner look. Applies to standard and extended cards; other statuses remain unchanged. No extra AniList API calls.
 - Keep the existing Select Provider bottom-sheet design, colors and source ordering.
 - Constrain the provider list to the screen and enable touch scrolling for all providers.
 - On Android TV, DPAD up/down moves focus between source rows, Scrollable.ensureVisible follows focus, and a contrast focus border shows which source has keyboard focus independently of the selected green source.

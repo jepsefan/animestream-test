@@ -46,7 +46,8 @@ class _MobileControlsState extends State<MobileControls> {
   int? skipDuration = currentUserSettings?.skipDuration ?? 10;
   int? megaSkipDuration = currentUserSettings?.megaSkipDuration ?? 85;
 
-  Future<void>? _pendingSeek = null; 
+  double? _scrubPreview;
+  bool _wasPlayingBeforeScrub = false;
 
   @override
   void dispose() {
@@ -264,28 +265,26 @@ class _MobileControlsState extends State<MobileControls> {
                                         ),
                                         child: ExcludeFocus(
                                           child: Slider(
-                                            value: dataProvider.state.sliderValue.toDouble(),
+                                            value: (_scrubPreview ??
+                                                dataProvider.state.sliderValue.toDouble())
+                                                .clamp(0.0, (provider.controller.duration ?? 0) / 1000),
                                             secondaryTrackValue:
                                                 provider.controller.buffered?.toDouble(),
+                                            // Preview only: don't issue a new HLS seek on every drag tick.
                                             onChanged: (val) {
-                                              setState(() {
-                                                _pendingSeek = provider.controller
-                                                    .seekTo(Duration(seconds: val.toInt()));
-                                              });
+                                              setState(() => _scrubPreview = val);
                                             },
                                             onChangeStart: (value) {
-                                              provider.controller.pause();
+                                              _wasPlayingBeforeScrub =
+                                                  provider.controller.isPlaying ?? false;
                                             },
                                             onChangeEnd: (value) async {
-                                              if (_pendingSeek != null) {
-                                                await _pendingSeek;
+                                              setState(() => _scrubPreview = null);
+                                              await provider.controller.seekTo(
+                                                  Duration(milliseconds: (value * 1000).round()));
+                                              if (_wasPlayingBeforeScrub) {
+                                                await provider.controller.play();
                                               }
-
-                                              // just to make sure its on the same page...
-                                              await provider.controller
-                                                  .seekTo(Duration(seconds: value.toInt()));
-
-                                              await provider.controller.play();
                                             },
                                             min: 0,
                                             max: (provider.controller.duration ?? 0) / 1000,

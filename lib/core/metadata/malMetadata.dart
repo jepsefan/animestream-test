@@ -3,6 +3,20 @@ import 'package:animestream/core/database/mal/login.dart';
 import 'package:animestream/core/metadata/metadataTypes.dart';
 import 'package:animestream/core/network/network.dart';
 
+/// Extra metadata fetched lazily for a MAL recommendation card.
+/// A missing score remains null rather than inventing a rating.
+class MalRecommendationMetadata {
+  final double? score;
+  final String? ageRating;
+  final bool isAdult;
+
+  const MalRecommendationMetadata({
+    this.score,
+    this.ageRating,
+    this.isAdult = false,
+  });
+}
+
 /// MyAnimeList as a read-only metadata fallback.
 ///
 /// Uses MAL's public client-id header, not the signed-in user's token: search
@@ -24,29 +38,46 @@ class MalAnimeMetadata implements AnimeMetadataProvider {
   static final Map<String, AnimeMetadataSummary> _summaries =
       <String, AnimeMetadataSummary>{};
 
-  // Recommendation nodes omit age ratings. Fetch them lazily as cards become
-  // visible, and share each in-flight request across repeated card builds.
-  static final Map<int, Future<String?>> _recommendationRatings = {};
+  // Recommendation nodes often omit both their mean score and age rating.
+  // Only visible MAL cards with missing metadata trigger this cached request.
+  static final Map<int, Future<MalRecommendationMetadata?>> _recommendationMetadata = {};
 
-  static Future<String?> recommendationAgeRating(int malId) =>
-      _recommendationRatings.putIfAbsent(malId, () async {
-        try {
-          final response = await get(
-            '$_base/anime/$malId',
-            headers: _headers,
-            queryParameters: <String, String>{'fields': 'rating'},
-            cacheDuration: const Duration(hours: 12),
-          );
-          final json = response.json;
-          if (json is! Map) return null;
-          final rating = json['rating']?.toString().trim().toLowerCase();
-          return rating == 'r' || rating == 'r+' || rating == 'rx'
-              ? rating : null;
-        } catch (_) {
-          // Missing MAL details should never break recommendation cards.
-          return null;
-        }
-      });
+  static Future<MalRecommendationMetadata?> recommendationMetadata(int malId) {
+    return _recommendationMetadata.putIfAbsent(malId, () async {
+      try {
+        final response = await get(
+          '$_base/anime/$malId',
+          headers: _headers,
+          queryParameters: const <String, String>{
+            'fields': 'mean,rating,nsfw',
+          },
+          cacheDuration: const Duration(hours: 12),
+        ).timeout(const Duration(seconds: 8));
+        return parseRecommendationMetadata(response.json);
+      } catch (_) {
+        // Keep a missing score as ?? without breaking Recommended.
+        return null;
+      }
+    });
+  }
+
+  /// Preserve the existing age-rating lookup API for other callers.
+  static Future<String?> recommendationAgeRating(int malId) async =>
+      (await recommendationMetadata(malId))?.ageRating;
+
+  static MalRecommendationMetadata parseRecommendationMetadata(Object? response) {
+    if (response is! Map) return const MalRecommendationMetadata();
+    final rawRating = response['rating'];
+    final rating = rawRating?.toString().trim().toLowerCase();
+    final ageRating = rating == 'r' || rating == 'r+' || rating == 'rx'
+        ? rating
+        : null;
+    return MalRecommendationMetadata(
+      score: _double(response['mean']),
+      ageRating: ageRating,
+      isAdult: isAdultRating(rawRating, response['nsfw']),
+    );
+  }
 
   // List endpoints must not request detail-only relation fields.
   static const String _animeFields =
@@ -432,8 +463,13 @@ class MalAnimeMetadata implements AnimeMetadataProvider {
   static int? _int(Object? value) => value is num ? value.toInt() : null;
 
   static double? _double(Object? value) {
-    if (value is! num) return null;
-    return double.parse(value.toDouble().toStringAsFixed(1));
+    final number = value is num
+        ? value.toDouble()
+        : double.tryParse(value?.toString() ?? '');
+    if (number == null || !number.isFinite || number < 0 || number > 10) {
+      return null;
+    }
+    return double.parse(number.toStringAsFixed(1));
   }
 
   static String? _clean(String? text) {

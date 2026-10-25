@@ -32,7 +32,7 @@ class FvpWrapper implements VideoController {
   }
 
   @override
-  Future<void> initiateVideo(String url, {Map<String, String>? headers = null, bool offline = false}) async {
+  Future<void> initiateVideo(String url, {Map<String, String>? headers = null, bool offline = false, bool shareWebViewCookies = false}) async {
     final vol = controllerInitialized ? controller.value.volume : 0.8;
 
     // kill the last controller

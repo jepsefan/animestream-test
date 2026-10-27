@@ -2,6 +2,21 @@ import 'package:animestream/core/database/database.dart';
 import 'package:animestream/core/database/simkl/simkl.dart';
 import 'package:animestream/core/database/types.dart';
 
+/// Read-only metadata for an existing SIMKL Rewatch session.
+class SimklRewatchSession {
+  final int animeId;
+  final String rewatchId;
+  final String status;
+
+  const SimklRewatchSession({
+    required this.animeId,
+    required this.rewatchId,
+    required this.status,
+  });
+
+  bool get isActive => status == 'active';
+}
+
 class SimklException implements Exception {
   final String message;
   final int statusCode;

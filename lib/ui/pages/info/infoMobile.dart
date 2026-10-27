@@ -1257,11 +1257,26 @@ class _InfoMobileState extends State<InfoMobile> {
                 alignment: Alignment.topRight,
                 child: Padding(
                   padding: const EdgeInsets.only(top: 20, right: 25),
-                  // No glow until an active SIMKL Rewatch session is confirmed.
-                  child: ImageIcon(
-                    AssetImage('lib/assets/images/check.png'),
-                    color: appTheme.textMainColor,
-                    size: 18,
+                  // Rewatch glow is gated by a confirmed active SIMKL session.
+                  // Current watched flags reflect overall progress, not the session.
+                  child: Container(
+                    decoration: provider.activeSimklRewatch
+                        ? BoxDecoration(
+                            shape: BoxShape.circle,
+                            boxShadow: [
+                              BoxShadow(
+                                color: appTheme.accentColor.withValues(alpha: 0.55),
+                                blurRadius: 10,
+                                spreadRadius: 1,
+                              ),
+                            ],
+                          )
+                        : null,
+                    child: ImageIcon(
+                      AssetImage('lib/assets/images/check.png'),
+                      color: appTheme.textMainColor,
+                      size: 18,
+                    ),
                   ),
                 ),
               ),

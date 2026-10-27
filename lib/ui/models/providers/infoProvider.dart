@@ -22,6 +22,8 @@ import 'package:animestream/ui/models/snackBar.dart';
 import 'package:animestream/ui/models/sources.dart';
 import 'package:animestream/core/anime/providers/externalAssPreferences.dart';
 import 'package:animestream/core/database/simkl/episodeArtwork.dart';
+import 'package:animestream/core/database/simkl/simkl.dart';
+import 'package:animestream/core/database/simkl/login.dart';
 import 'package:animestream/core/metadata/metadataFallback.dart';
 import 'package:animestream/core/metadata/malMetadata.dart';
 import 'package:animestream/core/metadata/metadataTypes.dart';
@@ -88,6 +90,32 @@ class InfoProvider extends ChangeNotifier {
   List<Map<String, String>> _qualities = [];
   List<List<Map<String, dynamic>>> _visibleEpList = [];
   List<AlternateDatabaseId> _altDatabases = [];
+  bool _activeSimklRewatch = false;
+  bool get activeSimklRewatch => _activeSimklRewatch;
+  int _rewatchLookupGeneration = 0;
+
+  Future<void> _discoverActiveSimklRewatch() async {
+    final generation = ++_rewatchLookupGeneration;
+    _activeSimklRewatch = false;
+    final simklId = _altDatabases.where((entry) => entry.database == Databases.simkl).firstOrNull?.id;
+    if (simklId == null || simklId <= 0) return;
+    try {
+      if (!await SimklLogin.isLoggedIn()) return;
+      final tier = await SimklLogin.getCachedSubscriptionTier();
+      if (tier != 'VIP' && tier != 'PRO') {
+        Logs.app.log('[SIMKL REWATCH] Discovery skipped: ineligible or unknown tier');
+        return;
+      }
+      final sessions = await Simkl().getRewatchSessions();
+      if (generation != _rewatchLookupGeneration) return;
+      _activeSimklRewatch = sessions.any((session) => session.animeId == simklId && session.isActive);
+      Logs.app.log('[SIMKL REWATCH] Active session for current series: $_activeSimklRewatch');
+      notifyListeners();
+    } catch (err) {
+      Logs.app.log('[SIMKL REWATCH] Read-only discovery unavailable: ${err.runtimeType}');
+    }
+  }
+
 
   int _currentPageIndex = 0;
   int _watched = 0;
@@ -409,6 +437,8 @@ class InfoProvider extends ChangeNotifier {
       _altDatabases = s.toList();
       _dataLoaded = true;
       _data = info;
+      // Read-only, asynchronous discovery; never blocks series rendering.
+      _discoverActiveSimklRewatch();
       _mediaListStatus = isFallback ? null : assignItemEnum(data.mediaListStatus);
       notifyListeners();
       if (isFallback && id < 0 && id > -1000000000) {

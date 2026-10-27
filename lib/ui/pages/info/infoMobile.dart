@@ -1263,8 +1263,7 @@ class _InfoMobileState extends State<InfoMobile> {
                     height: 30,
                     alignment: Alignment.center,
                     decoration: provider.episodeWatchedInRewatch(
-                            (provider.visibleEpList[provider.currentPageIndex][index]['epLink']
-                                    as EpisodeDetails).episodeNumber)
+                            provider.visibleEpList[provider.currentPageIndex][index]['epLink'].episodeNumber)
                         ? BoxDecoration(
                             shape: BoxShape.circle,
                             boxShadow: [

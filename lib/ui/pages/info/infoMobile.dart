@@ -1257,10 +1257,14 @@ class _InfoMobileState extends State<InfoMobile> {
                 alignment: Alignment.topRight,
                 child: Padding(
                   padding: const EdgeInsets.only(top: 20, right: 25),
-                  // Rewatch glow is gated by a confirmed active SIMKL session.
-                  // Current watched flags reflect overall progress, not the session.
+                  // Only explicit session-scoped watched episodes glow.
                   child: Container(
-                    decoration: provider.activeSimklRewatch
+                    width: 30,
+                    height: 30,
+                    alignment: Alignment.center,
+                    decoration: provider.episodeWatchedInRewatch(
+                            (provider.visibleEpList[provider.currentPageIndex][index]['epLink']
+                                    as EpisodeDetails).episodeNumber)
                         ? BoxDecoration(
                             shape: BoxShape.circle,
                             boxShadow: [

@@ -70,6 +70,45 @@ class Simkl extends Database {
     return datafied;
   }
 
+  /// Read-only Rewatch discovery. Call only after account eligibility is verified.
+  /// This never starts a rewatch or modifies watch history.
+  Future<List<SimklRewatchSession>> getRewatchSessions() async {
+    final token = await getSecureVal(SecureStorageKey.simklToken);
+    if (token == null || token.isEmpty) return const [];
+
+    final uri = Uri.https('api.simkl.com', '/sync/all-items/anime/all', {
+      'allow_rewatch': 'yes',
+      'extended': 'full',
+      'episode_watched_at': 'yes',
+    });
+    final response = await get(uri, headers: await _authenticatedHeaders());
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      Logs.app.log('[SIMKL REWATCH] Fetch failed: HTTP ${response.statusCode}');
+      throw SimklException('Could not fetch Rewatch sessions', response.statusCode);
+    }
+    final payload = jsonDecode(response.body);
+    if (payload is! Map) throw const FormatException('Invalid SIMKL list response');
+    final sessions = <SimklRewatchSession>[];
+    for (final category in ['anime', 'shows']) {
+      final entries = payload[category];
+      if (entries is! List) continue;
+      for (final entry in entries) {
+        if (entry is! Map || entry['is_rewatch'] != true) continue;
+        final ids = entry['show'] is Map ? entry['show']['ids'] : entry['ids'];
+        final id = ids is Map ? (ids['simkl'] ?? ids['simkl_id']) : null;
+        final sessionId = entry['rewatch_id'];
+        if (id is! num || sessionId == null) continue;
+        sessions.add(SimklRewatchSession(
+          animeId: id.toInt(),
+          rewatchId: sessionId.toString(),
+          status: entry['rewatch_status']?.toString() ?? 'unknown',
+        ));
+      }
+    }
+    Logs.app.log('[SIMKL REWATCH] Read-only discovery: ${sessions.length} sessions');
+    return sessions;
+  }
+
   Future<dynamic> fetch(String url) async {
     final res = await get(
       Uri.parse(url),

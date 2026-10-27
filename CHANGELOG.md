@@ -3,6 +3,7 @@
 Complete development history. Published GitHub Releases use the concise [RELEASE_NOTES.md](RELEASE_NOTES.md) for the latest three beta versions. Older entries remain here for reference.
 
 ## v1.4.9-beta34.90.9 — Hanime HLS playback compatibility
+- Add targeted, redacted native extension search diagnostics for 123Anime and AnimeToki: status, exception type, result count/relevance, endpoint category, HTTP status and response type. No query text, full URLs or cookies are logged. Build number remains +128 pending compilation and device test.
 - Build `+128`: includes updated safe diagnostics and source-search failure classification for 123Anime and AnimeToki [Ext]. Beta version unchanged; Android compilation and device tests pending.
 - Improve 123Anime/AnimeToki extension troubleshooting: log only sanitized native exception types and HTTP status codes; distinguish search failures from missing title matches. Offer Verify only when a source reports access-denial HTTP status rather than for every unsuccessful search. Original extension search implementations remain unchanged; device validation pending.
 - Compilation fix: align `fvp_mdk.dart` with the new `VideoController.initiateVideo` named `shareWebViewCookies` parameter. MDK behavior unchanged; build remains `+128` after this bump.

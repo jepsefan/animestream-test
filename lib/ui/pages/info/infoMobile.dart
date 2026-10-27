@@ -170,6 +170,18 @@ class _InfoMobileState extends State<InfoMobile> {
                                       const SizedBox.shrink(),
                                       if (provider.loggedIn)
                                         Container(
+                                          // Visual-only preview around the Update Progress button.
+                                          // No SIMKL Rewatch state is changed.
+                                          decoration: BoxDecoration(
+                                            shape: BoxShape.circle,
+                                            boxShadow: [
+                                              BoxShadow(
+                                                color: appTheme.accentColor.withValues(alpha: 0.55),
+                                                blurRadius: 10,
+                                                spreadRadius: 1,
+                                              ),
+                                            ],
+                                          ),
                                           child: ElevatedButton(
                                             onPressed: () {
                                               showModalBottomSheet(
@@ -1260,9 +1272,9 @@ class _InfoMobileState extends State<InfoMobile> {
                                 shape: BoxShape.circle,
                                 boxShadow: [
                                   BoxShadow(
-                                    color: appTheme.accentColor.withValues(alpha: 0.85),
-                                    blurRadius: 14,
-                                    spreadRadius: 3,
+                                    color: appTheme.accentColor.withValues(alpha: 0.55),
+                                    blurRadius: 10,
+                                    spreadRadius: 1,
                                   ),
                                 ],
                               )

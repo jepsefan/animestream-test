@@ -1,6 +1,15 @@
 # AnimeStream — Latest three beta development versions
 
-Complete history: [CHANGELOG.md](CHANGELOG.md). These notes cover beta34.90.9, beta34.90.8 and beta34.90.7.
+Complete history: [CHANGELOG.md](CHANGELOG.md). These notes cover beta34.91, beta34.90.9 and beta34.90.8.
+
+## v1.4.9-beta34.91 — SIMKL Rewatch groundwork and glow preview
+- Version bumped to `1.4.9-beta34.91+129` to avoid an existing tag/build collision.
+- Add an initial read-only SIMKL Rewatch session model and authenticated session-fetch method. It is not connected to the UI or automatic progress updates yet.
+- Show the SIMKL account tier beside its name on the Account page using the existing profile response; unknown tiers display `UNKNOWN`. The tier detection still needs validation against SIMKL's actual response (device test displayed UNKNOWN).
+- Add a visual-only theme-color glow around the watched checkmark of episode 1; reduce opacity from 85% to 55%, blur radius from 14 to 10 and spread radius from 3 to 1 after device feedback.
+- Add the same glow as a visual-only preview around the Update Progress button while logged in. Neither glow reflects a real Rewatch session yet.
+- Fix compilation errors caused by corrupted/duplicated Aniyomi extension search code and literal escaped newlines in SIMKL login code.
+- Episode 1 glow was confirmed on Android before the latest softening; the updated glow and full APK build remain unverified.
 
 ## v1.4.9-beta34.90.9 — Hanime HLS playback compatibility
 - Add targeted, redacted native extension search diagnostics for 123Anime and AnimeToki: status, exception type, result count/relevance, endpoint category, HTTP status and response type. No query text, full URLs or cookies are logged. Build number remains +128 pending compilation and device test.
@@ -25,6 +34,3 @@ Complete history: [CHANGELOG.md](CHANGELOG.md). These notes cover beta34.90.9, b
 - Browser verification is manual and remains opt-in. The selected extension's own search through the native OkHttp runtime validates access before returning to the series page to retry episodes.
 - Android WebView and the existing AndroidCookieJar share website-scoped cookies; no cookies or sensitive URLs are passed to Flutter logs. Sources without a supported public HTTPS base URL display an unsupported message.
 - Original solution applied to external sources. Version `1.4.9-beta34.90.8+124`; build and device validation pending.
-
-## v1.4.9-beta34.90.7 — Playback
-- Från originallösningen, tillämpad på extern källa.

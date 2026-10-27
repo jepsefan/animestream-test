@@ -88,6 +88,53 @@ class Simkl extends Database {
     }
     final payload = jsonDecode(response.body);
     if (payload is! Map) throw const FormatException('Invalid SIMKL list response');
+    // Log response shape only. Never log titles, IDs, dates, tokens, or values.
+    String shapeOf(dynamic value) {
+      if (value is Map) {
+        final keys = value.keys.whereType<String>().toList()..sort();
+        return '{${keys.join(',')}}';
+      }
+      if (value is List) return 'list(length=${value.length})';
+      return value == null ? 'null' : value.runtimeType.toString();
+    }
+
+    Logs.app.log('[SIMKL REWATCH SHAPE] root=${shapeOf(payload)}');
+    for (final category in ['anime', 'shows']) {
+      final entries = payload[category];
+      Logs.app.log('[SIMKL REWATCH SHAPE] $category=${shapeOf(entries)}');
+      if (entries is! List) continue;
+      // Inspect one rewatch entry only, to avoid excessive logs.
+      Map? sample;
+      for (final item in entries) {
+        if (item is Map && item['is_rewatch'] == true) {
+          sample = item;
+          break;
+        }
+      }
+      if (sample == null) continue;
+      Logs.app.log('[SIMKL REWATCH SHAPE] $category rewatchEntry=${shapeOf(sample)}');
+      for (final field in [
+        'rewatch_episodes', 'episodes', 'rewatch', 'rewatches',
+        'episode_watched_at', 'watched_episodes', 'show',
+      ]) {
+        final nested = sample[field];
+        if (nested == null) continue;
+        Logs.app.log('[SIMKL REWATCH SHAPE] $category.$field=${shapeOf(nested)}');
+        if (nested is List && nested.isNotEmpty) {
+          Logs.app.log('[SIMKL REWATCH SHAPE] $category.$field.first=${shapeOf(nested.first)}');
+        }
+        if (nested is Map) {
+          for (final child in ['episodes', 'rewatch_episodes', 'watched_episodes']) {
+            if (!nested.containsKey(child)) continue;
+            final childValue = nested[child];
+            Logs.app.log('[SIMKL REWATCH SHAPE] $category.$field.$child=${shapeOf(childValue)}');
+            if (childValue is List && childValue.isNotEmpty) {
+              Logs.app.log('[SIMKL REWATCH SHAPE] $category.$field.$child.first=${shapeOf(childValue.first)}');
+            }
+          }
+        }
+      }
+    }
     final sessions = <SimklRewatchSession>[];
     for (final category in ['anime', 'shows']) {
       final entries = payload[category];

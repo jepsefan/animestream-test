@@ -59,7 +59,9 @@ class SimklLogin extends DatabaseLogin {
   @override
   Future<void> removeToken() async {
     final storage = FlutterSecureStorage();
-    storage.delete(key: SecureStorageKey.simklToken.value);
+    cachedSubscriptionTier = null;
+    cachedSubscriptionAt = null;
+    await storage.delete(key: SecureStorageKey.simklToken.value);
   }
 
   static Future<PCKECodeResult> getPkceCode() async {

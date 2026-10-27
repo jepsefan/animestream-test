@@ -98,10 +98,25 @@ class Simkl extends Database {
         final id = ids is Map ? (ids['simkl'] ?? ids['simkl_id']) : null;
         final sessionId = entry['rewatch_id'];
         if (id is! num || sessionId == null) continue;
+        // Never infer session progress from global watched flags.
+        final watchedEpisodes = <int>{};
+        final sessionEpisodes = entry['rewatch_episodes'];
+        if (sessionEpisodes is List) {
+          for (final item in sessionEpisodes) {
+            if (item is! Map) continue;
+            final raw = item['episode_number'] ?? item['number'];
+            final number = raw is num ? raw.toInt() : int.tryParse('$raw');
+            if (number != null && number > 0 &&
+                (item['watched'] == true || item['is_watched'] == true)) {
+              watchedEpisodes.add(number);
+            }
+          }
+        }
         sessions.add(SimklRewatchSession(
           animeId: id.toInt(),
           rewatchId: sessionId.toString(),
           status: entry['rewatch_status']?.toString() ?? 'unknown',
+          watchedEpisodes: watchedEpisodes,
         ));
       }
     }

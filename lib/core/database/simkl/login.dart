@@ -289,7 +289,7 @@ class SimklLogin extends DatabaseLogin {
     }
   }
 
-  Future<UserModal> getUserProfile() async {
+  /// Subscription tier from the existing /users/settings profile request.\n  /// Unknown is intentionally not treated as Free.\n  static String subscriptionTier(Map<String, dynamic> settings) {\n    final account = settings['account'];\n    final user = settings['user'];\n    final candidates = <dynamic>[\n      if (account is Map) ...[account['type'], account['plan'], account['subscription'], account['tier'], account['vip']],\n      if (user is Map) ...[user['type'], user['plan'], user['subscription'], user['tier'], user['vip']],\n      settings['plan'], settings['subscription'], settings['tier'], settings['vip'],\n    ];\n    for (final candidate in candidates) {\n      if (candidate == true) return 'VIP';\n      if (candidate is! String) continue;\n      final normalized = candidate.trim().toLowerCase();\n      if (normalized == 'vip') return 'VIP';\n      if (normalized == 'pro') return 'PRO';\n      if (normalized == 'free') return 'Free';\n    }\n    return 'Unknown';\n  }\n\n  String? lastSubscriptionTier;\n\n  Future<UserModal> getUserProfile() async {
     final url = "https://api.simkl.com/users/settings";
     final headers = await SimklMutation.getHeader();
     final res = await get(Uri.parse(url), headers: headers);

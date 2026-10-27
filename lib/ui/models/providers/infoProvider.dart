@@ -91,12 +91,16 @@ class InfoProvider extends ChangeNotifier {
   List<List<Map<String, dynamic>>> _visibleEpList = [];
   List<AlternateDatabaseId> _altDatabases = [];
   bool _activeSimklRewatch = false;
+  Set<int> _rewatchWatchedEpisodes = {};
+  bool episodeWatchedInRewatch(int episodeNumber) =>
+      _activeSimklRewatch && _rewatchWatchedEpisodes.contains(episodeNumber);
   bool get activeSimklRewatch => _activeSimklRewatch;
   int _rewatchLookupGeneration = 0;
 
   Future<void> _discoverActiveSimklRewatch() async {
     final generation = ++_rewatchLookupGeneration;
     _activeSimklRewatch = false;
+    _rewatchWatchedEpisodes = {};
     final simklId = _altDatabases.where((entry) => entry.database == Databases.simkl).firstOrNull?.id;
     if (simklId == null || simklId <= 0) return;
     try {
@@ -108,7 +112,10 @@ class InfoProvider extends ChangeNotifier {
       }
       final sessions = await Simkl().getRewatchSessions();
       if (generation != _rewatchLookupGeneration) return;
-      _activeSimklRewatch = sessions.any((session) => session.animeId == simklId && session.isActive);
+      final activeSessions = sessions.where((session) => session.animeId == simklId && session.isActive);
+      _activeSimklRewatch = activeSessions.isNotEmpty;
+      _rewatchWatchedEpisodes = activeSessions.expand((session) => session.watchedEpisodes).toSet();
+      Logs.app.log('[SIMKL REWATCH] Explicit watched episodes for series: ${_rewatchWatchedEpisodes.length}');
       Logs.app.log('[SIMKL REWATCH] Active session for current series: $_activeSimklRewatch');
       notifyListeners();
     } catch (err) {

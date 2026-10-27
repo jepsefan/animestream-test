@@ -170,18 +170,6 @@ class _InfoMobileState extends State<InfoMobile> {
                                       const SizedBox.shrink(),
                                       if (provider.loggedIn)
                                         Container(
-                                          // Visual-only preview around the Update Progress button.
-                                          // No SIMKL Rewatch state is changed.
-                                          decoration: BoxDecoration(
-                                            shape: BoxShape.circle,
-                                            boxShadow: [
-                                              BoxShadow(
-                                                color: appTheme.accentColor.withValues(alpha: 0.55),
-                                                blurRadius: 10,
-                                                spreadRadius: 1,
-                                              ),
-                                            ],
-                                          ),
                                           child: ElevatedButton(
                                             onPressed: () {
                                               showModalBottomSheet(
@@ -1259,33 +1247,11 @@ class _InfoMobileState extends State<InfoMobile> {
                 alignment: Alignment.topRight,
                 child: Padding(
                   padding: const EdgeInsets.only(top: 20, right: 25),
-                  child: Builder(
-                    builder: (context) {
-                      // Temporary visual-only Rewatch glow preview for episode 1.
-                      // Does not read or write SIMKL Rewatch progress.
-                      final episode = provider.visibleEpList[provider.currentPageIndex][index]['epLink'];
-                      final previewGlow = episode.episodeNumber == 1;
-                      return Container(
-                        padding: const EdgeInsets.all(5),
-                        decoration: previewGlow
-                            ? BoxDecoration(
-                                shape: BoxShape.circle,
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: appTheme.accentColor.withValues(alpha: 0.55),
-                                    blurRadius: 10,
-                                    spreadRadius: 1,
-                                  ),
-                                ],
-                              )
-                            : null,
-                        child: ImageIcon(
-                          AssetImage('lib/assets/images/check.png'),
-                          color: appTheme.textMainColor,
-                          size: 18,
-                        ),
-                      );
-                    },
+                  // No glow until an active SIMKL Rewatch session is confirmed.
+                  child: ImageIcon(
+                    AssetImage('lib/assets/images/check.png'),
+                    color: appTheme.textMainColor,
+                    size: 18,
                   ),
                 ),
               ),

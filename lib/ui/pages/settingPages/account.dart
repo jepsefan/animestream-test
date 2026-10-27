@@ -36,6 +36,7 @@ class _AccountSettingState extends State<AccountSetting> {
 
   UserModal? user;
   UserModal? simklUser;
+  String simklTier = 'Unknown';
   UserModal? malUser;
 
   bool loading = true;
@@ -100,8 +101,12 @@ class _AccountSettingState extends State<AccountSetting> {
 
   Future<void> _fetchSimklProfile() async {
     try {
-      final res = await SimklLogin().getUserProfile();
-      if (mounted) setState(() => simklUser = res);
+      final login = SimklLogin();
+      final res = await login.getUserProfile();
+      if (mounted) setState(() {
+        simklUser = res;
+        simklTier = login.lastSubscriptionTier ?? 'Unknown';
+      });
     } on SimklException catch (err) {
       if (err.isUnauthorized) {
         floatingSnackBar("Simkl token is invalid. Login again!");
@@ -561,7 +566,9 @@ class _AccountSettingState extends State<AccountSetting> {
                           }
 
                           return DatabaseAccountCard(
-                            databaseName: db.name,
+                            databaseName: db == Databases.simkl && isLoggedIn
+                                ? 'SIMKL - $simklTier'
+                                : db.name,
                             loggedIn: isLoggedIn,
                             userModal: userModal,
                             onLogin: () => _handleLogin(db),

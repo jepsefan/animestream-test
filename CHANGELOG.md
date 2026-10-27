@@ -3,6 +3,7 @@
 Complete development history. Published GitHub Releases use the concise [RELEASE_NOTES.md](RELEASE_NOTES.md) for the latest three beta versions. Older entries remain here for reference.
 
 ## v1.4.9-beta34.91 — SIMKL Rewatch groundwork and glow preview
+- Build `+134`: episode glow is now gated by explicitly session-scoped Rewatch watched-episode numbers, with restored 30px circular glow area. Avoid applying glow to all historical watched episodes. The expected `rewatch_episodes` payload has not been verified against live SIMKL data; if absent, episode glow remains off. No history writes.
 - Build `+133`: gate the existing watched-episode checkmark glow on a confirmed active SIMKL Rewatch session, matching Update Progress. Current watched markers are global progress, not verified session-specific episode history; no watch-history writes.
 - Build `+132`: on series open, perform a nonblocking read-only SIMKL Rewatch discovery for VIP/PRO accounts using a 24-hour in-memory account-tier cache. Show the stronger theme-color glow around Update Progress only when an active session for that series is confirmed; keep episode checkmarks unglowed until session-specific watched episodes can be reliably identified. Invalidate account-tier cache on logout. No Rewatch writes; API response format and APK build still require validation.
 - Build `+131`: disable the temporary episode-1 and Update Progress glow previews. Both stay off until a confirmed active SIMKL Rewatch session is integrated; no automatic Rewatch discovery or write is enabled yet.

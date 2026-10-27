@@ -611,7 +611,11 @@ class _InfoMobileState extends State<InfoMobile> {
             showDragHandle: true,
             backgroundColor: appTheme.modalSheetBackgroundColor,
             builder: (context) => ManualSearchSheet(
-              searchString: provider.data.title['english'] ?? provider.data.title['romaji'] ?? '',
+              searchString: (provider.foundName?.trim().isNotEmpty == true
+                   ? provider.foundName!.trim()
+                   : (provider.data.title['english']?.trim().isNotEmpty == true
+                       ? provider.data.title['english']!.trim()
+                       : provider.data.title['romaji']?.trim() ?? '')),
               source: provider.selectedSource.identifier,
               anilistId: provider.id.toString(),
             ),

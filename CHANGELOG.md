@@ -3,6 +3,7 @@
 Complete development history. Published GitHub Releases use the concise [RELEASE_NOTES.md](RELEASE_NOTES.md) for the latest three beta versions. Older entries remain here for reference.
 
 ## v1.4.9-beta34.91 — SIMKL Rewatch groundwork and glow preview
+- Build `+130`: detect SIMKL account tier from the existing `/users/settings` response and log privacy-safe subscription field presence/types (not values) to diagnose `UNKNOWN`. No additional API request. VIP/PRO/Free detection is provisional until confirmed on device; Rewatch remains read-only and UI glow is a visual preview.
 - Version bumped to `1.4.9-beta34.91+129` to avoid an existing tag/build collision.
 - Add an initial read-only SIMKL Rewatch session model and authenticated session-fetch method. It is not connected to the UI or automatic progress updates yet.
 - Show the SIMKL account tier beside its name on the Account page using the existing profile response; unknown tiers display `UNKNOWN`. The tier detection still needs validation against SIMKL's actual response (device test displayed UNKNOWN).

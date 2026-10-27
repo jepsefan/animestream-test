@@ -170,6 +170,16 @@ class _InfoMobileState extends State<InfoMobile> {
                                       const SizedBox.shrink(),
                                       if (provider.loggedIn)
                                         Container(
+                                          decoration: provider.activeSimklRewatch
+                                              ? BoxDecoration(
+                                                  shape: BoxShape.circle,
+                                                  boxShadow: [BoxShadow(
+                                                    color: appTheme.accentColor.withValues(alpha: 0.70),
+                                                    blurRadius: 13,
+                                                    spreadRadius: 2,
+                                                  )],
+                                                )
+                                              : null,
                                           child: ElevatedButton(
                                             onPressed: () {
                                               showModalBottomSheet(

@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:animestream/core/app/env.dart';
+import 'package:animestream/core/app/logging.dart';
 import 'package:animestream/core/commons/enums.dart';
 import 'package:animestream/core/data/secureStorage.dart';
 import 'package:animestream/core/database/anilist/types.dart';
@@ -289,25 +290,71 @@ class SimklLogin extends DatabaseLogin {
     }
   }
 
-  /// Subscription tier from the existing /users/settings profile request.
-  /// Unknown is intentionally not treated as Free.
+  /// Determine the tier only from explicit subscription indicators.
+  /// Unrecognised responses stay Unknown rather than being assumed Free.
   static String subscriptionTier(Map<String, dynamic> settings) {
     final account = settings['account'];
     final user = settings['user'];
     final candidates = <dynamic>[
-      if (account is Map) ...[account['type'], account['plan'], account['subscription'], account['tier'], account['vip']],
-      if (user is Map) ...[user['type'], user['plan'], user['subscription'], user['tier'], user['vip']],
-      settings['plan'], settings['subscription'], settings['tier'], settings['vip'],
+      settings['vip'], settings['pro'], settings['is_vip'], settings['is_pro'],
+      settings['plan'], settings['subscription'], settings['tier'],
+      settings['account_type'], settings['user_type'],
+      if (account is Map) ...[
+        account['vip'], account['pro'], account['is_vip'], account['is_pro'],
+        account['type'], account['plan'], account['subscription'],
+        account['tier'], account['account_type'],
+      ],
+      if (user is Map) ...[
+        user['vip'], user['pro'], user['is_vip'], user['is_pro'],
+        user['type'], user['plan'], user['subscription'], user['tier'],
+      ],
     ];
-    for (final candidate in candidates) {
-      if (candidate == true) return 'VIP';
-      if (candidate is! String) continue;
-      final normalized = candidate.trim().toLowerCase();
-      if (normalized == 'vip') return 'VIP';
-      if (normalized == 'pro') return 'PRO';
-      if (normalized == 'free') return 'Free';
+    for (final value in candidates) {
+      if (value is Map) {
+        final tier = subscriptionTier(Map<String, dynamic>.from(value));
+        if (tier != 'Unknown') return tier;
+      }
+      if (value is! String) continue;
+      final tier = value.trim().toLowerCase();
+      if (tier == 'vip' || tier == 'premium') return 'VIP';
+      if (tier == 'pro') return 'PRO';
+      if (tier == 'free' || tier == 'basic') return 'Free';
+    }
+    // Explicit true flags only; a false flag alone does not prove Free.
+    for (final value in [settings, if (account is Map) account, if (user is Map) user]) {
+      if (value['vip'] == true || value['is_vip'] == true) return 'VIP';
+      if (value['pro'] == true || value['is_pro'] == true) return 'PRO';
     }
     return 'Unknown';
+  }
+
+  /// Diagnostic logs field presence and types only, never profile values.
+  /// No usernames, IDs, tokens, URLs or raw JSON are logged.
+  static void logSubscriptionDiagnostics(Map<String, dynamic> settings, String tier) {
+    const fields = <String>{
+      'vip', 'pro', 'is_vip', 'is_pro', 'plan', 'subscription',
+      'tier', 'account_type', 'user_type', 'type', 'status',
+      'expires_at', 'vip_expiration', 'pro_expiration',
+    };
+    String describe(dynamic object) {
+      if (object is! Map) return 'absent';
+      final names = fields.where((key) => object.containsKey(key)).toList()..sort();
+      if (names.isEmpty) return 'no_known_fields';
+      return names.map((key) {
+        final value = object[key];
+        final type = value == null ? 'null' :
+            value is bool ? 'bool' :
+            value is String ? 'string' :
+            value is num ? 'number' :
+            value is Map ? 'object' :
+            value is List ? 'array' : 'other';
+        return '$key:$type';
+      }).join(',');
+    }
+    Logs.app.log('[SIMKL ACCOUNT] tier=$tier; '
+        'root=[${describe(settings)}]; '
+        'account=[${describe(settings['account'])}]; '
+        'user=[${describe(settings['user'])}]');
   }
 
   String? lastSubscriptionTier;
@@ -327,6 +374,8 @@ class SimklLogin extends DatabaseLogin {
     }
 
     final jsoned = jsonDecode(res.body) as Map<String, dynamic>;
+    lastSubscriptionTier = subscriptionTier(jsoned);
+    logSubscriptionDiagnostics(jsoned, lastSubscriptionTier!);
     final user = (jsoned['user'] is Map<String, dynamic>)
         ? jsoned['user'] as Map<String, dynamic>
         : <String, dynamic>{};

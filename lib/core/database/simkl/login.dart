@@ -357,7 +357,19 @@ class SimklLogin extends DatabaseLogin {
         'user=[${describe(settings['user'])}]');
   }
 
+  static String? cachedSubscriptionTier;
+  static DateTime? cachedSubscriptionAt;
   String? lastSubscriptionTier;
+
+  static Future<String> getCachedSubscriptionTier() async {
+    if (cachedSubscriptionTier != null && cachedSubscriptionAt != null &&
+        DateTime.now().difference(cachedSubscriptionAt!) < const Duration(hours: 24)) {
+      return cachedSubscriptionTier!;
+    }
+    final login = SimklLogin();
+    await login.getUserProfile();
+    return login.lastSubscriptionTier ?? 'Unknown';
+  }
 
   Future<UserModal> getUserProfile() async {
     final url = "https://api.simkl.com/users/settings";
@@ -375,6 +387,8 @@ class SimklLogin extends DatabaseLogin {
 
     final jsoned = jsonDecode(res.body) as Map<String, dynamic>;
     lastSubscriptionTier = subscriptionTier(jsoned);
+    cachedSubscriptionTier = lastSubscriptionTier;
+    cachedSubscriptionAt = DateTime.now();
     logSubscriptionDiagnostics(jsoned, lastSubscriptionTier!);
     final user = (jsoned['user'] is Map<String, dynamic>)
         ? jsoned['user'] as Map<String, dynamic>

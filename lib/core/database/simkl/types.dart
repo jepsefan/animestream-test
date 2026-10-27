@@ -7,11 +7,14 @@ class SimklRewatchSession {
   final int animeId;
   final String rewatchId;
   final String status;
+  /// Episode numbers explicitly identified as watched in this session.
+  final Set<int> watchedEpisodes;
 
   const SimklRewatchSession({
     required this.animeId,
     required this.rewatchId,
     required this.status,
+    this.watchedEpisodes = const {},
   });
 
   bool get isActive => status == 'active';

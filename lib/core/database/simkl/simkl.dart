@@ -113,6 +113,24 @@ class Simkl extends Database {
       }
       if (sample == null) continue;
       Logs.app.log('[SIMKL REWATCH SHAPE] $category rewatchEntry=${shapeOf(sample)}');
+      final seasons = sample['seasons'];
+      Logs.app.log('[SIMKL REWATCH SHAPE] $category.seasons=${shapeOf(seasons)}');
+      final firstSeason = seasons is List && seasons.isNotEmpty
+          ? seasons.first
+          : seasons is Map && seasons.isNotEmpty ? seasons.values.first : null;
+      if (firstSeason != null) {
+        Logs.app.log('[SIMKL REWATCH SHAPE] $category.seasons.first=${shapeOf(firstSeason)}');
+        if (firstSeason is Map) {
+          for (final key in ['episodes', 'rewatch_episodes', 'watched_episodes']) {
+            final episodes = firstSeason[key];
+            if (episodes == null) continue;
+            Logs.app.log('[SIMKL REWATCH SHAPE] $category.seasons.first.$key=${shapeOf(episodes)}');
+            if (episodes is List && episodes.isNotEmpty) {
+              Logs.app.log('[SIMKL REWATCH SHAPE] $category.seasons.first.$key.first=${shapeOf(episodes.first)}');
+            }
+          }
+        }
+      }
       for (final field in [
         'rewatch_episodes', 'episodes', 'rewatch', 'rewatches',
         'episode_watched_at', 'watched_episodes', 'show',

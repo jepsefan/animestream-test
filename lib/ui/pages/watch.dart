@@ -1,6 +1,7 @@
 import 'package:animestream/core/anime/providers/episodeProgress.dart';
 import 'package:animestream/core/data/localEpisodeZeroProgress.dart';
 import 'package:animestream/core/database/simkl/mutations.dart';
+import 'package:animestream/core/database/database.dart';
 import 'dart:async';
 import 'dart:io';
 

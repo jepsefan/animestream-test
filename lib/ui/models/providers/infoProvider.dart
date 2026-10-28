@@ -23,6 +23,7 @@ import 'package:animestream/ui/models/sources.dart';
 import 'package:animestream/core/anime/providers/externalAssPreferences.dart';
 import 'package:animestream/core/database/simkl/episodeArtwork.dart';
 import 'package:animestream/core/database/simkl/simkl.dart';
+import 'package:animestream/core/database/simkl/types.dart';
 import 'package:animestream/core/database/simkl/login.dart';
 import 'package:animestream/core/metadata/metadataFallback.dart';
 import 'package:animestream/core/metadata/malMetadata.dart';

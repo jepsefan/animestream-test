@@ -165,18 +165,26 @@ class Simkl extends Database {
         if (id is! num || sessionId == null) continue;
         // Never infer session progress from global watched flags.
         final watchedEpisodes = <int>{};
-        final sessionEpisodes = entry['rewatch_episodes'];
-        if (sessionEpisodes is List) {
-          for (final item in sessionEpisodes) {
-            if (item is! Map) continue;
-            final raw = item['episode_number'] ?? item['number'];
-            final number = raw is num ? raw.toInt() : int.tryParse('$raw');
-            if (number != null && number > 0 &&
-                (item['watched'] == true || item['is_watched'] == true)) {
-              watchedEpisodes.add(number);
+        final seasons = entry['seasons'];
+        if (seasons is List) {
+          for (final season in seasons) {
+            if (season is! Map) continue;
+            final seasonNumber = int.tryParse('${season['number']}');
+            if (seasonNumber != 1) continue;
+            final episodes = season['episodes'];
+            if (episodes is! List) continue;
+            for (final episode in episodes) {
+              if (episode is! Map) continue;
+              final number = int.tryParse('${episode['number']}');
+              final watchedAt = episode['watched_at'];
+              if (number != null && number > 0 &&
+                  watchedAt is String && watchedAt.trim().isNotEmpty) {
+                watchedEpisodes.add(number);
+              }
             }
           }
         }
+        Logs.app.log('[SIMKL REWATCH] Session season 1 watched episodes: ${watchedEpisodes.length}');
         sessions.add(SimklRewatchSession(
           animeId: id.toInt(),
           rewatchId: sessionId.toString(),

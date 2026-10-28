@@ -38,11 +38,23 @@ class SimklMutation extends DatabaseMutation {
       final sessions = await Simkl().getRewatchSessions();
       final active = sessions.where((s) => s.animeId == id && s.isActive).firstOrNull;
       if (active != null) {
-        // Status transitions and cumulative progress are not reliable evidence
-        // of which episode just finished. Do not write an inferred episode.
-        Logs.app.log('[SIMKL REWATCH] Active session protected: suppressing normal '
-            'SIMKL mutation (progress=$progress, status=$status, previous=$previousStatus). '
-            'Awaiting exact completed-episode event.');
+        // During an active rewatch, route the existing watch-progress trigger
+        // exclusively to the existing rewatch session, never normal history.
+        if (progress == null || progress <= 0) {
+          Logs.app.log('[SIMKL REWATCH] No episode progress; skipping write');
+          return SimklMutationResult();
+        }
+        if (!active.watchedEpisodes.contains(progress)) {
+          final accepted = await Simkl().recordCompletedRewatchEpisode(
+            animeId: id,
+            episodeNumber: progress,
+            session: active,
+          );
+          if (!accepted) {
+            throw StateError('SIMKL rewatch episode $progress was not accepted');
+          }
+        }
+        Logs.app.log('[SIMKL REWATCH] Routed episode $progress to existing session');
         return SimklMutationResult();
       }
     }

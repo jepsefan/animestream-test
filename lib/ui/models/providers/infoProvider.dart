@@ -99,10 +99,14 @@ class InfoProvider extends ChangeNotifier {
 
   Future<void> _discoverActiveSimklRewatch() async {
     final generation = ++_rewatchLookupGeneration;
-    _activeSimklRewatch = false;
-    _rewatchWatchedEpisodes = {};
+    // Preserve confirmed markers while refreshing; avoid transient flicker.
     final simklId = _altDatabases.where((entry) => entry.database == Databases.simkl).firstOrNull?.id;
-    if (simklId == null || simklId <= 0) return;
+    if (simklId == null || simklId <= 0) {
+      _activeSimklRewatch = false;
+      _rewatchWatchedEpisodes = {};
+      notifyListeners();
+      return;
+    }
     try {
       if (!await SimklLogin.isLoggedIn()) return;
       final tier = await SimklLogin.getCachedSubscriptionTier();
@@ -180,7 +184,9 @@ class InfoProvider extends ChangeNotifier {
   int get nextEpisodeResumeKey => _epLinks.isEmpty ? 1 : EpisodeProgress.resumeKey(_epLinks, nextEpisodeIndex);
   String get nextEpisodeLabel => nextEpisode == null ? 'Episode 1' : EpisodeProgress.label(nextEpisode!);
   bool episodeIsWatched(EpisodeDetails ep) =>
-      ep.episodeNumber == 0 && ep.episodeLabel == 'Episode 0'
+      _activeSimklRewatch && ep.episodeNumber > 0
+          ? _rewatchWatchedEpisodes.contains(ep.episodeNumber)
+          : ep.episodeNumber == 0 && ep.episodeLabel == 'Episode 0'
           ? _episodeZeroWatched
           : EpisodeProgress.isWatched(ep, _watched);
   int get viewMode => _viewMode;
@@ -364,6 +370,9 @@ class InfoProvider extends ChangeNotifier {
     }
 
     notifyListeners();
+    // Refresh SIMKL's session-scoped episode flags after watch progress changes.
+    // This is read-only and never advances skipped episodes.
+    if (refreshLastWatchDuration) _discoverActiveSimklRewatch();
   }
 
   Future<void> _getInfo(int id) async {
@@ -856,5 +865,7 @@ class InfoProvider extends ChangeNotifier {
     _mediaListStatus = assignItemEnum(status);
     _watched = progress;
     notifyListeners();
+    // A successful progress update may also change SIMKL's active rewatch.
+    _discoverActiveSimklRewatch();
   }
 }

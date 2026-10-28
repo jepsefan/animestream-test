@@ -3,6 +3,7 @@
 Complete development history. Published GitHub Releases use the concise [RELEASE_NOTES.md](RELEASE_NOTES.md) for the latest three beta versions. Older entries remain here for reference.
 
 ## v1.4.9-beta34.91 — SIMKL Rewatch groundwork and glow preview
+- Build +137: Parse watched episode numbers from the active SIMKL Rewatch entry's season-one episodes using nonempty watched_at. Keep read-only access and session-scoped glow; log matched episode count without dates.
 - Build +136: Added safe diagnostics for the nested SIMKL seasons and episode list structures. No changes to Rewatch glow or history.
 - Build `+135`: add read-only `[SIMKL REWATCH SHAPE]` diagnostics to identify the actual Rewatch episode payload structure (field names, types, list lengths, and one nested sample shape only). No account values, IDs, tokens, timestamps or full API payloads logged; no Rewatch writes or speculative episode-glow fallback.
 - Build `+134`: episode glow is now gated by explicitly session-scoped Rewatch watched-episode numbers, with restored 30px circular glow area. Avoid applying glow to all historical watched episodes. The expected `rewatch_episodes` payload has not been verified against live SIMKL data; if absent, episode glow remains off. No history writes.

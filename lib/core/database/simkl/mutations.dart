@@ -38,23 +38,10 @@ class SimklMutation extends DatabaseMutation {
       final sessions = await Simkl().getRewatchSessions();
       final active = sessions.where((s) => s.animeId == id && s.isActive).firstOrNull;
       if (active != null) {
-        // During an active rewatch, route the existing watch-progress trigger
-        // exclusively to the existing rewatch session, never normal history.
-        if (progress == null || progress <= 0) {
-          Logs.app.log('[SIMKL REWATCH] No episode progress; skipping write');
-          return SimklMutationResult();
-        }
-        if (!active.watchedEpisodes.contains(progress)) {
-          final accepted = await Simkl().recordCompletedRewatchEpisode(
-            animeId: id,
-            episodeNumber: progress,
-            session: active,
-          );
-          if (!accepted) {
-            throw StateError('SIMKL rewatch episode $progress was not accepted');
-          }
-        }
-        Logs.app.log('[SIMKL REWATCH] Routed episode $progress to existing session');
+        // Generic tracker progress is not the completed episode number.
+        // The playback threshold sends the exact episode separately.
+        Logs.app.log('[SIMKL REWATCH] Skipping generic progress mutation; '
+            'waiting for explicit playback episode');
         return SimklMutationResult();
       }
     }
@@ -66,6 +53,35 @@ class SimklMutation extends DatabaseMutation {
     }
 
     return SimklMutationResult();
+  }
+
+  /// Only playback completion can write to an active rewatch session.
+  /// Returns false when no active session exists; ordinary tracker sync is
+  /// handled separately by mutateAnimeList.
+  Future<bool> recordPlaybackRewatchEpisode({
+    required int animeId,
+    required int episodeNumber,
+  }) async {
+    if (animeId <= 0 || episodeNumber <= 0 ||
+        !(await SimklLogin.isLoggedIn())) return false;
+    final tier = await SimklLogin.getCachedSubscriptionTier();
+    if (tier != 'VIP' && tier != 'PRO') return false;
+    final sessions = await Simkl().getRewatchSessions();
+    final active = sessions.where(
+      (s) => s.animeId == animeId && s.isActive,
+    ).firstOrNull;
+    if (active == null) return false;
+    if (active.watchedEpisodes.contains(episodeNumber)) return true;
+    final accepted = await Simkl().recordCompletedRewatchEpisode(
+      animeId: animeId,
+      episodeNumber: episodeNumber,
+      session: active,
+    );
+    if (!accepted) {
+      throw StateError('SIMKL rewatch episode $episodeNumber was not accepted');
+    }
+    Logs.app.log('[SIMKL REWATCH] Playback episode $episodeNumber registered');
+    return true;
   }
 
   @override

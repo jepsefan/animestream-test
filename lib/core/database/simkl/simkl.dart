@@ -245,6 +245,7 @@ class Simkl extends Database {
       Logs.app.log('[SIMKL REWATCH] Episode write failed: HTTP ${response.statusCode}');
       return false;
     }
+    if (response.body.trim().isEmpty) return false;
     final result = jsonDecode(response.body);
     if (result is! Map) return false;
     final added = result['added'];

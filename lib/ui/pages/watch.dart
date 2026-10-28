@@ -1,5 +1,6 @@
 import 'package:animestream/core/anime/providers/episodeProgress.dart';
 import 'package:animestream/core/data/localEpisodeZeroProgress.dart';
+import 'package:animestream/core/database/simkl/mutations.dart';
 import 'dart:async';
 import 'dart:io';
 
@@ -44,6 +45,7 @@ class _WatchState extends State<Watch> with WidgetsBindingObserver {
   late VideoController controller;
   bool _isAndroidTv = false;
   final Set<String> _markedLocalEpisodeZero = {};
+  final Set<String> _rewatchPlaybackDispatched = {};
 
   Future<void> _detectAndroidTv() async {
     final detected = await isTv();
@@ -277,6 +279,26 @@ class _WatchState extends State<Watch> with WidgetsBindingObserver {
           final key = '${dataProvider.showId}:${episode.episodeLink}';
           if (_markedLocalEpisodeZero.add(key)) {
             LocalEpisodeZeroProgress.markWatched(dataProvider.showId);
+          }
+        }
+        // Rewatch records the episode actually played, even when the primary
+        // tracker is already further ahead (e.g. AniList 9, playback 3).
+        final simklId = (currentUserSettings?.database == Databases.simkl)
+            ? dataProvider.showId
+            : dataProvider.altDatabases
+                .where((item) => item.database == Databases.simkl)
+                .firstOrNull?.id;
+        if (simklId != null && episode.episodeNumber > 0) {
+          final key = '$simklId:${episode.episodeNumber}:${episode.episodeLink}';
+          if (_rewatchPlaybackDispatched.add(key)) {
+            SimklMutation().recordPlaybackRewatchEpisode(
+              animeId: simklId,
+              episodeNumber: episode.episodeNumber,
+            ).catchError((Object error) {
+              _rewatchPlaybackDispatched.remove(key);
+              Logs.app.log('[SIMKL REWATCH] Playback write failed: $error');
+              return false;
+            });
           }
         }
         final nextProgress = EpisodeProgress.onWatched(episode, dataProvider.trackedProgress);

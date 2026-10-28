@@ -1,3 +1,7 @@
+## v1.4.9-beta34.91+142 — Rewatch autoplay transition guard
+- Avoid registering the next episode immediately when autoplay switches from the finished episode, by requiring the new episode to have been observed below the 75% watched threshold first.
+- Keep exact-episode Rewatch writes and separate AniList/Rewatch markings. APK testing pending.
+
 ## v1.4.9-beta34.91+141 — SIMKL Rewatch exact episode fix
 - Send the actual played episode number to an active SIMKL Rewatch session at the 75% watched threshold, independent of AniList progress.
 - Prevent generic tracker progress from being written as a Rewatch episode; preserve primary tracker checkmarks and separate Rewatch glow.

@@ -3,6 +3,8 @@
 Complete development history. Published GitHub Releases use the concise [RELEASE_NOTES.md](RELEASE_NOTES.md) for the latest three beta versions. Older entries remain here for reference.
 
 ## v1.4.9-beta34.91 — SIMKL Rewatch groundwork and glow preview
+- Build +141: Route SIMKL Rewatch writes from the playback 75% watched threshold using the actual episode number, independent of AniList/MAL tracker progress. Suppress generic SIMKL mutations during an active Rewatch session; preserve ordinary tracker progress behavior. Avoid duplicate playback writes per episode in one player session. APK/device validation pending.
+- Build +140: Restore ordinary primary-tracker watched checkmarks independently of SIMKL Rewatch glow. Retain the active-session routing and guard against normal SIMKL status writes during Rewatch. Initial routing used generic tracker progress and could incorrectly register a later episode; superseded by +141.
 - Build +139: Add a guarded SIMKL Rewatch episode write using the pinned active rewatch_id, an explicit single episode, Pro/VIP eligibility, and session revalidation. Playback completion event integration is not yet wired; no automatic writes occur in this build.
 - Build +138: Refresh read-only SIMKL Rewatch episode state after watch progress updates; during active sessions, watched checkmarks are based on explicitly watched session episodes, not inferred from the highest watched episode. Preserve primary database Continue from behavior. No Rewatch writes.
 - Build +137: Parse watched episode numbers from the active SIMKL Rewatch entry's season-one episodes using nonempty watched_at. Keep read-only access and session-scoped glow; log matched episode count without dates.

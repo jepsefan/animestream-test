@@ -3,6 +3,7 @@
 Complete history: [CHANGELOG.md](CHANGELOG.md). These notes cover beta34.91, beta34.90.9 and beta34.90.8.
 
 ## v1.4.9-beta34.91 — SIMKL Rewatch groundwork and glow preview
+- Build +138: Refresh read-only SIMKL Rewatch episode state after watch progress updates; during active sessions, watched checkmarks are based on explicitly watched session episodes, not inferred from the highest watched episode. Preserve primary database Continue from behavior. No Rewatch writes.
 - Build +137: Parse watched episode numbers from the active SIMKL Rewatch entry's season-one episodes using nonempty watched_at. Keep read-only access and session-scoped glow; log matched episode count without dates.
 - Build +136: Added safe diagnostics for the nested SIMKL seasons and episode list structures. No changes to Rewatch glow or history.
 - Build `+135`: add read-only `[SIMKL REWATCH SHAPE]` diagnostics to identify the actual Rewatch episode payload structure (field names, types, list lengths, and one nested sample shape only). No account values, IDs, tokens, timestamps or full API payloads logged; no Rewatch writes or speculative episode-glow fallback.

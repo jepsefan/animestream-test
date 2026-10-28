@@ -233,10 +233,9 @@ class InfoProvider extends ChangeNotifier {
   EpisodeDetails? get nextEpisode => _epLinks.isEmpty ? null : _epLinks[nextEpisodeIndex];
   int get nextEpisodeResumeKey => _epLinks.isEmpty ? 1 : EpisodeProgress.resumeKey(_epLinks, nextEpisodeIndex);
   String get nextEpisodeLabel => nextEpisode == null ? 'Episode 1' : EpisodeProgress.label(nextEpisode!);
+  // Primary tracker checkmarks stay independent of SIMKL rewatch glow.
   bool episodeIsWatched(EpisodeDetails ep) =>
-      _activeSimklRewatch && ep.episodeNumber > 0
-          ? _rewatchWatchedEpisodes.contains(ep.episodeNumber)
-          : ep.episodeNumber == 0 && ep.episodeLabel == 'Episode 0'
+      ep.episodeNumber == 0 && ep.episodeLabel == 'Episode 0'
           ? _episodeZeroWatched
           : EpisodeProgress.isWatched(ep, _watched);
   int get viewMode => _viewMode;

@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:animestream/core/app/env.dart';
 import 'package:animestream/core/app/logging.dart';
 import 'package:animestream/core/database/simkl/login.dart';
+import 'package:animestream/core/database/simkl/simkl.dart';
 import 'package:animestream/core/database/types.dart';
 import 'package:animestream/core/network/network.dart';
 
@@ -30,10 +31,32 @@ class SimklMutation extends DatabaseMutation {
     if (!(await SimklLogin.isLoggedIn())) return null;
 
     //this condition works only for currently watching animes
-    if (previousStatus?.name == status?.name)
+    if (previousStatus?.name == status?.name) {
+      // The existing progress trigger is also used for an active SIMKL rewatch.
+      // Never expand rewatch progress into episodes 1..N.
+      final tier = await SimklLogin.getCachedSubscriptionTier();
+      if ((tier == 'VIP' || tier == 'PRO') && progress != null && progress > 0) {
+        final sessions = await Simkl().getRewatchSessions();
+        final active = sessions.where((s) => s.animeId == id && s.isActive).firstOrNull;
+        if (active != null) {
+          if (!active.watchedEpisodes.contains(progress)) {
+            final accepted = await Simkl().recordCompletedRewatchEpisode(
+              animeId: id,
+              episodeNumber: progress,
+              session: active,
+            );
+            if (!accepted) {
+              throw StateError('SIMKL rewatch episode write was not accepted');
+            }
+          }
+          Logs.app.log('[SIMKL REWATCH] Routed episode $progress to existing session');
+          return SimklMutationResult();
+        }
+      }
       await syncToHistory(id, progress!);
-    else
+    } else {
       await addToList(id, status ?? MediaStatus.CURRENT);
+    }
 
     return SimklMutationResult();
   }

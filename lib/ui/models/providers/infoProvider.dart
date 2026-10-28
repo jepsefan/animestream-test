@@ -108,9 +108,21 @@ class InfoProvider extends ChangeNotifier {
       return;
     }
     try {
-      if (!await SimklLogin.isLoggedIn()) return;
+      if (!await SimklLogin.isLoggedIn()) {
+        if (generation == _rewatchLookupGeneration) {
+          _activeSimklRewatch = false;
+          _rewatchWatchedEpisodes = {};
+          notifyListeners();
+        }
+        return;
+      }
       final tier = await SimklLogin.getCachedSubscriptionTier();
       if (tier != 'VIP' && tier != 'PRO') {
+        if (generation == _rewatchLookupGeneration) {
+          _activeSimklRewatch = false;
+          _rewatchWatchedEpisodes = {};
+          notifyListeners();
+        }
         Logs.app.log('[SIMKL REWATCH] Discovery skipped: ineligible or unknown tier');
         return;
       }

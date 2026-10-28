@@ -1,3 +1,8 @@
+## v1.4.9-beta34.91+141 — SIMKL Rewatch exact episode fix
+- Send the actual played episode number to an active SIMKL Rewatch session at the 75% watched threshold, independent of AniList progress.
+- Prevent generic tracker progress from being written as a Rewatch episode; preserve primary tracker checkmarks and separate Rewatch glow.
+- Avoid duplicate sends for the same episode in a player session. APK/device testing pending.
+
 # AnimeStream — Latest three beta development versions
 
 Complete history: [CHANGELOG.md](CHANGELOG.md). These notes cover beta34.91, beta34.90.9 and beta34.90.8.

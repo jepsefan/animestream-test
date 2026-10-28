@@ -3,6 +3,7 @@
 Complete development history. Published GitHub Releases use the concise [RELEASE_NOTES.md](RELEASE_NOTES.md) for the latest three beta versions. Older entries remain here for reference.
 
 ## v1.4.9-beta34.91 — SIMKL Rewatch groundwork and glow preview
+- Build +139: Add a guarded SIMKL Rewatch episode write using the pinned active rewatch_id, an explicit single episode, Pro/VIP eligibility, and session revalidation. Playback completion event integration is not yet wired; no automatic writes occur in this build.
 - Build +138: Refresh read-only SIMKL Rewatch episode state after watch progress updates; during active sessions, watched checkmarks are based on explicitly watched session episodes, not inferred from the highest watched episode. Preserve primary database Continue from behavior. No Rewatch writes.
 - Build +137: Parse watched episode numbers from the active SIMKL Rewatch entry's season-one episodes using nonempty watched_at. Keep read-only access and session-scoped glow; log matched episode count without dates.
 - Build +136: Added safe diagnostics for the nested SIMKL seasons and episode list structures. No changes to Rewatch glow or history.

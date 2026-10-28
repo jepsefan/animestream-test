@@ -197,6 +197,63 @@ class Simkl extends Database {
     return sessions;
   }
 
+  /// Record exactly one completed episode in an EXISTING active rewatch.
+  /// Never creates a new session and never infers skipped episodes.
+  Future<bool> recordCompletedRewatchEpisode({
+    required int animeId,
+    required int episodeNumber,
+    required SimklRewatchSession session,
+  }) async {
+    if (animeId <= 0 || episodeNumber <= 0 ||
+        !session.isActive || session.animeId != animeId ||
+        int.tryParse(session.rewatchId) == null) {
+      return false;
+    }
+    if (session.watchedEpisodes.contains(episodeNumber)) return true;
+    final token = await getSecureVal(SecureStorageKey.simklToken);
+    if (token == null || token.isEmpty) return false;
+    final headers = await _authenticatedHeaders();
+    headers['Content-Type'] = 'application/json';
+    final uri = Uri.https('api.simkl.com', '/sync/history', {
+      'allow_rewatch': 'yes',
+    });
+    final response = await HTTP().post(
+      uri,
+      headers: headers,
+      body: {
+        'anime': [
+          {
+            'ids': {'simkl': animeId},
+            'is_rewatch': true,
+            'rewatch_id': int.parse(session.rewatchId),
+            'seasons': [
+              {
+                'number': 1,
+                'episodes': [
+                  {
+                    'number': episodeNumber,
+                    'watched_at': DateTime.now().toUtc().toIso8601String(),
+                  }
+                ],
+              }
+            ],
+          }
+        ],
+      },
+    );
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      Logs.app.log('[SIMKL REWATCH] Episode write failed: HTTP ${response.statusCode}');
+      return false;
+    }
+    final result = jsonDecode(response.body);
+    if (result is! Map) return false;
+    final added = result['added'];
+    final episodesAdded = added is Map ? added['episodes'] : null;
+    final accepted = episodesAdded is num && episodesAdded > 0;
+    Logs.app.log('[SIMKL REWATCH] Episode write accepted: $accepted');
+    return accepted;
+  }
+
   Future<dynamic> fetch(String url) async {
     final res = await get(
       Uri.parse(url),

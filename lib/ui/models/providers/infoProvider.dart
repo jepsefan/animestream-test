@@ -96,6 +96,8 @@ class InfoProvider extends ChangeNotifier {
       _activeSimklRewatch && _rewatchWatchedEpisodes.contains(episodeNumber);
   bool get activeSimklRewatch => _activeSimklRewatch;
   int _rewatchLookupGeneration = 0;
+  SimklRewatchSession? _activeRewatchSession;
+  bool _rewatchWriteInProgress = false;
 
   Future<void> _discoverActiveSimklRewatch() async {
     final generation = ++_rewatchLookupGeneration;
@@ -130,6 +132,7 @@ class InfoProvider extends ChangeNotifier {
       if (generation != _rewatchLookupGeneration) return;
       final activeSessions = sessions.where((session) => session.animeId == simklId && session.isActive);
       _activeSimklRewatch = activeSessions.isNotEmpty;
+      _activeRewatchSession = activeSessions.firstOrNull;
       _rewatchWatchedEpisodes = activeSessions.expand((session) => session.watchedEpisodes).toSet();
       Logs.app.log('[SIMKL REWATCH] Explicit watched episodes for series: ${_rewatchWatchedEpisodes.length}');
       Logs.app.log('[SIMKL REWATCH] Active session for current series: $_activeSimklRewatch');

@@ -47,6 +47,7 @@ class _WatchState extends State<Watch> with WidgetsBindingObserver {
   bool _isAndroidTv = false;
   final Set<String> _markedLocalEpisodeZero = {};
   final Set<String> _rewatchPlaybackDispatched = {};
+  final Set<String> _rewatchPlaybackObservedBeforeThreshold = {};
 
   Future<void> _detectAndroidTv() async {
     final detected = await isTv();
@@ -273,6 +274,15 @@ class _WatchState extends State<Watch> with WidgetsBindingObserver {
 
     if (!widget.localSource) {
       final currentByTotal = (controller.position ?? 0) / (controller.duration ?? 0);
+      // A preloaded next episode may become current before the controller's
+      // position/duration reset. Require an actual below-threshold observation
+      // for that episode before accepting a completion write.
+      final currentEpisode = dataProvider.epLinks[dataProvider.state.currentEpIndex];
+      final playbackKey = '${dataProvider.showId}:${currentEpisode.episodeNumber}:${currentEpisode.episodeLink}';
+      if (currentByTotal.isFinite && currentByTotal >= 0 && currentByTotal < 0.75 &&
+          (controller.isPlaying ?? false)) {
+        _rewatchPlaybackObservedBeforeThreshold.add(playbackKey);
+      }
       if (currentByTotal * 100 >= 75 && !dataProvider.state.preloadStarted && (controller.isPlaying ?? false)) {
         dataProvider.preloadNextEpisode();
         final episode = dataProvider.epLinks[dataProvider.state.currentEpIndex];
@@ -289,7 +299,8 @@ class _WatchState extends State<Watch> with WidgetsBindingObserver {
             : dataProvider.altDatabases
                 .where((item) => item.database == Databases.simkl)
                 .firstOrNull?.id;
-        if (simklId != null && episode.episodeNumber > 0) {
+        if (simklId != null && episode.episodeNumber > 0 &&
+            _rewatchPlaybackObservedBeforeThreshold.contains(playbackKey)) {
           final key = '$simklId:${episode.episodeNumber}:${episode.episodeLink}';
           if (_rewatchPlaybackDispatched.add(key)) {
             SimklMutation().recordPlaybackRewatchEpisode(

@@ -143,6 +143,40 @@ class InfoProvider extends ChangeNotifier {
   }
 
 
+  /// Only call for a confirmed completed episode, never a progress range.
+  Future<bool> recordRewatchCompletion(int episodeNumber) async {
+    final session = _activeRewatchSession;
+    if (session == null || !session.isActive || episodeNumber <= 0 ||
+        _rewatchWatchedEpisodes.contains(episodeNumber) ||
+        _rewatchWriteInProgress) return false;
+    _rewatchWriteInProgress = true;
+    try {
+      if (!await SimklLogin.isLoggedIn()) return false;
+      final tier = await SimklLogin.getCachedSubscriptionTier();
+      if (tier != 'VIP' && tier != 'PRO') return false;
+      final sessions = await Simkl().getRewatchSessions();
+      final current = sessions.where((item) =>
+          item.animeId == session.animeId &&
+          item.rewatchId == session.rewatchId && item.isActive).firstOrNull;
+      if (current == null || current.watchedEpisodes.contains(episodeNumber)) {
+        _discoverActiveSimklRewatch();
+        return false;
+      }
+      final success = await Simkl().recordCompletedRewatchEpisode(
+        animeId: session.animeId,
+        episodeNumber: episodeNumber,
+        session: current,
+      );
+      if (success) _discoverActiveSimklRewatch();
+      return success;
+    } catch (error) {
+      Logs.app.log('[SIMKL REWATCH] Completion failed: ${error.runtimeType}');
+      return false;
+    } finally {
+      _rewatchWriteInProgress = false;
+    }
+  }
+
   int _currentPageIndex = 0;
   int _watched = 0;
   int _viewMode = 0;

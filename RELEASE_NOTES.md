@@ -1,3 +1,7 @@
+## v1.4.9-beta34.91+143 — Active Rewatch indicator
+- Display `Rewatch On` above `Update Progress` when the series has an active SIMKL Rewatch session; leave AniList progress and Rewatch recording independent.
+- +142 playback registration and skipped-episode behavior confirmed by user testing. APK build validation pending.
+
 ## v1.4.9-beta34.91+142 — Rewatch autoplay transition guard
 - Avoid registering the next episode immediately when autoplay switches from the finished episode, by requiring the new episode to have been observed below the 75% watched threshold first.
 - Keep exact-episode Rewatch writes and separate AniList/Rewatch markings. APK testing pending.

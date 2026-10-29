@@ -3,6 +3,7 @@
 Complete development history. Published GitHub Releases use the concise [RELEASE_NOTES.md](RELEASE_NOTES.md) for the latest three beta versions. Older entries remain here for reference.
 
 ## v1.4.9-beta34.91 — SIMKL Rewatch groundwork and glow preview
+- Build +143: Show a green `Rewatch On` indicator immediately above `Update Progress` only for a series with an active SIMKL Rewatch session. Keep primary tracker progress unchanged. User confirmed +142 exact-episode and skipped-episode tests passed. Build validation pending.
 - Build +142: Guard against premature SIMKL Rewatch completion of an auto-started next episode by requiring a below-75%-progress observation of that episode before its 75% completion event. Addresses +141 registering episodes 3 and 4 when only episode 3 finished; APK testing pending.
 - Build +141: Route SIMKL Rewatch writes from the playback 75% watched threshold using the actual episode number, independent of AniList/MAL tracker progress. Suppress generic SIMKL mutations during an active Rewatch session; preserve ordinary tracker progress behavior. Avoid duplicate playback writes per episode in one player session. APK/device validation pending.
 - Build +140: Restore ordinary primary-tracker watched checkmarks independently of SIMKL Rewatch glow. Retain the active-session routing and guard against normal SIMKL status writes during Rewatch. Initial routing used generic tracker progress and could incorrectly register a later episode; superseded by +141.

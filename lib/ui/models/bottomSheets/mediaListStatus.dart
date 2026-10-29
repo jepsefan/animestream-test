@@ -111,6 +111,28 @@ class _MediaListStatusBottomSheetState extends State<MediaListStatusBottomSheet>
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Rewatch is a separate SIMKL session, not the primary tracker
+            // progress displayed and edited by this sheet.
+            if (provider.activeSimklRewatch)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 14),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.repeat_rounded, color: appTheme.accentColor, size: 22),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Rewatch On',
+                      style: TextStyle(
+                        color: appTheme.accentColor,
+                        fontFamily: 'Rubik',
+                        fontSize: 17,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             // Title
             Padding(
               padding: EdgeInsets.only(bottom: 20, top: isDialog ? 8 : 0),

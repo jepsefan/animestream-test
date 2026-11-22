@@ -1,7 +1,7 @@
 import 'package:animestream/core/anime/providers/aniyomiExtensionProvider.dart';
 import 'package:animestream/core/app/runtimeDatas.dart';
 import 'package:animestream/core/data/animeSpecificPreference.dart';
-import 'package:animestream/core/data/types.dart';
+import 'package:animestream/core/data/models.dart';
 import 'package:animestream/ui/models/sources.dart';
 import 'package:flutter/material.dart';
 
@@ -73,6 +73,15 @@ class _ManualSearchSheetState extends State<ManualSearchSheet> {
                       fit: BoxFit.cover,
                       height: 140,
                       width: 100,
+                      errorBuilder: (context, error, stackTrace) {
+                        return Center(child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Image.asset("lib/assets/images/ghost.png", color: appTheme.textMainColor,),
+                            Text("Couldn't load image", textAlign: TextAlign.center, style: TextStyle(fontSize: 12),),
+                          ],
+                        ));
+                      },
                     ),
                   ),
                   Text(

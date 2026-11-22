@@ -91,12 +91,13 @@ class _BottomControlsState extends State<BottomControls> {
   }
 
   void showSheet(BuildContext context, Widget child) => showModalBottomSheet(
-      isScrollControlled: true,
-      backgroundColor: appTheme.modalSheetBackgroundColor,
-      context: context,
-      builder: (BuildContext context) {
-        return child;
-      });
+    isScrollControlled: true,
+    backgroundColor: appTheme.modalSheetBackgroundColor,
+    context: context,
+    builder: (BuildContext context) {
+      return child;
+    },
+  );
 
   void _showSubtitleTracks(
       BuildContext context,
@@ -202,10 +203,16 @@ class _BottomControlsState extends State<BottomControls> {
   Widget build(BuildContext context) {
     final dataProvider = context.read<PlayerDataProvider>();
     final playerProvider = context.read<PlayerProvider>();
+
+    final locked = context.select<PlayerDataProvider, bool>((p) => p.state.controlsLocked);
+    // but-. I mean button states
+    final (showSubs, viewMode) = context.select<PlayerProvider, (bool, ViewMode)>(
+      (p) => (p.state.showSubs, p.state.currentViewMode),
+    );
     // final a = dataProvider.state.currentAudioTrack;
     // playerProvider.controller.setAudioTrack(a.url, a.language, a.name);
 
-    return dataProvider.state.controlsLocked
+    return locked
         ? Container()
         : Focus(
             onKeyEvent: _handleHorizontalDpad,
@@ -237,8 +244,11 @@ class _BottomControlsState extends State<BottomControls> {
                                     padding: const EdgeInsets.only(bottom: 10),
                                     child: Text(
                                       "Choose Quality",
-                                      style:
-                                          TextStyle(color: appTheme.textMainColor, fontFamily: "Rubik", fontSize: 20),
+                                      style: TextStyle(
+                                        color: appTheme.textMainColor,
+                                        fontFamily: "Rubik",
+                                        fontSize: 20,
+                                      ),
                                     ),
                                   ),
                                   ListView.builder(
@@ -265,7 +275,8 @@ class _BottomControlsState extends State<BottomControls> {
                                               borderRadius: BorderRadius.circular(10),
                                               // side: BorderSide(color: Colors.white)
                                             ),
-                                            backgroundColor: dataProvider.state.qualities[index].url ==
+                                            backgroundColor:
+                                                dataProvider.state.qualities[index].url ==
                                                     dataProvider.state.currentQuality.url
                                                 ? appTheme.accentColor
                                                 : appTheme.backgroundSubColor,
@@ -273,7 +284,8 @@ class _BottomControlsState extends State<BottomControls> {
                                           child: Text(
                                             "${dataProvider.state.qualities[index].quality}",
                                             style: TextStyle(
-                                              color: dataProvider.state.qualities[index].url ==
+                                              color:
+                                                  dataProvider.state.qualities[index].url ==
                                                       dataProvider.state.currentQuality.url
                                                   ? appTheme.onAccent
                                                   : appTheme.accentColor,
@@ -291,10 +303,7 @@ class _BottomControlsState extends State<BottomControls> {
                         );
                       },
                       tooltip: "qualities",
-                      icon: Icon(
-                        Icons.high_quality_rounded,
-                        color: Colors.white,
-                      ),
+                      icon: Icon(Icons.high_quality_rounded, color: Colors.white),
                     ),
                     IconButton(
                       focusNode: _serverFocusNode,
@@ -309,10 +318,7 @@ class _BottomControlsState extends State<BottomControls> {
                         );
                       },
                       tooltip: "servers",
-                      icon: Icon(
-                        Icons.source_rounded,
-                        color: Colors.white,
-                      ),
+                      icon: Icon(Icons.source_rounded, color: Colors.white),
                     ),
                     IconButton(
                       focusNode: _episodeFocusNode,
@@ -328,17 +334,16 @@ class _BottomControlsState extends State<BottomControls> {
                               children: [
                                 Padding(
                                   padding: const EdgeInsets.only(bottom: 20),
-                                  child: Text(
-                                    "Select Episode",
-                                    style: textStyle().copyWith(fontSize: 23),
-                                  ),
+                                  child: Text("Select Episode", style: textStyle().copyWith(fontSize: 23)),
                                 ),
                                 Container(
                                   height: MediaQuery.of(context).size.height - 150,
                                   child: GridView.builder(
                                     itemCount: dataProvider.epLinks.length,
                                     gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                                        crossAxisCount: 2, childAspectRatio: 4),
+                                      crossAxisCount: 2,
+                                      childAspectRatio: 4,
+                                    ),
                                     shrinkWrap: true,
                                     padding: EdgeInsets.only(left: 10, right: 10),
                                     itemBuilder: (context, index) {
@@ -352,10 +357,11 @@ class _BottomControlsState extends State<BottomControls> {
                                           margin: EdgeInsets.all(5),
                                           height: 50,
                                           decoration: BoxDecoration(
-                                              color: index == dataProvider.state.currentEpIndex
-                                                  ? appTheme.accentColor
-                                                  : appTheme.backgroundSubColor,
-                                              borderRadius: BorderRadius.circular(12)),
+                                            color: index == dataProvider.state.currentEpIndex
+                                                ? appTheme.accentColor
+                                                : appTheme.backgroundSubColor,
+                                            borderRadius: BorderRadius.circular(12),
+                                          ),
                                           alignment: Alignment.center,
                                           child: Text(
                                             "Episode ${index + 1}",
@@ -378,10 +384,7 @@ class _BottomControlsState extends State<BottomControls> {
                         );
                       },
                       tooltip: "Episode list",
-                      icon: Icon(
-                        Icons.view_list_rounded,
-                        color: Colors.white,
-                      ),
+                      icon: Icon(Icons.view_list_rounded, color: Colors.white),
                     ),
                   ],
                 ),
@@ -400,10 +403,7 @@ class _BottomControlsState extends State<BottomControls> {
                         );
                       },
                       tooltip: "Playback speed",
-                      icon: Icon(
-                        Icons.speed_rounded,
-                        color: Colors.white,
-                      ),
+                      icon: Icon(Icons.speed_rounded, color: Colors.white),
                     ),
                     IconButton(
                       focusNode: _subtitleFocusNode,
@@ -416,17 +416,14 @@ class _BottomControlsState extends State<BottomControls> {
                       },
                       onLongPress: () {
                         Navigator.of(context)
-                            .push(MaterialPageRoute(
-                                builder: (ctx) => SubtitleSettingPage(
-                                      fromWatchPage: true,
-                                    )))
+                            .push(MaterialPageRoute(builder: (ctx) => SubtitleSettingPage(fromWatchPage: true)))
                             .then((v) {
-                          dataProvider.initSubsettings();
-                        });
+                              dataProvider.initSubsettings();
+                            });
                       },
                       tooltip: "Subtitle tracks",
                       icon: Icon(
-                        !playerProvider.state.showSubs ? Icons.subtitles_outlined : Icons.subtitles_rounded,
+                        !showSubs ? Icons.subtitles_outlined : Icons.subtitles_rounded,
                         color: Colors.white,
                       ),
                     ),
@@ -494,64 +491,64 @@ class _BottomControlsState extends State<BottomControls> {
                       focusNode: _audioFocusNode,
                       onPressed: () {
                         showModalBottomSheet(
-                            context: context,
-                            isScrollControlled: true,
-                            builder: (context) {
-                              return Column(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Padding(
+                          context: context,
+                          isScrollControlled: true,
+                          builder: (context) {
+                            return Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Padding(
                                   padding: const EdgeInsets.only(bottom: 20, top: 20),
-                                  child: Text(
-                                    "Audio Track",
-                                    style: textStyle().copyWith(fontSize: 23),
-                                  ),
+                                  child: Text("Audio Track", style: textStyle().copyWith(fontSize: 23)),
                                 ),
-                                  ListView.builder(
-                                    itemCount: dataProvider.state.audioTracks.length,
-                                    shrinkWrap: true,
-                                    itemBuilder: (BuildContext context, index) {
-                                      return Container(
-                                        padding: EdgeInsets.only(left: 25, right: 25),
-                                        child: ElevatedButton(
-                                          onPressed: () async {
-                                            // final src = dataProvider.state.qualities[index].url;
-                                            dataProvider.updateCurrentAudioTrack(dataProvider.state.audioTracks[index]);
-                                            playerProvider.controller.setAudioTrack(dataProvider.state.currentAudioTrack);
-                                            // selectedQuality = dataProvider.state.qualities[index]['quality'] ?? '720';
-                                            // dataProvider.updateCurrentQuality(dataProvider.state.qualities[index]);
-                                            // playerProvider.playVideo(src,
-                                            //     currentStream: dataProvider.state.currentStream,
-                                            //     preserveProgress: true);
-                                            Navigator.pop(context);
-                                          },
-                                          style: ElevatedButton.styleFrom(
-                                            shape: RoundedRectangleBorder(
-                                              borderRadius: BorderRadius.circular(10),
-                                              // side: BorderSide(color: Colors.white)
-                                            ),
-                                            backgroundColor: dataProvider.state.audioTracks[index].url ==
-                                                    dataProvider.state.currentAudioTrack.url
-                                                ? appTheme.accentColor
-                                                : appTheme.backgroundSubColor,
+                                ListView.builder(
+                                  itemCount: dataProvider.state.audioTracks.length,
+                                  shrinkWrap: true,
+                                  itemBuilder: (BuildContext context, index) {
+                                    return Container(
+                                      padding: EdgeInsets.only(left: 25, right: 25),
+                                      child: ElevatedButton(
+                                        onPressed: () async {
+                                          // final src = dataProvider.state.qualities[index].url;
+                                          dataProvider.updateCurrentAudioTrack(dataProvider.state.audioTracks[index]);
+                                          playerProvider.controller.setAudioTrack(dataProvider.state.currentAudioTrack);
+                                          // selectedQuality = dataProvider.state.qualities[index]['quality'] ?? '720';
+                                          // dataProvider.updateCurrentQuality(dataProvider.state.qualities[index]);
+                                          // playerProvider.playVideo(src,
+                                          //     currentStream: dataProvider.state.currentStream,
+                                          //     preserveProgress: true);
+                                          Navigator.pop(context);
+                                        },
+                                        style: ElevatedButton.styleFrom(
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.circular(10),
+                                            // side: BorderSide(color: Colors.white)
                                           ),
-                                          child: Text(
-                                            "${dataProvider.state.audioTracks[index].name} (${dataProvider.state.audioTracks[index].language})",
-                                            style: TextStyle(
-                                              color: dataProvider.state.audioTracks[index].url ==
-                                                      dataProvider.state.currentAudioTrack.url
-                                                  ? appTheme.onAccent
-                                                  : appTheme.accentColor,
-                                              fontFamily: "Poppins",
-                                            ),
+                                          backgroundColor:
+                                              dataProvider.state.audioTracks[index].url ==
+                                                  dataProvider.state.currentAudioTrack.url
+                                              ? appTheme.accentColor
+                                              : appTheme.backgroundSubColor,
+                                        ),
+                                        child: Text(
+                                          "${dataProvider.state.audioTracks[index].name} (${dataProvider.state.audioTracks[index].language})",
+                                          style: TextStyle(
+                                            color:
+                                                dataProvider.state.audioTracks[index].url ==
+                                                    dataProvider.state.currentAudioTrack.url
+                                                ? appTheme.onAccent
+                                                : appTheme.accentColor,
+                                            fontFamily: "Poppins",
                                           ),
                                         ),
-                                      );
-                                    },
-                                  ),
-                                ],
-                              );
-                            });
+                                      ),
+                                    );
+                                  },
+                                ),
+                              ],
+                            );
+                          },
+                        );
                       },
                       icon: Icon(Icons.audiotrack_rounded),
                       tooltip: "Audio Tracks",
@@ -571,8 +568,8 @@ class _BottomControlsState extends State<BottomControls> {
                       onPressed: () {
                         playerProvider.cycleViewMode();
                       },
-                      icon: Icon(playerProvider.state.currentViewMode.icon),
-                      tooltip: playerProvider.state.currentViewMode.desc,
+                      icon: Icon(viewMode.icon),
+                      tooltip: viewMode.desc,
                       color: Colors.white,
                     ),
                   ],
@@ -583,20 +580,11 @@ class _BottomControlsState extends State<BottomControls> {
           );
   }
 
-  void sheet2(
-    int index,
-    BuildContext context,
-    PlayerProvider pp,
-    PlayerDataProvider dp,
-  ) {
+  void sheet2(int index, BuildContext context, PlayerProvider pp, PlayerDataProvider dp) {
     showModalBottomSheet(
       context: context,
       backgroundColor: appTheme.modalSheetBackgroundColor,
-      builder: (context) => CustomControlsBottomSheet(
-        index: index,
-        dataProvider: dp,
-        playerProvider: pp,
-      ),
+      builder: (context) => CustomControlsBottomSheet(index: index, dataProvider: dp, playerProvider: pp),
     );
   }
 
@@ -605,73 +593,71 @@ class _BottomControlsState extends State<BottomControls> {
     return Container(
       height: MediaQuery.of(context).size.height / 2,
       child: AlertDialog(
-          backgroundColor: appTheme.modalSheetBackgroundColor,
-          content: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Padding(
-                padding: const EdgeInsets.only(bottom: 10),
-                child: Text(
-                  "Speed",
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, fontFamily: "Rubik"),
-                ),
+        backgroundColor: appTheme.modalSheetBackgroundColor,
+        content: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: Text(
+                "Speed",
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, fontFamily: "Rubik"),
               ),
-              Expanded(
-                child: StatefulBuilder(
-                  builder: (context, setState) => Container(
-                    // height: 230,
-                    width: 250,
-                    child: ListView.builder(
-                      itemCount: playbackSpeeds.length,
-                      itemBuilder: (context, index) {
-                        return Container(
-                          margin: EdgeInsets.only(bottom: 5),
-                          clipBehavior: Clip.hardEdge,
-                          decoration: BoxDecoration(
-                            color: appTheme.backgroundSubColor,
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: Material(
-                            color: Colors.transparent,
-                            child: InkWell(
-                              onTap: () {
-                                pp.setSpeed(playbackSpeeds[index]);
-                                setState(() {});
-                              },
-                              child: Row(
-                                children: [
-                                  Radio<double>(
-                                    value: playbackSpeeds[index],
-                                    groupValue: pp.state.speed,
-                                    onChanged: (val) {
-                                      pp.setSpeed(val ?? 1);
-                                      setState(() {});
-                                    },
-                                  ),
-                                  Text(playbackSpeeds[index].toString() + "x"),
-                                ],
-                              ),
+            ),
+            Expanded(
+              child: StatefulBuilder(
+                builder: (context, setState) => Container(
+                  // height: 230,
+                  width: 250,
+                  child: ListView.builder(
+                    itemCount: playbackSpeeds.length,
+                    itemBuilder: (context, index) {
+                      return Container(
+                        margin: EdgeInsets.only(bottom: 5),
+                        clipBehavior: Clip.hardEdge,
+                        decoration: BoxDecoration(
+                          color: appTheme.backgroundSubColor,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Material(
+                          color: Colors.transparent,
+                          child: InkWell(
+                            onTap: () {
+                              pp.setSpeed(playbackSpeeds[index]);
+                              setState(() {});
+                            },
+                            child: Row(
+                              children: [
+                                Radio<double>(
+                                  value: playbackSpeeds[index],
+                                  groupValue: pp.state.speed,
+                                  onChanged: (val) {
+                                    pp.setSpeed(val ?? 1);
+                                    setState(() {});
+                                  },
+                                ),
+                                Text(playbackSpeeds[index].toString() + "x"),
+                              ],
                             ),
                           ),
-                        );
-                      },
-                    ),
+                        ),
+                      );
+                    },
                   ),
                 ),
               ),
-              Container(
-                margin: EdgeInsets.only(top: 5),
-                alignment: Alignment.center,
-                child: TextButton(
-                  onPressed: () => Navigator.of(context).pop(),
-                  child: Text(
-                    "close",
-                    style: TextStyle(fontSize: 16),
-                  ),
-                ),
-              )
-            ],
-          )),
+            ),
+            Container(
+              margin: EdgeInsets.only(top: 5),
+              alignment: Alignment.center,
+              child: TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: Text("close", style: TextStyle(fontSize: 16)),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

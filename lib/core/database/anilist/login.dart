@@ -5,7 +5,7 @@ import 'package:animestream/core/database/anilist/types.dart';
 import 'package:animestream/core/database/database.dart';
 import 'package:flutter_web_auth_2/flutter_web_auth_2.dart';
 
-class AniListLogin extends DatabaseLogin {
+class AnilistLogin extends DatabaseLogin {
   String url = "https://anilist.co/api/v2/oauth/authorize?client_id=15179&response_type=token";
 
   String _extractToken(String url) {
@@ -55,7 +55,7 @@ class AniListLogin extends DatabaseLogin {
     final String? token = await getSecureVal(SecureStorageKey.anilistToken);
     if (token == null) throw new Exception("ERR_COULDNT_GET_TOKEN");
 
-    final res = await Anilist().fetchQuery(query, null, token: token);
+    final res = await Anilist().fetchQuery(query, null, token: token, cacheDuration: const Duration(hours: 12));
 
     final data = res['Viewer'];
     return UserModal(
@@ -65,7 +65,7 @@ class AniListLogin extends DatabaseLogin {
         banner: data['bannerImage']);
   }
 
-  Future<bool> isAnilistLoggedIn() async {
+  Future<bool> isLoggedIn() async {
     String? token;
     token = await getSecureVal(SecureStorageKey.anilistToken);
     if (token != null) return true;

@@ -8,11 +8,11 @@ import 'package:animestream/core/anime/providers/animeonsen.dart';
 import 'package:animestream/core/anime/providers/animepahe.dart';
 import 'package:animestream/core/anime/providers/anizone.dart';
 import 'package:animestream/core/anime/providers/gojo.dart';
-import 'package:animestream/core/anime/providers/animeProvider.dart';
+import 'package:animestream/core/anime/providers/reanime.dart';
 import 'package:animestream/core/anime/providers/providerDetails.dart';
 import 'package:animestream/core/anime/providers/providerManager.dart';
 import 'package:animestream/core/anime/providers/providerPlugin.dart';
-import 'package:animestream/core/anime/providers/types.dart';
+import 'package:animestream/core/anime/providers/models.dart';
 import 'package:animestream/core/app/runtimeDatas.dart';
 import 'package:flutter/material.dart';
 
@@ -25,7 +25,7 @@ class SourceManager {
 
   static final _undownloadableSources = [
     //uses mpd which needs ffmpeg to download (makes the app bulky :< )
-    "animeonsen", "anizone"
+    // "animeonsen",
   ];
 
   final List<ProviderDetails> inbuiltSources = [
@@ -33,6 +33,7 @@ class SourceManager {
     "AniZone",
     "Anikoto",
     "Animegg",
+    "ReAnime",
   ]
       .map((e) => ProviderDetails(
           name: e,
@@ -218,6 +219,7 @@ final Map<String, AnimeProvider> sources = {
   "anizone": AniZone(),
   "animegg": Animegg(),
   "anikoto": Anikoto(),
+  "reanime": ReAnime(),
 };
 
 AnimeProvider getClass(String source) {

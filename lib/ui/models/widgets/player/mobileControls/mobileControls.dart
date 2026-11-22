@@ -2,6 +2,7 @@ import 'package:animestream/ui/models/bottomSheets/customControlsSheet.dart';
 import 'package:animestream/ui/models/providers/playerDataProvider.dart';
 import 'package:animestream/ui/models/providers/playerProvider.dart';
 import 'package:animestream/ui/models/widgets/player/mobileControls/bottomControls.dart';
+import 'package:animestream/ui/models/widgets/player/mobileControls/seekBar.dart';
 import 'package:animestream/ui/models/widgets/player/mobileControls/topControls.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -13,9 +14,7 @@ import 'package:animestream/core/commons/enums.dart';
 import 'package:animestream/ui/models/snackBar.dart';
 
 class MobileControls extends StatefulWidget {
-  const MobileControls({
-    super.key,
-  });
+  const MobileControls({super.key});
 
   @override
   State<MobileControls> createState() => _MobileControlsState();
@@ -45,8 +44,6 @@ class _MobileControlsState extends State<MobileControls> {
 
   int? skipDuration = currentUserSettings?.skipDuration ?? 10;
   int? megaSkipDuration = currentUserSettings?.megaSkipDuration ?? 85;
-
-  Future<void>? _pendingSeek = null; 
 
   @override
   void dispose() {
@@ -129,10 +126,11 @@ class _MobileControlsState extends State<MobileControls> {
 
   @override
   Widget build(BuildContext context) {
-    dataProvider = context.watch<PlayerDataProvider>();
-    provider = context.watch<PlayerProvider>();
+    dataProvider = context.read<PlayerDataProvider>();
+    provider = context.read<PlayerProvider>();
 
-    final controlsVisible = provider.state.controlsVisible;
+    final controlsVisible = context.select<PlayerProvider, bool>((p) => p.state.controlsVisible);
+    final locked = context.select<PlayerDataProvider, bool>((p) => p.state.controlsLocked);
     if (controlsVisible &&
         !_wasControlsVisible &&
         !dataProvider.state.controlsLocked) {
@@ -159,10 +157,8 @@ class _MobileControlsState extends State<MobileControls> {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      TopControls(provider: provider, dataProvider: dataProvider, context: context),
-                      Expanded(
-                        child: dataProvider.state.controlsLocked ? lockedCenterControls() : centerControls(context),
-                      ),
+                      TopControls(context: context),
+                      Expanded(child: locked ? lockedCenterControls() : centerControls(context)),
                       Expanded(
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.end,
@@ -171,24 +167,8 @@ class _MobileControlsState extends State<MobileControls> {
                               crossAxisAlignment: CrossAxisAlignment.end,
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                Row(
-                                  children: [
-                                    Text(
-                                      dataProvider.state.currentTimeStamp,
-                                      style: TextStyle(color: Colors.white, fontFamily: 'NunitoSans'),
-                                    ),
-                                    const Text(
-                                      " / ",
-                                      style: TextStyle(color: Colors.white, fontFamily: 'NunitoSans'),
-                                    ),
-                                    Text(
-                                      dataProvider.state.maxTimeStamp,
-                                      style: TextStyle(color: Colors.white, fontFamily: 'NunitoSans'),
-                                    ),
-                                  ],
-                                ),
-                                if (megaSkipDuration != null)
-                                  dataProvider.state.controlsLocked ? Container() : megaSkipButton(),
+                                _TimeLabel(),
+                                if (megaSkipDuration != null) locked ? Container() : megaSkipButton(),
                               ],
                             ),
                             Container(
@@ -196,7 +176,7 @@ class _MobileControlsState extends State<MobileControls> {
                               child: Container(
                                 height: 20,
                                 child: IgnorePointer(
-                                  ignoring: dataProvider.state.controlsLocked,
+                                  ignoring: locked,
                                   child: Container(
                                     child: Focus(
                                       focusNode: _timelineFocusNode,
@@ -232,8 +212,9 @@ class _MobileControlsState extends State<MobileControls> {
 
                                         return KeyEventResult.ignored;
                                       },
-                                      child: SliderTheme(
-                                        data: SliderThemeData(
+                                      child: ExcludeFocus(
+                                        child: SeekBar(
+                                        sliderTheme: SliderThemeData(
                                           trackHeight:
                                               _timelineFocusNode.hasFocus ? 2.4 : 1.3,
                                           thumbColor: appTheme.accentColor,
@@ -262,36 +243,8 @@ class _MobileControlsState extends State<MobileControls> {
                                             _timelineFocusNode.hasFocus ? 90 : 0,
                                           ),
                                         ),
-                                        child: ExcludeFocus(
-                                          child: Slider(
-                                            value: dataProvider.state.sliderValue.toDouble(),
-                                            secondaryTrackValue:
-                                                provider.controller.buffered?.toDouble(),
-                                            onChanged: (val) {
-                                              setState(() {
-                                                _pendingSeek = provider.controller
-                                                    .seekTo(Duration(seconds: val.toInt()));
-                                              });
-                                            },
-                                            onChangeStart: (value) {
-                                              provider.controller.pause();
-                                            },
-                                            onChangeEnd: (value) async {
-                                              if (_pendingSeek != null) {
-                                                await _pendingSeek;
-                                              }
-
-                                              // just to make sure its on the same page...
-                                              await provider.controller
-                                                  .seekTo(Duration(seconds: value.toInt()));
-
-                                              await provider.controller.play();
-                                            },
-                                            min: 0,
-                                            max: (provider.controller.duration ?? 0) / 1000,
-                                          ),
-                                        ),
                                       ),
+                                    ),
                                     ),
                                   ),
                                 ),
@@ -313,21 +266,25 @@ class _MobileControlsState extends State<MobileControls> {
   }
 
   ElevatedButton megaSkipButton() {
-    int posInSec = (provider.controller.position! / 1000).toInt();
-    final isAtOp = dataProvider.state.opSkip != null &&
+    int posInSec = (provider.controller.position ?? 0 / 1000).toInt();
+    final isAtOp =
+        dataProvider.state.opSkip != null &&
         posInSec >= dataProvider.state.opSkip!.start &&
         posInSec <= dataProvider.state.opSkip!.end;
-    final isAtEd = dataProvider.state.edSkip != null &&
+    final isAtEd =
+        dataProvider.state.edSkip != null &&
         posInSec >= dataProvider.state.edSkip!.start &&
         posInSec <= dataProvider.state.edSkip!.end;
 
     return ElevatedButton(
       onPressed: () {
-        provider.fastForward(isAtOp
-            ? dataProvider.state.opSkip!.end - posInSec
-            : isAtEd
-                ? dataProvider.state.edSkip!.end - posInSec
-                : megaSkipDuration!);
+        provider.fastForward(
+          isAtOp
+              ? dataProvider.state.opSkip!.end - posInSec
+              : isAtEd
+              ? dataProvider.state.edSkip!.end - posInSec
+              : megaSkipDuration!,
+        );
       },
       style: ElevatedButton.styleFrom(
         backgroundColor: Color.fromARGB(68, 0, 0, 0),
@@ -346,19 +303,12 @@ class _MobileControlsState extends State<MobileControls> {
                 isAtOp
                     ? "Skip Op"
                     : isAtEd
-                        ? "Skip Ed"
-                        : "+$megaSkipDuration",
-                style: TextStyle(
-                  color: Colors.white,
-                  fontFamily: "Rubik",
-                  fontSize: 17,
-                ),
+                    ? "Skip Ed"
+                    : "+$megaSkipDuration",
+                style: TextStyle(color: Colors.white, fontFamily: "Rubik", fontSize: 17),
               ),
             ),
-            Icon(
-              Icons.fast_forward_rounded,
-              color: Colors.white,
-            )
+            Icon(Icons.fast_forward_rounded, color: Colors.white),
           ],
         ),
       ),
@@ -375,11 +325,7 @@ class _MobileControlsState extends State<MobileControls> {
             Container(
               width: 40,
               height: 40,
-              child: Center(
-                child: CircularProgressIndicator(
-                  color: appTheme.accentColor,
-                ),
-              ),
+              child: Center(child: CircularProgressIndicator(color: appTheme.accentColor)),
             ),
         ],
       ),
@@ -412,11 +358,7 @@ class _MobileControlsState extends State<MobileControls> {
                     ),
                   );
                 },
-                child: Icon(
-                  Icons.skip_previous_rounded,
-                  color: Colors.white,
-                  size: 40,
-                ),
+                child: Icon(Icons.skip_previous_rounded, color: Colors.white, size: 40),
               ),
             ),
           ),
@@ -431,57 +373,11 @@ class _MobileControlsState extends State<MobileControls> {
                 onTap: () {
                   provider.fastForward(skipDuration != null ? -skipDuration! : -10);
                 },
-                child: Icon(
-                  Icons.fast_rewind_rounded,
-                  color: Colors.white,
-                  size: 40,
-                ),
+                child: Icon(Icons.fast_rewind_rounded, color: Colors.white, size: 40),
               ),
             ),
           ),
-          Container(
-            // padding: EdgeInsets.only(left: 35, right: 35),
-            child: !(provider.controller.isBuffering ?? false)
-                ? Material(
-                    color: Colors.transparent,
-                    child: Container(
-                      margin: EdgeInsets.only(left: 5, right: 5),
-                      height: 65,
-                      width: 65,
-                      child: InkWell(
-                        focusNode: _playPauseFocusNode,
-                        focusColor: Colors.white24,
-                        borderRadius: BorderRadius.circular(10),
-                        onTap: () {
-                          if (provider.state.playerState == PlayerState.playing) {
-                            // playPause = Icons.play_arrow_rounded;
-                            provider.controller.pause();
-                          } else {
-                            // playPause = Icons.pause_rounded;
-                            provider.controller.play();
-                          }
-                        },
-                        child: Icon(
-                          provider.state.playerState == PlayerState.playing
-                              ? Icons.pause_rounded
-                              : Icons.play_arrow_rounded,
-                          color: Colors.white,
-                          size: 45,
-                        ),
-                      ),
-                    ),
-                  )
-                : Container(
-                    width: 65,
-                    height: 65,
-                    margin: EdgeInsets.only(left: 5, right: 5),
-                    child: Center(
-                      child: CircularProgressIndicator(
-                        color: appTheme.accentColor,
-                      ),
-                    ),
-                  ),
-          ),
+          _PlayStateIndicator(focusNode: _playPauseFocusNode),
           Material(
             color: Colors.transparent,
             child: Container(
@@ -492,11 +388,7 @@ class _MobileControlsState extends State<MobileControls> {
                 onTap: () {
                   provider.fastForward(skipDuration ?? 10);
                 },
-                child: Icon(
-                  Icons.fast_forward_rounded,
-                  color: Colors.white,
-                  size: 40,
-                ),
+                child: Icon(Icons.fast_forward_rounded, color: Colors.white, size: 40),
               ),
             ),
           ),
@@ -526,11 +418,7 @@ class _MobileControlsState extends State<MobileControls> {
                     );
                   }
                 },
-                child: Icon(
-                  Icons.skip_next_rounded,
-                  color: Colors.white,
-                  size: 40,
-                ),
+                child: Icon(Icons.skip_next_rounded, color: Colors.white, size: 40),
               ),
             ),
           ),
@@ -541,12 +429,76 @@ class _MobileControlsState extends State<MobileControls> {
   }
 
   void showSheet(BuildContext context, Widget child) => showModalBottomSheet(
-      isScrollControlled: true,
-      backgroundColor: appTheme.modalSheetBackgroundColor,
-      context: context,
-      builder: (BuildContext context) {
-        return child;
-      });
+    isScrollControlled: true,
+    backgroundColor: appTheme.modalSheetBackgroundColor,
+    context: context,
+    builder: (BuildContext context) {
+      return child;
+    },
+  );
+}
+
+class _PlayStateIndicator extends StatelessWidget {
+  const _PlayStateIndicator({required this.focusNode});
+
+  final FocusNode focusNode;
+
+  @override
+  Widget build(BuildContext context) {
+    final playState = context.select<PlayerProvider, PlayerState>((p) => p.state.playerState);
+    return Container(
+      // padding: EdgeInsets.only(left: 35, right: 35),
+      child: playState != PlayerState.buffering
+          ? Material(
+              color: Colors.transparent,
+              child: Container(
+                margin: EdgeInsets.only(left: 5, right: 5),
+                height: 65,
+                width: 65,
+                child: InkWell(
+                  focusNode: focusNode,
+                  focusColor: Colors.white24,
+                  borderRadius: BorderRadius.circular(10),
+                  onTap: () {
+                    if (playState == PlayerState.playing) {
+                      // playPause = Icons.play_arrow_rounded;
+                      context.read<PlayerProvider>().controller.pause();
+                    } else {
+                      // playPause = Icons.pause_rounded;
+                      context.read<PlayerProvider>().controller.play();
+                    }
+                  },
+                  child: Icon(
+                    playState == PlayerState.playing ? Icons.pause_rounded : Icons.play_arrow_rounded,
+                    color: Colors.white,
+                    size: 45,
+                  ),
+                ),
+              ),
+            )
+          : Container(
+              width: 65,
+              height: 65,
+              margin: EdgeInsets.only(left: 5, right: 5),
+              child: Center(child: CircularProgressIndicator(color: appTheme.accentColor)),
+            ),
+    );
+  }
+}
+
+class _TimeLabel extends StatelessWidget {
+  const _TimeLabel();
+
+  @override
+  Widget build(BuildContext context) {
+    final (current, max) = context.select<PlayerDataProvider, (String, String)>(
+      (p) => (p.state.currentTimeStamp, p.state.maxTimeStamp),
+    );
+    return Text(
+      '$current / $max',
+      style: TextStyle(color: Colors.white, fontFamily: 'NunitoSans'),
+    );
+  }
 }
 
 class EdgeToEdgeTrackShape extends RoundedRectSliderTrackShape {

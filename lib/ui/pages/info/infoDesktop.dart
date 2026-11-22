@@ -1,4 +1,4 @@
-import 'package:animestream/core/anime/downloader/downloadManager.dart';
+import 'package:animestream/core/downloader/downloadManager.dart';
 import 'package:animestream/ui/models/providers/infoProvider.dart';
 import 'package:animestream/ui/models/snackBar.dart';
 import 'package:animestream/ui/models/widgets/ContextMenu.dart';
@@ -35,7 +35,7 @@ class _InfoDesktopState extends State<InfoDesktop> {
           AnimeStreamNavRail(
             controller: viewController,
             shouldExpand: true,
-            initialIndex: 1,
+            initialIndex: context.read<InfoProvider>().initialSection == InfoView.info ? 1 : 2,
             destinations: [
               AnimeStreamNavDestination(
                   icon: Icons.arrow_back,
@@ -49,7 +49,7 @@ class _InfoDesktopState extends State<InfoDesktop> {
               ),
               AnimeStreamNavDestination(
                 icon: Icons.play_arrow_rounded,
-                label: "Play",
+                label: "Watch",
               ),
             ],
           ),

@@ -66,6 +66,38 @@ abstract class DatabaseInfo {
   String? get synopsis;
   List<String>? tags;
   String? mediaListStatus;
+  int? progress;
+  int? userScore;
   List<AlternateDatabaseId> get alternateDatabases;
   int? listId;
 }
+
+abstract class DatabaseAnimeWatchProgress {
+  int get id;
+  int? get progress;
+  String? get status;
+
+  // Total episodes can be null, for some animes like one piece
+  int? get totalEpisodes;
+}
+
+// abstract class DatabaseUserAnimeList {
+//   /// Status of the list, e.g. "CURRENT", "COMPLETED", etc.
+//   String get status;
+
+//   /// List's name
+//   String get name;
+
+//   /// List's items, which are of type [DatabaseUserAnimeListItem]
+//   List<DatabaseUserAnimeListItem> get animeList;
+// }
+
+// abstract class DatabaseUserAnimeListItem {
+//   int get id;
+//   Map<String, String?> get title;
+//   String get cover;
+//   double? get rating;
+//   int? get progress;
+//   int? get totalEpisodes;
+//   // String? get status;
+// }

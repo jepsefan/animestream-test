@@ -1,3 +1,13 @@
+## v1.4.9-beta34.92
+
+Integrates upstream [v1.4.8-beta5](https://github.com/frostnova721/animestream/releases/tag/v1.4.8-beta5) into the fork's embed stream diagnostics branch.
+
+- Adds ReAnime and updates AniZone parsing.
+- Adds a local watch tracker that imports existing local viewing history. The info page loads watch progress separately from anime details.
+- Adds batch downloads, DASH downloads, and downloads with separate audio tracks.
+- Adds native player audio selection, improves HLS parsing, and reduces stutter when dragging the seek bar.
+- Carries forward Android TV remote controls, Aniyomi stream diagnostics, and external ASS/SSA, SRT and VTT subtitle selection.
+
 ## v1.4.9-beta34.21 — Inspect Aniyomi subtitle formats; search fallback
 - Detect ASS/SSA, WebVTT and SRT using actual subtitle file headers and timestamp syntax. Bound HTTP reads, preserve stream headers, and do not log signed URLs.
 - Gradually populate subtitle format labels without assuming unknown formats are ASS.

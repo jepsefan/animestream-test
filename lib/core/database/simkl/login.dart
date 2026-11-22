@@ -328,7 +328,7 @@ class SimklLogin extends DatabaseLogin {
     );
   }
 
-  static Future<bool> isLoggedIn() async {
+  Future<bool> isLoggedIn() async {
     final token = await getSecureVal(SecureStorageKey.simklToken);
     if (token == null || token.isEmpty) {
       return false;

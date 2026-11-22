@@ -3,6 +3,8 @@ import 'dart:io';
 import 'package:animestream/core/app/runtimeDatas.dart';
 import 'package:animestream/core/commons/enums.dart';
 import 'package:animestream/core/database/handler/syncHandler.dart';
+import 'package:animestream/core/database/local/types.dart';
+import 'package:animestream/ui/models/providers/infoProvider.dart';
 import 'package:animestream/ui/models/snackBar.dart';
 import 'package:animestream/ui/models/widgets/ContextMenu.dart';
 import 'package:animestream/ui/pages/info.dart';
@@ -20,6 +22,7 @@ class AnimeCard extends StatefulWidget {
   final String? subText;
   final double? rating;
   final void Function()? afterNavigation;
+  final InfoView openTo;
 
   const AnimeCard({
     super.key,
@@ -33,6 +36,7 @@ class AnimeCard extends StatefulWidget {
     this.shouldNavigate = true,
     this.subText = null,
     this.isMobile = true,
+    this.openTo = InfoView.info,
   });
 
   @override
@@ -65,15 +69,7 @@ class _AnimeCardState extends State<AnimeCard> {
         onTap: () {
           if (!widget.isAnime) return floatingSnackBar("Manga or Novels aren't supported");
           if (widget.shouldNavigate)
-            Navigator.of(context)
-                .push(
-              MaterialPageRoute(
-                builder: (context) => Info(
-                  id: widget.id,
-                ),
-              ),
-            )
-                .then((val) {
+            Navigator.of(context).push(MaterialPageRoute(builder: (context) => Info(id: widget.id, initialSection: widget.openTo,))).then((val) {
               widget.afterNavigation?.call();
             });
         },
@@ -84,7 +80,16 @@ class _AnimeCardState extends State<AnimeCard> {
               label: "Add to Watching",
               onClick: () {
                 SyncHandler()
-                    .mutateAnimeList(id: widget.id, status: MediaStatus.CURRENT)
+                    .mutateAnimeList(
+                      id: widget.id,
+                      status: MediaStatus.CURRENT,
+                      meta: LocalMeta(
+                        title: {'english': widget.title},
+                        cover: widget.imageUrl,
+                        totalEpisodes: null,
+                        rating: widget.rating,
+                      ),
+                    )
                     .then((_) => floatingSnackBar("Added to watching!"));
               },
             ),
@@ -93,7 +98,16 @@ class _AnimeCardState extends State<AnimeCard> {
               label: "Add to Planned",
               onClick: () {
                 SyncHandler()
-                    .mutateAnimeList(id: widget.id, status: MediaStatus.PLANNING)
+                    .mutateAnimeList(
+                      id: widget.id,
+                      status: MediaStatus.PLANNING,
+                      meta: LocalMeta(
+                        title: {'english': widget.title},
+                        cover: widget.imageUrl,
+                        totalEpisodes: null,
+                        rating: widget.rating,
+                      ),
+                    )
                     .then((_) => floatingSnackBar("Added to planned!"));
               },
             ),
@@ -102,7 +116,16 @@ class _AnimeCardState extends State<AnimeCard> {
               label: "Add to Completed",
               onClick: () {
                 SyncHandler()
-                    .mutateAnimeList(id: widget.id, status: MediaStatus.COMPLETED)
+                    .mutateAnimeList(
+                      id: widget.id,
+                      status: MediaStatus.COMPLETED,
+                      meta: LocalMeta(
+                        title: {'english': widget.title},
+                        cover: widget.imageUrl,
+                        totalEpisodes: null,
+                        rating: widget.rating,
+                      ),
+                    )
                     .then((_) => floatingSnackBar("Added to completed!"));
               },
             ),
@@ -118,40 +141,39 @@ class _AnimeCardState extends State<AnimeCard> {
                     height: widget.isMobile
                         ? height
                         : isFocused
-                            ? height * 1.03
-                            : height,
+                        ? height * 1.03
+                        : height,
                     width: widget.isMobile
                         ? width
                         : isFocused
-                            ? width * 1.03
-                            : width,
+                        ? width * 1.03
+                        : width,
                     margin: EdgeInsets.only(bottom: 10, top: widget.isMobile ? 0 : 5),
                     decoration: BoxDecoration(
                       border: widget.isMobile || Platform.isWindows || Platform.isLinux
                           ? null
                           : isFocused
-                              ? Border.all(
-                                  color: appTheme.accentColor,
-                                  strokeAlign: BorderSide.strokeAlignOutside,
-                                  width: 2,
-                                )
-                              : null,
-                      borderRadius: BorderRadius.circular(widget.isMobile
-                          ? 20
-                          : isFocused
-                              ? 5
-                              : 10),
+                          ? Border.all(
+                              color: appTheme.accentColor,
+                              strokeAlign: BorderSide.strokeAlignOutside,
+                              width: 2,
+                            )
+                          : null,
+                      borderRadius: BorderRadius.circular(
+                        widget.isMobile
+                            ? 20
+                            : isFocused
+                            ? 5
+                            : 10,
+                      ),
                     ),
                     clipBehavior: Clip.hardEdge,
                     child: CachedNetworkImage(
                       imageUrl: widget.imageUrl,
                       fadeInDuration: Duration(milliseconds: 200),
                       fit: BoxFit.cover,
-                      placeholder: (context, url) => Container(
-                        color: appTheme.backgroundSubColor,
-                        height: height,
-                        width: width,
-                      ),
+                      placeholder: (context, url) =>
+                          Container(color: appTheme.backgroundSubColor, height: height, width: width),
                     ),
                   ),
                   Positioned(
@@ -161,12 +183,15 @@ class _AnimeCardState extends State<AnimeCard> {
                       duration: Duration(milliseconds: 200),
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.only(
-                            topLeft: Radius.circular(15),
-                            bottomRight: Radius.circular(widget.isMobile
+                          topLeft: Radius.circular(15),
+                          bottomRight: Radius.circular(
+                            widget.isMobile
                                 ? 15
                                 : isFocused
-                                    ? 4
-                                    : 9)),
+                                ? 4
+                                : 9,
+                          ),
+                        ),
                         color: appTheme.accentColor,
                       ),
                       width: width / 2,
@@ -176,11 +201,7 @@ class _AnimeCardState extends State<AnimeCard> {
                         mainAxisAlignment: MainAxisAlignment.center,
                         crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
-                          Icon(
-                            Icons.star,
-                            color: appTheme.onAccent,
-                            size: 13,
-                          ),
+                          Icon(Icons.star, color: appTheme.onAccent, size: 13),
                           Text(
                             " ${widget.rating ?? '??'}",
                             style: TextStyle(
@@ -193,7 +214,7 @@ class _AnimeCardState extends State<AnimeCard> {
                         ],
                       ),
                     ),
-                  )
+                  ),
                 ],
               ),
               Text(
@@ -202,16 +223,17 @@ class _AnimeCardState extends State<AnimeCard> {
                 maxLines: 2,
                 textAlign: TextAlign.left,
                 style: TextStyle(
-                    fontFamily: "NotoSans",
-                    fontWeight: FontWeight.bold,
-                    fontSize: 15,
-                    color: isFocused ? appTheme.accentColor : appTheme.textMainColor),
+                  fontFamily: "NotoSans",
+                  fontWeight: FontWeight.bold,
+                  fontSize: 15,
+                  color: isFocused ? appTheme.accentColor : appTheme.textMainColor,
+                ),
               ),
               if (widget.subText != null)
                 Text(
                   widget.subText!,
                   style: TextStyle(fontFamily: "NunitoSans", color: appTheme.textSubColor),
-                )
+                ),
             ],
           ),
         ),

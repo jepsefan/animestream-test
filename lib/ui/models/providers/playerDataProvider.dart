@@ -2,17 +2,19 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:animestream/core/anime/providers/types.dart';
+import 'package:animestream/core/anime/providers/models.dart';
 import 'package:animestream/core/app/logging.dart';
 import 'package:animestream/core/app/runtimeDatas.dart';
-import 'package:animestream/core/commons/extractQuality.dart';
-import 'package:animestream/core/commons/utils.dart';
+import 'package:animestream/core/commons/hlsParser/audioStream.dart';
+import 'package:animestream/core/commons/hlsParser/hlsParser.dart';
+import 'package:animestream/core/commons/hlsParser/qualityStream.dart';
 import 'package:animestream/core/data/preferences.dart';
 import 'package:animestream/core/database/aniskip/aniskip.dart';
 import 'package:animestream/core/database/database.dart';
 import 'package:animestream/core/database/types.dart';
 import 'package:animestream/core/integrations/discord/desktopRPC.dart';
 import 'package:animestream/ui/models/sources.dart';
+import 'package:animestream/ui/models/widgets/player/playerUtils.dart';
 import 'package:animestream/ui/models/widgets/subtitles/subtitleSettings.dart';
 import 'package:dart_discord_presence/dart_discord_presence.dart';
 import 'package:flutter/material.dart';
@@ -43,21 +45,21 @@ class PlayerDataProvider extends ChangeNotifier {
     this.coverImageUrl, // just for presence updation
     this.preferDubs = false,
   }) : _state = PlayerDataProviderState(
-          streams: initialStreams,
-          currentStream: initialStream,
-          controlsLocked: false,
-          qualities: [],
-          currentQuality: QualityStream.paceholder(),
-          audioTracks: [],
-          currentAudioTrack: AudioStream.placeholder(),
-          currentEpIndex: startIndex,
-          preloadStarted: false,
-          preloadedSources: [],
-          currentTimeStamp: '00:00',
-          maxTimeStamp: '00:00',
-          preferredServer: selectedSource,
-          sliderValue: 0,
-        );
+         streams: initialStreams,
+         currentStream: initialStream,
+         controlsLocked: false,
+         qualities: [],
+         currentQuality: QualityStream.paceholder(),
+         audioTracks: [],
+         currentAudioTrack: AudioStream.placeholder(),
+         currentEpIndex: startIndex,
+         preloadStarted: false,
+         preloadedSources: [],
+         currentTimeStamp: '00:00',
+         maxTimeStamp: '00:00',
+         preferredServer: selectedSource,
+         sliderValue: 0,
+       );
 
   // Keep track preference for this playback session. Rebind by language when
   // the player switches server or episode (URLs are not interchangeable).
@@ -206,16 +208,31 @@ class PlayerDataProvider extends ChangeNotifier {
 
   PlayerDataProviderState get state => _state;
 
+  bool _disposed = false;
+
+  @override
+  void dispose() {
+    _disposed = true;
+    super.dispose();
+  }
+
+  @override
+  void notifyListeners() {
+    if (!_disposed) {
+      super.notifyListeners();
+    }
+  }
+
   final discord = (currentUserSettings?.enableDiscordRichPresence ?? false) ? DiscordDesktopRPC() : null;
 
-  late SubtitleSettings subtitleSettings;
+  SubtitleSettings subtitleSettings = const SubtitleSettings();
 
   /// Call this to refresh/init subs settings
   void initSubsettings() => UserPreferences.getUserPreferences().then((val) {
-        subtitleSettings = val.subtitleSettings ?? SubtitleSettings();
-        _state = _state.copyWith(subsInited: true);
-        notifyListeners();
-      });
+    subtitleSettings = val.subtitleSettings ?? SubtitleSettings();
+    _state = _state.copyWith(subsInited: true);
+    notifyListeners();
+  });
 
   /// Get and store the qualities and audio available for the current stream
   Future<void> extractCurrentStreamQualities() async {
@@ -224,7 +241,9 @@ class PlayerDataProvider extends ChangeNotifier {
     // DASH is an MPEG-DASH manifest, not an HLS master playlist. Leave it
     // intact for Android ExoPlayer instead of parsing it as an HLS file.
     final path = Uri.tryParse(url)?.path.toLowerCase() ?? '';
-    if (path.endsWith('.mpd') || path.endsWith('.dash')) {
+    if (RegExp(r'\.(mpd|dash|mkv|mp4|mov|webm)$').hasMatch(path) ||
+        _state.currentStream.server.contains('[MKV]') ||
+        _state.currentStream.server.contains('[MP4]')) {
       _state = _state.copyWith(
         qualities: [QualityStream(
           url: url, resolution: 'default',
@@ -236,16 +255,19 @@ class PlayerDataProvider extends ChangeNotifier {
       return;
     }
     try {
-      final master = await parseMasterPlaylist(url, customHeader: headers);
-      _state = _state.copyWith(qualities: master.qualityStreams, audioTracks: master.audioStreams);
-    } catch (e) {
-      // just a backup, the code shouldnt reach here, but my luck... brooo....
-      _state = _state.copyWith(
-        qualities: [QualityStream(url: url, resolution: 'default', quality: _state.currentStream.quality)],
-      );
+      final master = await HlsParser.parseMasterPlaylist(url, customHeader: headers);
+      if (master.qualityStreams.isNotEmpty) {
+        _state = _state.copyWith(qualities: master.qualityStreams);
+        notifyListeners();
+        return;
+      }
+    } catch (_) {
+      // Media playlists and direct streams can be played as-is.
     }
+    _state = _state.copyWith(
+      qualities: [QualityStream(url: url, resolution: 'default', quality: _state.currentStream.quality)],
+    );
     notifyListeners();
-    print("Available Qualities: ${state.qualities}");
   }
 
   /// Selects the preferred quality stream from available qualities, if it exists. Just a small helper
@@ -259,6 +281,12 @@ class PlayerDataProvider extends ChangeNotifier {
   /// Update the state of current quality
   void updateCurrentQuality(QualityStream quality) {
     _state = _state.copyWith(currentQuality: quality);
+    notifyListeners();
+  }
+
+  /// Update the list of available audio tracks!
+  void updateAudioTracks(List<AudioStream> tracks) {
+    _state = _state.copyWith(audioTracks: tracks);
     notifyListeners();
   }
 
@@ -301,16 +329,26 @@ class PlayerDataProvider extends ChangeNotifier {
 
   /// Update the state of time stamps
   void updateTimeStamps(String current, String max) {
-    _state = _state.copyWith(
-      currentTimeStamp: current,
-      maxTimeStamp: max,
-    );
+    if (_state.currentTimeStamp == current && _state.maxTimeStamp == max) return;
+    _state = _state.copyWith(currentTimeStamp: current, maxTimeStamp: max);
     notifyListeners();
   }
 
   /// Update slider value
   void updateSliderValue(int val) {
+    if (_state.sliderValue == val) return;
     _state = _state.copyWith(sliderValue: val);
+    notifyListeners();
+  }
+
+  /// Update time stamps and slider value only if they have changed
+  void updateProgress({required int positionInSeconds, required int durationInSeconds}) {
+    final current = getFormattedTime(positionInSeconds);
+    final max = getFormattedTime(durationInSeconds);
+    if (_state.sliderValue == positionInSeconds && _state.currentTimeStamp == current && _state.maxTimeStamp == max) {
+      return;
+    }
+    _state = _state.copyWith(sliderValue: positionInSeconds, currentTimeStamp: current, maxTimeStamp: max);
     notifyListeners();
   }
 
@@ -333,14 +371,19 @@ class PlayerDataProvider extends ChangeNotifier {
     }
     List<VideoStream> srcs = [];
     //its actually the getStreams function!
-    await SourceManager.instance.getStreams(selectedSource, epLinks[index].episodeLink,
-        dub: preferDubs, metadata: epLinks[index].metadata, (list, finished) {
-      srcs = srcs + list;
-      if (finished) {
-        _state = _state.copyWith(preloadedSources: srcs);
-        print("[PLAYER] PRELOAD FINISHED FOUND ${srcs.length} SERVERS");
-      }
-    });
+    await SourceManager.instance.getStreams(
+      selectedSource,
+      epLinks[index].episodeLink,
+      dub: preferDubs,
+      metadata: epLinks[index].metadata,
+      (list, finished) {
+        srcs = srcs + list;
+        if (finished) {
+          _state = _state.copyWith(preloadedSources: srcs);
+          print("[PLAYER] PRELOAD FINISHED FOUND ${srcs.length} SERVERS");
+        }
+      },
+    );
   }
 
   /// Get skip times for current episode
@@ -366,17 +409,25 @@ class PlayerDataProvider extends ChangeNotifier {
   }
 
   Future<void> updatePresence() async {
-    await discord?.updatePresence(
-      DiscordPresence(
-        type: DiscordActivityType.watching,
-        details: "$showTitle",
-        statusDisplayType: DiscordStatusDisplayType.details,
-        state: "Episode ${_state.currentEpIndex + 1}",
-        largeAsset: DiscordAsset.fromUrl(coverImageUrl),
-        smallAsset: DiscordAsset.fromKey("app_icon"),
-        timestamps: DiscordTimestamps(start: DateTime.now().millisecondsSinceEpoch ~/ 1000),
-      ),
-    );
+    final cover = coverImageUrl;
+    final hasCover = cover != null && cover.isNotEmpty;
+
+    try {
+      await discord?.updatePresence(
+        DiscordPresence(
+          type: DiscordActivityType.watching,
+          details: "$showTitle",
+          statusDisplayType: DiscordStatusDisplayType.details,
+          state: "Episode ${_state.currentEpIndex + 1}",
+          largeAsset: hasCover ? DiscordAsset.fromUrl(cover) : DiscordAsset.fromKey("app_icon"),
+          smallAsset: hasCover ? DiscordAsset.fromKey("app_icon") : null,
+          timestamps: DiscordTimestamps(start: DateTime.now().millisecondsSinceEpoch ~/ 1000),
+        ),
+      );
+    } catch (e) {
+      // Presence is cosmetic, never let it break playback
+      Logs.app.log("Discord presence update failed: $e");
+    }
   }
 
   Future<void> stopRPC() async {
@@ -525,19 +576,7 @@ class ViewMode {
 }
 
 final List<ViewMode> viewModes = [
-  ViewMode(
-    icon: Icons.fullscreen,
-    desc: "fit",
-    value: BoxFit.contain,
-  ),
-  ViewMode(
-    icon: Icons.zoom_out_map_rounded,
-    desc: "filled",
-    value: BoxFit.fill,
-  ),
-  ViewMode(
-    icon: Icons.crop_outlined,
-    desc: "cropped",
-    value: BoxFit.cover,
-  ),
+  ViewMode(icon: Icons.fullscreen, desc: "fit", value: BoxFit.contain),
+  ViewMode(icon: Icons.zoom_out_map_rounded, desc: "filled", value: BoxFit.fill),
+  ViewMode(icon: Icons.crop_outlined, desc: "cropped", value: BoxFit.cover),
 ];

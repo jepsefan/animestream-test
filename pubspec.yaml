@@ -2,10 +2,10 @@ name: animestream
 description: "A app made to stream and download anime!"
 publish_to: "none" #Dont remove this!
 
-version: 1.4.9-beta34.38+50
+version: 1.4.9-beta34.92+144
 
 environment:
-  sdk: ">=3.2.0 <4.0.0"
+  sdk: ">=3.13.0 <4.0.0"
 
 dependencies:
   flutter:
@@ -16,6 +16,7 @@ dependencies:
   # graphql: ^5.1.3
   
   html: ^0.15.6
+  xml: ^7.0.1
   encrypt: ^5.0.3
   js_unpack: ^1.0.4
   url_launcher: ^6.3.2
@@ -44,7 +45,7 @@ dependencies:
   hive: ^2.2.3
   hive_flutter: ^1.1.0
   flutter_secure_storage: ^11.0.0
-  flutter_svg: ^2.3.0
+  flutter_svg: ^2.3.2
 
   # Media and player related
   open_file: ^4.0.0
@@ -57,7 +58,7 @@ dependencies:
   better_player:
     git:
       url: https://github.com/jepsefan/betterplayer-test.git
-      ref: subtitle-renderer-test
+      ref: ead8659ec84005d436baf45e571a10cc873c0dca
 
   fvp: 
     # path: "../../fvp"
@@ -83,6 +84,7 @@ dependencies:
     git:
       url: https://github.com/frostnova721/commentum_client
 
+  collection: any
 dev_dependencies:
   flutter_test:
     sdk: flutter

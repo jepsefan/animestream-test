@@ -1,6 +1,5 @@
-import 'package:animestream/core/anime/providers/animeProvider.dart';
 import 'package:animestream/core/anime/providers/aniyomiExtensionBridge.dart';
-import 'package:animestream/core/anime/providers/types.dart';
+import 'package:animestream/core/anime/providers/models.dart';
 
 /// Wraps an installed Aniyomi APK in AnimeStream's existing provider API.
 /// Search, episode loading and playback are performed by the original APK.

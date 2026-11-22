@@ -1,18 +1,16 @@
 import 'dart:io';
 
-import 'package:animestream/core/anime/downloader/downloadManager.dart';
-import 'package:animestream/core/data/watching.dart';
+import 'package:animestream/core/downloader/downloadManager.dart';
 import 'package:animestream/ui/models/bottomSheets/batchDownload.dart';
 import 'package:animestream/ui/models/bottomSheets/commentSection.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 import 'package:animestream/core/app/runtimeDatas.dart';
 import 'package:animestream/core/commons/enums.dart';
-import 'package:animestream/core/data/types.dart';
+import 'package:animestream/core/data/models.dart';
 import 'package:animestream/core/database/types.dart';
 import 'package:animestream/ui/models/bottomSheets/manualSearchSheet.dart';
 import 'package:animestream/ui/models/bottomSheets/mediaListStatus.dart';
@@ -34,7 +32,7 @@ class InfoMobile extends StatefulWidget {
 class _InfoMobileState extends State<InfoMobile> {
   late InfoProvider provider;
 
-  bool infoPage = true;
+  late bool infoPage = context.read<InfoProvider>().initialSection == InfoView.info;
 
   final FocusNode _watchInfoButtonFocusNode =
       FocusNode(debugLabel: 'info_watch_button');
@@ -137,7 +135,6 @@ class _InfoMobileState extends State<InfoMobile> {
                                   ),
                                 ),
                               ),
-                              if (provider.loggedIn)
                                 Container(
                                   child: ElevatedButton(
                                     onPressed: () {
@@ -168,62 +165,6 @@ class _InfoMobileState extends State<InfoMobile> {
                                     ),
                                   ),
                                 ),
-                              if (!provider.loggedIn && provider.started)
-                                ElevatedButton(
-                                  onPressed: () {
-                                    showDialog(
-                                        context: context,
-                                        builder: (context) {
-                                          return AlertDialog(
-                                            actions: [
-                                              TextButton(
-                                                  onPressed: () => Navigator.of(context).pop(), child: Text("No")),
-                                              TextButton(
-                                                onPressed: () async {
-                                                  await removeWatching(provider.id);
-                                                  provider.clearLastWatchDuration();
-                                                  await provider.getWatched(refreshLastWatchDuration: true);
-                                                  Navigator.pop(context);
-                                                },
-                                                child: Text("Yes"),
-                                                style: TextButton.styleFrom(
-                                                  backgroundColor: appTheme.accentColor,
-                                                  foregroundColor: appTheme.onAccent,
-                                                ),
-                                              )
-                                            ],
-                                            content: Padding(
-                                              padding: const EdgeInsets.all(10),
-                                              child: Text.rich(
-                                                TextSpan(text: "Remove \"", style: TextStyle(fontSize: 15), children: [
-                                                  TextSpan(
-                                                      text: "${getTitle(provider.data.title)}",
-                                                      style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
-                                                  TextSpan(
-                                                      text: "\" from your watch history?",
-                                                      style: TextStyle(fontSize: 15)),
-                                                ]),
-                                              ),
-                                            ),
-                                          );
-                                        });
-                                  },
-                                  style: ElevatedButton.styleFrom(
-                                    shape: CircleBorder(
-                                      side: BorderSide(
-                                        color: appTheme.accentColor,
-                                      ),
-                                    ),
-                                    fixedSize: Size(50, 50),
-                                    backgroundColor: appTheme.backgroundColor,
-                                    padding: EdgeInsets.zero,
-                                  ),
-                                  child: Icon(
-                                    Icons.delete_outline_rounded,
-                                    color: appTheme.accentColor,
-                                    size: 28,
-                                  ),
-                                )
                             ],
                           ),
                         ),
@@ -386,6 +327,26 @@ class _InfoMobileState extends State<InfoMobile> {
                         crossAxisAlignment: CrossAxisAlignment.center,
                         mainAxisAlignment: MainAxisAlignment.end,
                         children: [
+                          IconButton(
+                              tooltip: "Batch download",
+                              onPressed: () {
+                                showModalBottomSheet(
+                                    context: context,
+                                    showDragHandle: true,
+                                    isScrollControlled: true,
+                                    backgroundColor: appTheme.modalSheetBackgroundColor,
+                                    builder: (context) {
+                                      return BatchDownloadSheetContent(
+                                        provider: provider,
+                                      );
+                                    });
+                              },
+                              icon: Icon(
+                                Icons.file_download_outlined,
+                              ),
+                              color: appTheme.textMainColor,
+                              iconSize: 28,
+                            ),
                           InkWell(
                             onTap: () => provider.preferDubs = !provider.preferDubs,
                             child: Container(
@@ -400,25 +361,7 @@ class _InfoMobileState extends State<InfoMobile> {
                                   style: TextStyle(color: appTheme.backgroundColor, fontWeight: FontWeight.bold)),
                             ),
                           ),
-                          if (kDebugMode)
-                            IconButton(
-                              tooltip: "Batch download",
-                              onPressed: () {
-                                showModalBottomSheet(
-                                    context: context,
-                                    showDragHandle: true,
-                                    builder: (context) {
-                                      return BatchDownloadSheetContent(
-                                        provider: provider,
-                                      );
-                                    });
-                              },
-                              icon: Icon(
-                                Icons.file_download_outlined,
-                              ),
-                              color: appTheme.textMainColor,
-                              iconSize: 28,
-                            ),
+
                           Padding(
                             padding: const EdgeInsets.only(right: 10),
                             child: IconButton(
@@ -523,6 +466,7 @@ class _InfoMobileState extends State<InfoMobile> {
               setState(() {
                 provider.paginate(links);
                 provider.foundName = result['name'];
+                provider.manualSearchQuery = result['name'];
               });
           });
         },

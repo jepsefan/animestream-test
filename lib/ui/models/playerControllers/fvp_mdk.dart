@@ -1,5 +1,6 @@
 import 'dart:async';
-import 'package:animestream/core/commons/extractQuality.dart';
+import 'package:animestream/core/commons/hlsParser/audioStream.dart';
+import 'package:animestream/core/commons/hlsParser/qualityStream.dart';
 import 'package:animestream/ui/models/playerControllers/videoController.dart';
 import 'package:fvp/mdk.dart' as mdk;
 import 'package:flutter/material.dart';
@@ -129,6 +130,23 @@ class FvpWrapper implements VideoController {
       position: duration.inMilliseconds,
       flags: const mdk.SeekFlag(mdk.SeekFlag.defaultFlags),
     );
+  }
+
+  @override
+  Future<List<AudioStream>> getAudioTracks() async {
+    final audioTracks = _player.mediaInfo.audio;
+    if (audioTracks == null || audioTracks.isEmpty) return [];
+    return audioTracks.map((track) {
+      final lang = track.metadata['language'] ?? track.metadata['LANGUAGE'] ?? 'und';
+      final title = track.metadata['title'] ?? track.metadata['TITLE'] ?? lang;
+      return AudioStream(
+        groupId: track.index.toString(),
+        name: title,
+        url: "${activeMediaUrl}#track_${track.index}",
+        language: lang,
+        channels: track.codec.channels.toString(),
+      );
+    }).toList();
   }
 
   @override

@@ -1,9 +1,13 @@
 import 'dart:io';
 
-import 'package:animestream/core/commons/extractQuality.dart';
+import 'package:animestream/core/app/logging.dart';
+import 'package:animestream/core/commons/hlsParser/audioStream.dart';
+import 'package:animestream/core/commons/hlsParser/qualityStream.dart';
 import 'package:animestream/ui/models/playerControllers/videoController.dart';
+import 'package:fvp/fvp.dart';
 import 'package:video_player/video_player.dart';
 import 'package:flutter/material.dart';
+import 'package:collection/collection.dart';
 
 class FvpWrapper implements VideoController {
   VideoPlayerController controller = VideoPlayerController.networkUrl(Uri.parse(""));
@@ -16,7 +20,7 @@ class FvpWrapper implements VideoController {
   String? get activeMediaUrl => controller.dataSource;
 
   @override
-  int? get buffered => controller.value.buffered.lastOrNull?.end.inSeconds;
+  int? get buffered => controller.value.buffered.lastOrNull?.end.inMilliseconds;
 
   @override
   void dispose() async {
@@ -28,7 +32,7 @@ class FvpWrapper implements VideoController {
 
   @override
   Widget getWidget() {
-    return AspectRatio(aspectRatio: 16/9 ,child: VideoPlayer(controller));
+    return AspectRatio(aspectRatio: 16 / 9, child: VideoPlayer(controller));
   }
 
   @override
@@ -36,20 +40,27 @@ class FvpWrapper implements VideoController {
     final vol = controllerInitialized ? controller.value.volume : 0.8;
 
     // kill the last controller
-    if(controllerInitialized) {
+    if (controllerInitialized) {
       await controller.dispose();
       controllerInitialized = false;
     }
 
     controller = offline
         ? VideoPlayerController.file(File(url))
-        : VideoPlayerController.networkUrl(Uri.parse(url), httpHeaders: headers ?? {},);
+        : VideoPlayerController.networkUrl(
+            Uri.parse(url),
+            httpHeaders: headers ?? {},
+          );
 
     controllerInitialized = true;
 
     await controller.initialize();
+    try {
+      // disable the native default subtitles rendering
+      controller.setSubtitleTracks([]);
+    } catch (_) {}
 
-    for(int i=0; i<listeners.length; i++) {
+    for (int i = 0; i < listeners.length; i++) {
       controller.addListener(listeners[i]);
     }
     await controller.setVolume(vol);
@@ -78,12 +89,11 @@ class FvpWrapper implements VideoController {
   @override
   int? get position => controller.value.position.inMilliseconds;
 
-   @override
+  @override
   void addListener(VoidCallback cb) {
     controller.addListener(cb);
     listeners.add(cb);
   }
-
 
   @override
   void removeListener(VoidCallback cb) {
@@ -97,8 +107,40 @@ class FvpWrapper implements VideoController {
   }
 
   @override
+  Future<List<AudioStream>> getAudioTracks() async {
+    try {
+      final mediaInfo = controller.getMediaInfo();
+      final audioTracks = mediaInfo?.audio;
+      if (audioTracks == null || audioTracks.isEmpty) return [];
+      return audioTracks.map((info) {
+        final lang = info.metadata['language'] ?? info.metadata['LANGUAGE'] ?? 'und';
+        final title = info.metadata['title'] ??
+            info.metadata['TITLE'] ??
+            info.metadata['comment'] ??
+            info.metadata['COMMENT'] ??
+            "Track ${info.index}";
+        return AudioStream(
+          groupId: info.index.toString(),
+          name: title,
+          url: "${controller.dataSource}#track_${info.index}",
+          language: lang,
+          channels: info.codec.channels.toString(),
+        );
+      }).toList();
+    } catch (e) {
+      return [];
+    }
+  }
+
+  @override
   void setAudioTrack(AudioStream aud) async {
-    return await controller.selectAudioTrack(aud.groupId);
+    final idx = int.tryParse(aud.groupId);
+    if (idx != null) {
+      controller.setAudioTracks([idx]);
+    } else {
+      Logs.player
+          .log("Failed to set audio track in FvpWrapper: No index found for track '${aud.name}' (${aud.language})");
+    }
   }
 
   @override
@@ -113,7 +155,29 @@ class FvpWrapper implements VideoController {
 
   @override
   void setQuality(QualityStream qs) async {
-    await initiateVideo(qs.url, headers: controller.httpHeaders, offline: false);
+    final resolutionSplit = qs.resolution.split('x');
+    final qualityHeight = resolutionSplit.length > 1 ? int.tryParse(resolutionSplit[1]) : null;
+
+    if(qualityHeight == null) {
+      Logs.player.log("Failed to set quality in FvpWrapper: Invalid resolution '${qs.resolution}'");
+      return;
+    }
+
+    final videoTracks = await controller.getMediaInfo();
+    final videoTrack = videoTracks?.video?.firstWhereOrNull((t) => t.codec.height == qualityHeight);
+
+    print("Quality Required: $qualityHeight, Video Track found: ${videoTrack?.codec.height}");
+
+    if (videoTrack == null) {
+      Logs.player
+          .log("Failed to set quality in FvpWrapper: No video track found for resolution '${qs.resolution}'");
+      return;
+    }
+
+    await controller.pause();
+    controller.setVideoTracks([videoTrack.index]);
+    print(controller.getActiveVideoTracks());
+    await controller.play();
   }
 
   @override

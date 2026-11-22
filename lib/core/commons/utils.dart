@@ -70,17 +70,25 @@ Map<String, String>? MonthnumberToMonthName(
 
 MediaStatus? assignItemEnum(String? valueInString) {
   if (valueInString == null) return null;
-  switch (valueInString) {
+  switch (valueInString.toUpperCase()) {
     case "CURRENT":
+    case "WATCHING":
       return MediaStatus.CURRENT;
     case "PLANNING":
+    case "PLAN_TO_WATCH":
+    case "PLANTOWATCH":
       return MediaStatus.PLANNING;
     case "DROPPED":
       return MediaStatus.DROPPED;
     case "COMPLETED":
       return MediaStatus.COMPLETED;
+    case "PAUSED":
+    case "ON_HOLD":
+    case "ONHOLD":
+    case "HOLD":
+      return MediaStatus.PAUSED;
     default:
-      throw new Exception("ERR_BAD_STRING");
+      return null;
   }
 }
 

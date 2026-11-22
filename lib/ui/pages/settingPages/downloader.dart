@@ -1,6 +1,6 @@
 import 'package:animestream/core/app/runtimeDatas.dart';
 import 'package:animestream/core/data/settings.dart';
-import 'package:animestream/core/data/types.dart';
+import 'package:animestream/core/data/models.dart';
 import 'package:animestream/ui/models/snackBar.dart';
 import 'package:animestream/ui/models/widgets/toggleItem.dart';
 import 'package:animestream/ui/pages/settingPages/common.dart';
@@ -82,7 +82,7 @@ class _DownloaderSettingsState extends State<DownloaderSettings> {
                     value: useRemuxer,
                     description: "Remux streams to MKV",
                     onTapFunction: () {
-                      setState(() async {
+                      setState(() {
                         useRemuxer = !useRemuxer;
                       });
                       writeSettings(SettingsModal(useMkvRemuxer: useRemuxer));
@@ -92,7 +92,7 @@ class _DownloaderSettingsState extends State<DownloaderSettings> {
                     value: writeSubtitleTrackToVideo,
                     description: "only works while remuxing",
                     onTapFunction: () {
-                      setState(() async {
+                      setState(() {
                         writeSubtitleTrackToVideo = !writeSubtitleTrackToVideo;
                       });
                       writeSettings(SettingsModal(writeSubtitleTrackToVideo: writeSubtitleTrackToVideo));

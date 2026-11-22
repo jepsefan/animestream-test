@@ -78,9 +78,10 @@ class HTTP {
         return HttpResponse(
           200,
           bodyStr,
-          bodyBytes: Uint8List.fromList(cached.bodyBytes),
+          bodyBytes: cached.bodyBytes,
           headers: {'content-type': 'application/json'},
           request: HttpRequestInfo(uri),
+          cached: true,
         );
       }
     }
@@ -121,17 +122,24 @@ class HTTP {
           onTimeout: () => throw HttpException('Request timeout'),
         );
 
-    final bytes = await res.fold<List<int>>(
-      <int>[],
-      (buffer, element) => buffer..addAll(element),
-    );
+    final bytes = (await res.fold<BytesBuilder>(
+      BytesBuilder(copy: false),
+      (builder, chunk) => builder..add(chunk),
+    ))
+        .takeBytes();
     final resBody = utf8.decode(bytes, allowMalformed: true);
+
+    final responseHeaders = <String, String>{};
+    res.headers.forEach((name, values) {
+      responseHeaders[name.toLowerCase()] = values.join(', ');
+    });
+
     final response = HttpResponse(
       res.statusCode,
       resBody,
-      bodyBytes: Uint8List.fromList(bytes),
+      bodyBytes: bytes,
       reasonPhrase: res.reasonPhrase,
-      headers: res.headers.contentType == null ? {} : {'content-type': res.headers.contentType!.mimeType},
+      headers: responseHeaders,
       request: HttpRequestInfo(uri),
     );
 
@@ -247,10 +255,9 @@ class HTTP {
   void close() {}
 
   bool _shouldCache(Duration? cacheDuration) {
-    if (_cache != null && !_cache.cacheConfig.enableCaching) {
-      return false;
-    }
-    return cacheDuration != null && cacheDuration > Duration.zero;
+    // Check the duration first: reading the config touches Hive, which isn't available in isolates
+    if (cacheDuration == null || cacheDuration <= Duration.zero) return false;
+    return _cache != null && _cache.cacheConfig.enableCaching;
   }
 }
 

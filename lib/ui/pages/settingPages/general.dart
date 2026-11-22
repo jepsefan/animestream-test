@@ -3,15 +3,15 @@ import 'dart:io';
 import 'package:animestream/core/app/runtimeDatas.dart';
 import 'package:animestream/core/data/preferences.dart';
 import 'package:animestream/core/data/settings.dart';
-import 'package:animestream/core/data/types.dart';
+import 'package:animestream/core/data/models.dart';
 import 'package:animestream/core/database/database.dart';
+import 'package:animestream/core/database/handler/handler.dart';
 import 'package:animestream/ui/models/sources.dart';
 import 'package:animestream/ui/models/widgets/clickableItem.dart';
 import 'package:animestream/ui/models/widgets/toggleItem.dart';
 import 'package:animestream/ui/pages/settingPages/cache.dart';
 import 'package:animestream/ui/pages/settingPages/common.dart';
 import 'package:animestream/ui/pages/settingPages/plugin.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 class GeneralSetting extends StatefulWidget {
@@ -113,7 +113,7 @@ class _GeneralSettingState extends State<GeneralSetting> {
                           setState(() {});
                         },
                       ),
-                    if (kDebugMode)
+                    // if (kDebugMode)
                       ClickableItem(
                         onTap: () {
                           showModalBottomSheet(
@@ -123,7 +123,7 @@ class _GeneralSettingState extends State<GeneralSetting> {
                             builder: (context) => _databaseSheet(context),
                           );
                         },
-                        label: "Default database",
+                        label: "Default database [Beta]",
                         description: (currentUserSettings?.database?.name ?? Databases.anilist.name),
                         suffixIcon: Icon(Icons.arrow_drop_down),
                       ),
@@ -223,6 +223,7 @@ class _GeneralSettingState extends State<GeneralSetting> {
                         borderRadius: BorderRadius.circular(20),
                         onTap: () async {
                           await writeSettings(SettingsModal(database: Databases.values[index]));
+                          DatabaseHandler.invalidateTracker();
                           setState(() {});
                           setcState(() {});
                         },

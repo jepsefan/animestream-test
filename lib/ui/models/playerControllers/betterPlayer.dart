@@ -1,9 +1,11 @@
 import 'package:animestream/core/app/logging.dart';
-import 'package:animestream/core/commons/extractQuality.dart';
+import 'package:animestream/core/commons/hlsParser/audioStream.dart';
+import 'package:animestream/core/commons/hlsParser/qualityStream.dart';
 import 'package:animestream/ui/models/playerControllers/videoController.dart';
 import 'package:animestream/ui/models/widgets/player/playerUtils.dart';
 import 'package:better_player/better_player.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 class BetterPlayerWrapper implements VideoController {
   late BetterPlayerController controller = BetterPlayerController(_config);
@@ -56,7 +58,7 @@ class BetterPlayerWrapper implements VideoController {
   int? get duration => controller.videoPlayerController?.value.duration?.inMilliseconds;
 
   @override
-  int? get buffered => controller.videoPlayerController?.value.buffered.lastOrNull?.end.inSeconds;
+  int? get buffered => controller.videoPlayerController?.value.buffered.lastOrNull?.end.inMilliseconds;
 
   @override
   double? get volume => controller.videoPlayerController?.value.volume;
@@ -133,11 +135,76 @@ class BetterPlayerWrapper implements VideoController {
       controller.disablePictureInPicture();
   }
 
+  static const _nativePlayer = MethodChannel('better_player_channel');
+
+  // The native BetterPlayer channel identifies the active player by texture ID.
+  int? get _textureId =>
+      // ignore: invalid_use_of_visible_for_testing_member
+      controller.videoPlayerController?.textureId;
+
   @override
-  Future<void> setAudioTrack(AudioStream aud) async {
-    final toLang = _asToAsmsAudioTrack(aud);
-    print("Setting to ${toLang.language}, ${toLang.id}");
-    return controller.setAudioTrack(toLang);
+  Future<List<AudioStream>> getAudioTracks() async {
+    final textureId = _textureId;
+    if (textureId != null) {
+      try {
+        final tracks = await _nativePlayer.invokeListMethod<Map<dynamic, dynamic>>(
+          'getEmbeddedAudioTracks',
+          {'textureId': textureId},
+        );
+        if (tracks != null && tracks.isNotEmpty) {
+          return tracks.map((track) {
+            final id = "${track['renderer']}:${track['group']}:${track['track']}";
+            final language = track['language'] as String?;
+            return AudioStream(
+              groupId: id,
+              name: track['label'] as String,
+              url: 'native-audio:$id',
+              language: language == null || language.isEmpty ? 'und' : language,
+              channels: '',
+            );
+          }).toList();
+        }
+      } on PlatformException catch (error) {
+        Logs.player.log('Native audio tracks unavailable: ${error.code}');
+      } on MissingPluginException {
+        // The native channel is available on Android.
+      }
+    }
+
+    final renditions = controller.betterPlayerAsmsAudioTracks ?? [];
+    return [
+      for (final (index, track) in renditions.indexed)
+        AudioStream(
+          groupId: index.toString(),
+          name: track.label ?? track.language ?? 'Track ${index + 1}',
+          url: 'asms-audio:$index',
+          language: track.language ?? 'und',
+          channels: '',
+        ),
+    ];
+  }
+
+  @override
+  Future<void> setAudioTrack(AudioStream audio) async {
+    if (audio.url.startsWith('native-audio:')) {
+      final textureId = _textureId;
+      final indices = audio.groupId.split(':').map(int.tryParse).toList();
+      if (textureId != null && indices.length == 3 && !indices.contains(null)) {
+        await _nativePlayer.invokeMethod<bool>('selectEmbeddedAudioTrack', {
+          'textureId': textureId,
+          'renderer': indices[0],
+          'group': indices[1],
+          'track': indices[2],
+        });
+      }
+      return;
+    }
+
+    final renditions = controller.betterPlayerAsmsAudioTracks ?? [];
+    final index = int.tryParse(audio.groupId);
+    if (index != null && index >= 0 && index < renditions.length) {
+      controller.setAudioTrack(renditions[index]);
+    }
   }
 
   @override
@@ -155,8 +222,8 @@ class BetterPlayerWrapper implements VideoController {
     try {
       return controller.betterPlayerAsmsTracks.firstWhere((element) {
         final resMatch = element.height == (int.tryParse(qs.resolution.split("x").last) ?? 0);
-        final bwMatch = element.bitrate == (qs.bandwidth ?? 0);
-        return resMatch && bwMatch;
+        // final bwMatch = element.bitrate == (qs.bandwidth ?? 0);
+        return resMatch;
       }, orElse: () {
         print("[ERROR] No matching track found for '${qs.resolution}', defaulting to first track.");
         return controller.betterPlayerAsmsTracks.first;
@@ -166,15 +233,5 @@ class BetterPlayerWrapper implements VideoController {
     }
     // return BetterPlayerAsmsTrack('', int.tryParse(qs.resolution.split("x").first) ?? 0,
     //     int.tryParse(qs.resolution.split("x").last) ?? 0, qs.bandwidth ?? 0, 0, '', '');
-  }
-
-  BetterPlayerAsmsAudioTrack _asToAsmsAudioTrack(AudioStream aud) {
-    return controller.betterPlayerAsmsAudioTracks!.firstWhere(
-      (element) => element.label == aud.name && element.language == aud.language,
-      orElse: () => controller.betterPlayerAsmsAudioTracks!.firstWhere(
-        (element) => element.language == aud.language,
-        orElse: () => controller.betterPlayerAsmsAudioTracks!.first,
-      ),
-    );
   }
 }

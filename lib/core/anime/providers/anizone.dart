@@ -1,7 +1,6 @@
 import 'dart:convert';
 
-import 'package:animestream/core/anime/providers/animeProvider.dart';
-import 'package:animestream/core/anime/providers/types.dart';
+import 'package:animestream/core/anime/providers/models.dart';
 import 'package:html/parser.dart';
 import 'package:animestream/core/network/network.dart';
 
@@ -82,6 +81,7 @@ class AniZone extends AnimeProvider {
     }
 
     final matchedStr = match.group(1)!.replaceAll(r'\u0022', '"');
+    // print(matchedStr);
 
     final List<Map<String, dynamic>> list = List.castFrom(jsonDecode(matchedStr));
 
@@ -90,7 +90,14 @@ class AniZone extends AnimeProvider {
     int i = 1;
 
     for (final item in list) {
-      final title = item['title_list']?['1'];
+      final titleList = item['title_list'];
+      String? title;
+
+      if(titleList != null && titleList is Map) {
+        title = titleList['1'];
+      } else if (titleList != null && titleList is List) {
+        title = titleList.firstOrNull;
+      }
 
       final epLink = item['url'];
 
@@ -109,7 +116,7 @@ class AniZone extends AnimeProvider {
         'thumbnail': epImg,
         'episodeTitle': title,
         'isFiller': isFiller,
-        'hasDub': false,
+        'hasDub': true, // good hopes that there is a dub audio track in the stream
       });
 
       i++;

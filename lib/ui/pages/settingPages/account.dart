@@ -6,6 +6,7 @@ import 'package:animestream/core/database/anilist/login.dart';
 import 'package:animestream/core/database/anilist/localTvLogin.dart';
 import 'package:animestream/core/database/anilist/types.dart';
 import 'package:animestream/core/database/database.dart';
+import 'package:animestream/core/database/handler/handler.dart';
 import 'package:animestream/core/database/mal/login.dart';
 import 'package:animestream/core/database/simkl/login.dart';
 import 'package:animestream/core/database/simkl/types.dart';
@@ -81,13 +82,14 @@ class _AccountSettingState extends State<AccountSetting> {
 
   Future<void> _fetchAnilistProfile() async {
     try {
-      final res = await AniListLogin().getUserProfile();
+      final res = await AnilistLogin().getUserProfile();
       if (mounted) setState(() => user = res);
     } catch (err) {
       if (err is AnilistApiException) {
         if (err.statusCode == 401 || err.message.toLowerCase().contains("invalid token")) {
           floatingSnackBar("Anilist token is invalid. Login again!");
-          await AniListLogin().removeToken();
+          await AnilistLogin().removeToken();
+          DatabaseHandler.invalidateTracker();
           if (mounted) setState(() => anilistLoggedIn = false);
         }
       } else {
@@ -105,6 +107,7 @@ class _AccountSettingState extends State<AccountSetting> {
       if (err.isUnauthorized) {
         floatingSnackBar("Simkl token is invalid. Login again!");
         await SimklLogin().removeToken();
+        DatabaseHandler.invalidateTracker();
       }
       if (mounted) setState(() => simklLoggedIn = false);
     } catch (err) {
@@ -118,6 +121,7 @@ class _AccountSettingState extends State<AccountSetting> {
       if (mounted) setState(() => malUser = res);
     } catch (err) {
       floatingSnackBar("MAL error: ${err.toString()}");
+      DatabaseHandler.invalidateTracker();
       if (mounted) setState(() => malLoggedIn = false);
     }
   }
@@ -125,7 +129,7 @@ class _AccountSettingState extends State<AccountSetting> {
   void _handleLogout(Databases db) async {
     switch (db) {
       case Databases.anilist:
-        await AniListLogin().removeToken();
+        await AnilistLogin().removeToken();
         if (mounted) setState(() => anilistLoggedIn = false);
         break;
       case Databases.simkl:
@@ -137,12 +141,13 @@ class _AccountSettingState extends State<AccountSetting> {
         if (mounted) setState(() => malLoggedIn = false);
         break;
     }
+    DatabaseHandler.invalidateTracker();
     floatingSnackBar("Logged out successfully!");
   }
 
-  Future<bool> _handleAniListLogin() async {
+  Future<bool> _handleAnilistLogin() async {
     if (!(await isTv())) {
-      return AniListLogin().initiateLogin();
+      return AnilistLogin().initiateLogin();
     }
 
     AniListLocalTvLoginSession session;
@@ -173,9 +178,9 @@ class _AccountSettingState extends State<AccountSetting> {
                   await storeSecureVal(SecureStorageKey.anilistToken, token);
 
                   try {
-                    await AniListLogin().getUserProfile();
+                    await AnilistLogin().getUserProfile();
                   } catch (err) {
-                    await AniListLogin().removeToken();
+                    await AnilistLogin().removeToken();
                     if (context.mounted && !cancelled) {
                       setDialogState(() {
                         errorMessage =
@@ -285,11 +290,11 @@ class _AccountSettingState extends State<AccountSetting> {
     }
 
     if (result == 'old') {
-      return AniListLogin().initiateLogin();
+      return AnilistLogin().initiateLogin();
     }
 
     if (result == 'retry') {
-      return _handleAniListLogin();
+      return _handleAnilistLogin();
     }
 
     return false;
@@ -482,7 +487,7 @@ class _AccountSettingState extends State<AccountSetting> {
     try {
       switch (db) {
         case Databases.anilist:
-          logged = await _handleAniListLogin();
+          logged = await _handleAnilistLogin();
           break;
         case Databases.simkl:
           logged = await _handleSimklDeviceLogin();
@@ -491,6 +496,7 @@ class _AccountSettingState extends State<AccountSetting> {
           logged = await MALLogin().initiateLogin();
           break;
       }
+      DatabaseHandler.invalidateTracker();
 
       if (logged) {
         floatingSnackBar("Login successful!");

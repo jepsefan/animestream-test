@@ -1,5 +1,6 @@
 import 'dart:async';
-import 'package:animestream/core/commons/extractQuality.dart';
+import 'package:animestream/core/commons/hlsParser/audioStream.dart';
+import 'package:animestream/core/commons/hlsParser/qualityStream.dart';
 import 'package:flutter/material.dart';
 
 class Player extends StatelessWidget {
@@ -77,6 +78,8 @@ abstract class VideoController {
   bool? get isInitialized;
 
   // List<QualityStream> get qualities;
+
+  Future<List<AudioStream>> getAudioTracks();
 
   void setAudioTrack(AudioStream aud);
 

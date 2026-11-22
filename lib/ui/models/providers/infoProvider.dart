@@ -3,25 +3,28 @@ import 'package:flutter/material.dart';
 import 'package:animestream/core/anime/providers/providerDetails.dart';
 import 'package:animestream/core/anime/providers/aniyomiExtensionProvider.dart';
 import 'package:animestream/core/anime/providers/extensionAniListMatcher.dart';
-import 'package:animestream/core/anime/providers/types.dart';
+import 'package:animestream/core/anime/providers/models.dart';
 import 'package:animestream/core/app/logging.dart';
 import 'package:animestream/core/app/runtimeDatas.dart';
 import 'package:animestream/core/commons/enums.dart';
 import 'package:animestream/core/commons/utils.dart';
 import 'package:animestream/core/data/animeSpecificPreference.dart';
 import 'package:animestream/core/data/preferences.dart';
-import 'package:animestream/core/data/types.dart';
+import 'package:animestream/core/data/models.dart';
 import 'package:animestream/core/data/watching.dart';
-import 'package:animestream/core/database/anilist/login.dart';
 import 'package:animestream/core/database/database.dart';
+import 'package:animestream/core/database/simkl/simkl.dart';
 import 'package:animestream/core/database/handler/handler.dart';
 import 'package:animestream/core/database/types.dart';
 import 'package:animestream/ui/models/snackBar.dart';
 import 'package:animestream/ui/models/sources.dart';
 
+enum InfoView { info, watch }
+
 class InfoProvider extends ChangeNotifier {
+  final InfoView initialSection;
   int id;
-  InfoProvider(int id) : this.id = id;
+  InfoProvider(int id, {this.initialSection = InfoView.info}) : this.id = id;
 
   late DatabaseInfo _data;
 
@@ -37,8 +40,8 @@ class InfoProvider extends ChangeNotifier {
   MediaStatus? _mediaListStatus;
 
   List<EpisodeDetails> _epLinks = [];
-  List<VideoStream> _streamSources = [];
-  List<Map<String, String>> _qualities = [];
+  // List<VideoStream> _streamSources = [];
+  // List<Map<String, String>> _qualities = [];
   List<List<Map<String, dynamic>>> _visibleEpList = [];
   List<AlternateDatabaseId> _altDatabases = [];
 
@@ -55,7 +58,6 @@ class InfoProvider extends ChangeNotifier {
   bool _epSearcherror = false;
   bool _loggedIn = false;
   bool _dataLoaded = false;
-  bool _infoPage = true;
   bool _infoLoadError = false;
   bool _preferDubs = false;
 
@@ -65,7 +67,6 @@ class InfoProvider extends ChangeNotifier {
   bool get epSearcherror => _epSearcherror;
   bool get loggedIn => _loggedIn;
   bool get dataLoaded => _dataLoaded;
-  bool get infoPage => _infoPage;
   bool get preferDubs => _preferDubs;
 
   Map? get lastWatchedDurationMap => _lastWatchedDurationMap;
@@ -76,8 +77,8 @@ class InfoProvider extends ChangeNotifier {
   int get viewModeIndexLength => 3;
   int? get selectedEpisodeToLoadStreams => _selectedEpisodeToLoadStreams;
 
-  List<VideoStream> get streamSources => _streamSources;
-  List<Map<String, String>> get qualities => _qualities;
+  // List<VideoStream> get streamSources => _streamSources;
+  // List<Map<String, String>> get qualities => _qualities;
   List<List<Map<String, dynamic>>> get visibleEpList => _visibleEpList;
   List<AlternateDatabaseId> get altDatabases => _altDatabases;
   List<EpisodeDetails> get epLinks => _epLinks;
@@ -106,11 +107,8 @@ class InfoProvider extends ChangeNotifier {
   set selectedSource(ProviderDetails val) {
     _selectedSource = val;
     if (aspProvider != val.identifier) {
-      saveAnimeSpecificPreference(
-          id.toString(),
-          AnimeSpecificPreference(
-            preferredProvider: val.identifier,
-          ));
+      aspProvider = val.identifier;
+      saveAnimeSpecificPreference(id.toString(), AnimeSpecificPreference(preferredProvider: val.identifier));
     }
     // we just using this condition for validation (too lazy to add a field for it)
     sourceManager.useInbuiltProviders = selectedSource.version == "0.0.0.0";
@@ -129,9 +127,7 @@ class InfoProvider extends ChangeNotifier {
   set viewMode(int newIndex) {
     _viewMode = newIndex;
     UserPreferences.saveUserPreferences(
-      UserPreferencesModal(
-        episodesViewMode: UserPreferencesModal.getViewModeEnum(newIndex),
-      ),
+      UserPreferencesModal(episodesViewMode: UserPreferencesModal.getViewModeEnum(newIndex)),
     );
     notifyListeners();
   }
@@ -158,18 +154,19 @@ class InfoProvider extends ChangeNotifier {
 
   set preferDubs(bool val) {
     _preferDubs = val;
-    UserPreferences.saveUserPreferences(
-      UserPreferencesModal(
-        preferDubs: val,
-      ),
-    );
+    UserPreferences.saveUserPreferences(UserPreferencesModal(preferDubs: val));
     paginate(epLinks);
+    notifyListeners();
+  }
+
+  set manualSearchQuery(String? query) {
+    _manualSearchQuery = query;
     notifyListeners();
   }
 
   /// Called in the init state
   void init() async {
-    if (_initCalled) throw Exception("The initialization was already done");
+    if (_initCalled) return;
     _initCalled = true;
 
     // Load manualsearch query and last watch
@@ -187,10 +184,13 @@ class InfoProvider extends ChangeNotifier {
     final matchedSource = sources
         .where((e) => e.identifier == (asp?.preferredProvider ?? currentUserSettings?.preferredProvider))
         .firstOrNull; // pick provider from last selected provider or default one
-    selectedSource =
-        matchedSource != null ? matchedSource : (sources.isEmpty ? sourceManager.inbuiltSources[0] : sources[0]);
+    selectedSource = matchedSource != null
+        ? matchedSource
+        : (sources.isEmpty ? sourceManager.inbuiltSources[0] : sources[0]);
 
     await _getInfo(id);
+
+    if (_disposed) return;
 
     await loadPreferences();
 
@@ -216,34 +216,50 @@ class InfoProvider extends ChangeNotifier {
     if (server == null) return;
     _previouslyUsedServer = server;
     _previouslyUsedServerQuality = quality;
-    await saveAnimeSpecificPreference(id.toString(), AnimeSpecificPreference(previouslyUsedServer: server,
-    previouslyUsedServerQuality: quality,
-    ));
+    await saveAnimeSpecificPreference(
+      id.toString(),
+      AnimeSpecificPreference(previouslyUsedServer: server, previouslyUsedServerQuality: quality),
+    );
     notifyListeners();
   }
 
   Future<void> getWatched({bool refreshLastWatchDuration = false}) async {
     try {
-      if (await AniListLogin().isAnilistLoggedIn()) if (_mediaListStatus == null) {
-        _watched = 0;
-        _started = false;
-      }
-      final item = await getAnimeWatchProgress(id, _mediaListStatus);
-      _watched = item == -1 ? 0 : item;
-      _started = item != -1;
+      // final isLoggedInAnilist = await AnilistLogin().isLoggedIn();
+
+      final (watched, status) = await getAnimeWatchProgress(id);
+      if (_disposed) return;
+
+      _watched = watched;
+      _started = watched > 0;
+      _mediaListStatus = status;
+      // } else {
+      //   if (_mediaListStatus == null || data.progress == null) {
+      //     _watched = 0;
+      //     _started = false;
+      //   } else {
+      //     _watched = data.progress ?? 0;
+      //     _started = true;
+      //   }
+      // }
 
       final supposedPageIndex = watched ~/ 25; //index increases when the episodes are >24
 
-      _currentPageIndex = supposedPageIndex >= visibleEpList.length ? visibleEpList.length - 1 : supposedPageIndex;
+      _currentPageIndex = visibleEpList.isEmpty
+          ? 0
+          : (supposedPageIndex >= visibleEpList.length ? visibleEpList.length - 1 : supposedPageIndex);
 
       if (refreshLastWatchDuration) {
-        _lastWatchedDurationMap = (await getAnimeSpecificPreference(id.toString()))?.lastWatchDuration;
+        try {
+          _lastWatchedDurationMap = (await getAnimeSpecificPreference(id.toString()))?.lastWatchDuration;
+        } catch (err) {
+          Logs.app.log("failed to update last watch duration");
+        }
       }
     } catch (err) {
-      floatingSnackBar("Couldn't fetch watch progress.");
-      Logs.app.log(err.toString());
+      Logs.app.log("[WATCH PROGRESS] $err");
       if (currentUserSettings?.showErrors ?? false) {
-        floatingSnackBar(err.toString(), waitForPreviousToFinish: true);
+        floatingSnackBar("Couldn't fetch watch progress: $err", waitForPreviousToFinish: true);
       }
     }
 
@@ -251,90 +267,53 @@ class InfoProvider extends ChangeNotifier {
   }
 
   Future<void> _getInfo(int id) async {
-    final s = _altDatabases.toSet();
-
     try {
+      _loggedIn = await DatabaseHandler().isLoggedIn();
+
+      // Fetch anime details directly without waiting on auxiliary trackers
       final info = await DatabaseHandler().getAnimeInfo(id);
+      final s = _altDatabases.toSet();
       s.addAll(info.alternateDatabases);
-
-      if (currentUserSettings?.database == Databases.anilist &&
-          await AniListLogin().isAnilistLoggedIn()) {
-        _loggedIn = true;
-
-        try {
-          final anilistUrl = "https://anilist.co/anime/$id";
-          Logs.app.log(
-            "[SIMKL LOOKUP SOURCE]: AniList -> SIMKL using $anilistUrl",
-          );
-
-          var res = await DatabaseHandler(database: Databases.simkl)
-              .search(anilistUrl);
-
-          Logs.app.log(
-            "[SIMKL LOOKUP SOURCE]: AniList -> SIMKL results=${res.length}",
-          );
-
-          if (res.isEmpty) {
-            final malId = info.alternateDatabases
-                .where((entry) => entry.database == Databases.mal)
-                .firstOrNull
-                ?.id;
-
-            if (malId == null) {
-              Logs.app.log(
-                "[SIMKL LOOKUP SOURCE]: MAL fallback skipped, no MAL ID available for AniList id=$id",
-              );
-            } else {
-              final malUrl = "https://myanimelist.net/anime/$malId";
-              Logs.app.log(
-                "[SIMKL LOOKUP SOURCE]: AniList results=0 -> MAL fallback using $malUrl",
-              );
-
-              res = await DatabaseHandler(database: Databases.simkl)
-                  .search(malUrl);
-
-              Logs.app.log(
-                "[SIMKL LOOKUP SOURCE]: MAL -> SIMKL results=${res.length}",
-              );
-            }
-          }
-
-          if (res.isNotEmpty) {
-            final simklInfo = await DatabaseHandler(database: Databases.simkl)
-                .getAnimeInfo(res[0].id);
-            s.addAll(simklInfo.alternateDatabases);
-            Logs.app.log(
-              "[SIMKL LOOKUP SOURCE]: resolved simklId=${res[0].id}",
-            );
-          } else {
-            Logs.app.log(
-              "[SIMKL LOOKUP SOURCE]: no SIMKL match found after AniList/MAL lookup",
-            );
-          }
-        } catch (err) {
-          Logs.app.log(
-            "[INFO] couldnt fetch simkl data. ${err.toString()}",
-          );
-          if (currentUserSettings?.showErrors ?? false) {
-            floatingSnackBar("Couldnt fetch simkl data");
-          }
-        }
-      }
-
       _altDatabases = s.toList();
       _dataLoaded = true;
       _data = info;
-      _mediaListStatus = assignItemEnum(data.mediaListStatus);
+
       notifyListeners();
+
+      // Resolve Simkl ID asynchronously
+      final anilistId = currentUserSettings?.database == Databases.anilist
+          ? id
+          : _altDatabases.where((d) => d.database == Databases.anilist).firstOrNull?.id;
+      final malId = currentUserSettings?.database == Databases.mal
+          ? id
+          : _altDatabases.where((d) => d.database == Databases.mal).firstOrNull?.id;
+      _resolveSimklId(anilistId: anilistId, malId: malId);
     } catch (err) {
       Logs.app.log(err.toString());
-      if (currentUserSettings!.showErrors != null &&
-          currentUserSettings!.showErrors!) {
-        floatingSnackBar(err.toString());
-      }
+      if (currentUserSettings?.showErrors ?? false) floatingSnackBar(err.toString());
       _infoLoadError = true;
       notifyListeners();
-      rethrow;
+    }
+  }
+
+  void _resolveSimklId({int? anilistId, int? malId}) async {
+    try {
+      if (_altDatabases.any((db) => db.database == Databases.simkl)) return;
+
+      final simkl = Simkl();
+      var simklId = await simkl.getIdFromRedirect(anilistId: anilistId, malId: malId);
+      if (simklId == null && anilistId != null && malId != null) {
+        simklId = await simkl.getIdFromRedirect(malId: malId);
+      }
+      if (_disposed) return;
+      if (simklId != null) {
+        final s = _altDatabases.toSet();
+        s.add(AlternateDatabaseId(database: Databases.simkl, id: simklId));
+        _altDatabases = s.toList();
+        notifyListeners();
+      }
+    } catch (err) {
+      Logs.app.log("[INFO] couldn't resolve simkl id: $err");
     }
   }
 
@@ -535,16 +514,17 @@ class InfoProvider extends ChangeNotifier {
         searchTitle = _manualSearchQuery!;
       }
       await _search(searchTitle);
-      notifyListeners();
     } catch (err) {
       Logs.app.log(err.toString());
 
       final hasEnglishTitle = data.title['english'] != null;
       final didUseManualQuery = _manualSearchQuery != null;
-      if (hasEnglishTitle && !didUseManualQuery) {
+
+      final romajiTitle = data.title['romaji'];
+      if (hasEnglishTitle && !didUseManualQuery && romajiTitle != null && romajiTitle != data.title['english']) {
+        // try once more with romaji title if english title failed and romaji is different
         try {
-          await _search(data.title['romaji'] ?? '');
-          notifyListeners();
+          await _search(romajiTitle);
           return;
         } catch (e) {
           Logs.app.log(e.toString());
@@ -562,7 +542,9 @@ class InfoProvider extends ChangeNotifier {
   void clearLastWatchDuration() async {
     _lastWatchedDurationMap = {};
     await saveAnimeSpecificPreference(
-        id.toString(), AnimeSpecificPreference(lastWatchDuration: _lastWatchedDurationMap));
+      id.toString(),
+      AnimeSpecificPreference(lastWatchDuration: _lastWatchedDurationMap),
+    );
     notifyListeners();
   }
 
@@ -576,6 +558,8 @@ class InfoProvider extends ChangeNotifier {
         return Icons.done_all_rounded;
       case "DROPPED":
         return Icons.close_rounded;
+      case "PAUSED":
+        return Icons.pause_circle_outline_rounded;
       default:
         return Icons.add_rounded;
     }
@@ -584,6 +568,25 @@ class InfoProvider extends ChangeNotifier {
   void refreshListStatus(String? status, int progress) {
     _mediaListStatus = assignItemEnum(status);
     _watched = progress;
+    _started = progress > 0;
+
+    // recalculate the page index based on updated value
+    paginate(epLinks);
     notifyListeners();
+  }
+
+  bool _disposed = false;
+
+  @override
+  void dispose() {
+    _disposed = true;
+    super.dispose();
+  }
+
+  @override
+  void notifyListeners() {
+    if (!_disposed) {
+      super.notifyListeners();
+    }
   }
 }

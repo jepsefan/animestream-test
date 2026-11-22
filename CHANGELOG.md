@@ -1,3 +1,13 @@
+## v1.4.9-beta34.93+145 — Selected features from upstream beta5
+
+Built from the fork's SIMKL Rewatch branch at beta34.91+143. It carries forward the fork's SIMKL Rewatch controls, episode-zero tracking, extension verification, Android TV playback, subtitle settings and metadata fallback.
+
+- ReAnime is available as a built-in source in place of the retired AniDB. AniZone accepts episode titles returned as either lists or maps.
+- The local tracker imports existing viewing history and supports editing status and progress without an account.
+- Batch downloads are available from the episode list. Downloads support DASH, and HLS and DASH downloads can include a separately selected audio track.
+- The player lists native audio tracks on supported backends. HLS variants are matched to their audio groups.
+- Series details load independently of watch progress and SIMKL ID lookup. AniList uses focused progress requests, more caching and rate-limit retry handling.
+
 # AnimeStream — Changelog
 
 Complete development history. Published GitHub Releases use the concise [RELEASE_NOTES.md](RELEASE_NOTES.md) for the latest three beta versions. Older entries remain here for reference.

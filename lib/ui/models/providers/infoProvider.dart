@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:animestream/core/anime/providers/episodeProgress.dart';
 import 'package:animestream/core/data/localEpisodeZeroProgress.dart';
 import 'package:flutter/material.dart';
@@ -58,6 +60,10 @@ class InfoProvider extends ChangeNotifier {
   String? get extensionCover => _extensionCover;
 
   MediaStatus? _mediaListStatus;
+  int? trackerListId;
+  bool _usesLocalTracker = false;
+  bool get canManageProgress => loggedIn || _usesLocalTracker;
+  Future<void> linkedTrackersReady = Future.value();
 
   List<EpisodeDetails> _epLinks = [];
   Map<int, String> _simklEpisodeImages = {};
@@ -361,8 +367,10 @@ class InfoProvider extends ChangeNotifier {
         matchedSource != null ? matchedSource : (sources.isEmpty ? sourceManager.inbuiltSources[0] : sources[0]);
 
     await _getInfo(id);
+    if (_disposed) return;
 
     await loadPreferences();
+    if (_disposed) return;
 
     // load em concurrently (fixes the delay in loading the progress)
     getWatched();
@@ -394,17 +402,17 @@ class InfoProvider extends ChangeNotifier {
 
   Future<void> getWatched({bool refreshLastWatchDuration = false}) async {
     try {
-      if (await AniListLogin().isAnilistLoggedIn()) if (_mediaListStatus == null) {
-        _watched = 0;
-        _started = false;
-      }
-      final item = await getAnimeWatchProgress(id, _mediaListStatus);
-      _watched = item == -1 ? 0 : item;
-      _started = item != -1;
+      final progress = await getAnimeWatchProgress(id);
+      _watched = progress.progress ?? 0;
+      _started = progress.progress != null;
+      _mediaListStatus = assignItemEnum(progress.status);
+      trackerListId = progress.listId;
 
       final supposedPageIndex = nextEpisodeIndex ~/ 24; //index increases when the episodes are >24
 
-      _currentPageIndex = supposedPageIndex >= visibleEpList.length ? visibleEpList.length - 1 : supposedPageIndex;
+      _currentPageIndex = visibleEpList.isEmpty
+          ? 0
+          : supposedPageIndex.clamp(0, visibleEpList.length - 1);
 
       if (refreshLastWatchDuration) {
         _episodeZeroWatched = await LocalEpisodeZeroProgress.isWatched(id);
@@ -426,98 +434,118 @@ class InfoProvider extends ChangeNotifier {
 
   Future<void> _getInfo(int id) async {
     final isFallback = AnimeMetadataRouter.instance.isFallbackId(id);
-    final s = _altDatabases.toSet();
     final generation = ++_malExtrasGeneration;
-
     try {
       final info = await DatabaseHandler().getAnimeInfo(id);
-      s.addAll(info.alternateDatabases);
-
-      if (!isFallback && currentUserSettings?.database == Databases.anilist &&
-          !(currentUserSettings?.disabledMetadataProviders ?? const <String>[])
-              .contains('simkl') &&
-          await AniListLogin().isAnilistLoggedIn()) {
-        _loggedIn = true;
-
-        try {
-          final anilistUrl = "https://anilist.co/anime/$id";
-          Logs.app.log(
-            "[SIMKL LOOKUP SOURCE]: AniList -> SIMKL using $anilistUrl",
-          );
-
-          var res = await DatabaseHandler(database: Databases.simkl)
-              .search(anilistUrl);
-
-          Logs.app.log(
-            "[SIMKL LOOKUP SOURCE]: AniList -> SIMKL results=${res.length}",
-          );
-
-          if (res.isEmpty) {
-            final malId = info.alternateDatabases
-                .where((entry) => entry.database == Databases.mal)
-                .firstOrNull
-                ?.id;
-
-            if (malId == null) {
-              Logs.app.log(
-                "[SIMKL LOOKUP SOURCE]: MAL fallback skipped, no MAL ID available for AniList id=$id",
-              );
-            } else {
-              final malUrl = "https://myanimelist.net/anime/$malId";
-              Logs.app.log(
-                "[SIMKL LOOKUP SOURCE]: AniList results=0 -> MAL fallback using $malUrl",
-              );
-
-              res = await DatabaseHandler(database: Databases.simkl)
-                  .search(malUrl);
-
-              Logs.app.log(
-                "[SIMKL LOOKUP SOURCE]: MAL -> SIMKL results=${res.length}",
-              );
-            }
-          }
-
-          if (res.isNotEmpty) {
-            final simklInfo = await DatabaseHandler(database: Databases.simkl)
-                .getAnimeInfo(res[0].id);
-            s.addAll(simklInfo.alternateDatabases);
-            Logs.app.log(
-              "[SIMKL LOOKUP SOURCE]: resolved simklId=${res[0].id}",
-            );
-          } else {
-            Logs.app.log(
-              "[SIMKL LOOKUP SOURCE]: no SIMKL match found after AniList/MAL lookup",
-            );
-          }
-        } catch (err) {
-          Logs.app.log(
-            "[INFO] couldnt fetch simkl data. ${err.toString()}",
-          );
-          if (currentUserSettings?.showErrors ?? false) {
-            floatingSnackBar("Couldnt fetch simkl data");
-          }
-        }
-      }
-
-      _altDatabases = s.toList();
-      _dataLoaded = true;
+      if (_disposed) return;
+      _altDatabases = info.alternateDatabases.toSet().toList();
       _data = info;
-      // Read-only, asynchronous discovery; never blocks series rendering.
-      _discoverActiveSimklRewatch();
-      _mediaListStatus = isFallback ? null : assignItemEnum(data.mediaListStatus);
+      _dataLoaded = true;
+      linkedTrackersReady = _resolveLinkedTrackers(id, info, isFallback: isFallback)
+          .catchError((Object error) {
+        Logs.app.log('Could not load linked trackers: ${error.runtimeType}');
+      });
       notifyListeners();
       if (isFallback && id < 0 && id > -1000000000) {
         _loadMalExtras((-id).toString(), generation);
       }
     } catch (err) {
       Logs.app.log(err.toString());
-      if (currentUserSettings!.showErrors != null &&
-          currentUserSettings!.showErrors!) {
+      if (!_disposed && (currentUserSettings?.showErrors ?? false)) {
         floatingSnackBar(err.toString());
       }
       _infoLoadError = true;
       notifyListeners();
       rethrow;
+    }
+  }
+
+  Future<void> _resolveLinkedTrackers(int id, DatabaseInfo info, {required bool isFallback}) async {
+    _usesLocalTracker = await usesLocalTracker(id);
+    _loggedIn = !isFallback && await AniListLogin().isAnilistLoggedIn();
+    if (_disposed) return;
+    notifyListeners();
+
+    if (_loggedIn && currentUserSettings?.database == Databases.anilist &&
+        !(currentUserSettings?.disabledMetadataProviders ?? const <String>[]).contains('simkl') &&
+        !_altDatabases.any((entry) => entry.database == Databases.simkl)) {
+      final s = _altDatabases.toSet();
+      final malId = info.alternateDatabases
+          .where((entry) => entry.database == Databases.mal)
+          .firstOrNull?.id;
+      final simkl = Simkl();
+      final simklId = await simkl.getIdFromRedirect(anilistId: id) ??
+          (malId == null ? null : await simkl.getIdFromRedirect(malId: malId));
+      if (simklId != null) {
+        s.add(AlternateDatabaseId(database: Databases.simkl, id: simklId));
+      } else {
+        await _resolveSimklFallback(id, info, s);
+      }
+      if (_disposed) return;
+      _altDatabases = s.toList();
+      notifyListeners();
+    }
+    unawaited(_discoverActiveSimklRewatch());
+  }
+
+  Future<void> _resolveSimklFallback(int id, DatabaseInfo info, Set<AlternateDatabaseId> s) async {
+    try {
+      final anilistUrl = "https://anilist.co/anime/$id";
+      Logs.app.log(
+        "[SIMKL LOOKUP SOURCE]: AniList -> SIMKL using $anilistUrl",
+      );
+
+      var res = await DatabaseHandler(database: Databases.simkl)
+          .search(anilistUrl);
+
+      Logs.app.log(
+        "[SIMKL LOOKUP SOURCE]: AniList -> SIMKL results=${res.length}",
+      );
+
+      if (res.isEmpty) {
+        final malId = info.alternateDatabases
+            .where((entry) => entry.database == Databases.mal)
+            .firstOrNull
+            ?.id;
+
+        if (malId == null) {
+          Logs.app.log(
+            "[SIMKL LOOKUP SOURCE]: MAL fallback skipped, no MAL ID available for AniList id=$id",
+          );
+        } else {
+          final malUrl = "https://myanimelist.net/anime/$malId";
+          Logs.app.log(
+            "[SIMKL LOOKUP SOURCE]: AniList results=0 -> MAL fallback using $malUrl",
+          );
+
+          res = await DatabaseHandler(database: Databases.simkl)
+              .search(malUrl);
+
+          Logs.app.log(
+            "[SIMKL LOOKUP SOURCE]: MAL -> SIMKL results=${res.length}",
+          );
+        }
+      }
+
+      if (res.isNotEmpty && !_disposed && id == this.id) {
+        final simklInfo = await DatabaseHandler(database: Databases.simkl)
+            .getAnimeInfo(res[0].id);
+        s.addAll(simklInfo.alternateDatabases);
+        Logs.app.log(
+          "[SIMKL LOOKUP SOURCE]: resolved simklId=${res[0].id}",
+        );
+      } else {
+        Logs.app.log(
+          "[SIMKL LOOKUP SOURCE]: no SIMKL match found after AniList/MAL lookup",
+        );
+      }
+    } catch (err) {
+      Logs.app.log(
+        "[INFO] couldnt fetch simkl data. ${err.toString()}",
+      );
+      if (currentUserSettings?.showErrors ?? false) {
+        floatingSnackBar("Couldnt fetch simkl data");
+      }
     }
   }
 
@@ -913,8 +941,23 @@ class InfoProvider extends ChangeNotifier {
   void refreshListStatus(String? status, int progress) {
     _mediaListStatus = assignItemEnum(status);
     _watched = progress;
+    _started = status != null || progress > 0;
+    if (status == null) trackerListId = null;
     notifyListeners();
     // A successful progress update may also change SIMKL's active rewatch.
     _discoverActiveSimklRewatch();
   }
+  bool _disposed = false;
+
+  @override
+  void notifyListeners() {
+    if (!_disposed) super.notifyListeners();
+  }
+
+  @override
+  void dispose() {
+    _disposed = true;
+    super.dispose();
+  }
+
 }

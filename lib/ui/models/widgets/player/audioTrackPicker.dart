@@ -1,4 +1,5 @@
 import 'package:animestream/ui/models/playerControllers/betterPlayer.dart';
+import 'package:animestream/ui/models/playerControllers/fvp.dart';
 import 'package:animestream/ui/models/providers/playerProvider.dart';
 import 'package:flutter/material.dart';
 
@@ -37,9 +38,19 @@ class AudioTrackPicker {
 
   static Future<void> show(BuildContext context, PlayerProvider player) async {
     final wrapper = player.controller;
-    final tracks = wrapper is BetterPlayerWrapper
-        ? await wrapper.getEmbeddedAudioTracks()
-        : <Map<String, dynamic>>[];
+    final tracks = <Map<String, dynamic>>[];
+    try {
+      if (wrapper is BetterPlayerWrapper) {
+        tracks.addAll(await wrapper.getEmbeddedAudioTracks());
+      } else if (wrapper is FvpWrapper && wrapper.controller.isAudioTrackSupportAvailable()) {
+        tracks.addAll([
+          for (final track in await wrapper.controller.getAudioTracks())
+            {'id': track.id, 'label': track.label, 'language': track.language, 'selected': track.isSelected},
+        ]);
+      }
+    } catch (_) {
+      // Some backends cannot enumerate tracks for the current stream.
+    }
     if (!context.mounted) return;
     await showModalBottomSheet<void>(
       context: context,
@@ -59,11 +70,16 @@ class AudioTrackPicker {
                 ListTile(
                   leading: const Icon(Icons.audiotrack),
                   title: Text(_title(track)),
+                  selected: track['selected'] == true,
                   onTap: () async {
                     try {
-                      final success = await (wrapper as BetterPlayerWrapper)
-                          .selectEmbeddedAudioTrack(track);
-                      if (!success) throw StateError('Track unavailable');
+                      if (wrapper is BetterPlayerWrapper) {
+                        if (!await wrapper.selectEmbeddedAudioTrack(track)) {
+                          throw StateError('Track unavailable');
+                        }
+                      } else if (wrapper is FvpWrapper) {
+                        await wrapper.controller.selectAudioTrack(track['id'] as String);
+                      }
                       if (sheetContext.mounted) Navigator.pop(sheetContext);
                     } catch (_) {
                       if (sheetContext.mounted) {

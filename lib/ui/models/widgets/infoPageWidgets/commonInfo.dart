@@ -61,7 +61,7 @@ class CommonInfo extends StatelessWidget {
                       padding: EdgeInsets.only(right: 20),
                       child: _button(
                         onClick: () {
-                          if (!provider.loggedIn) {
+                          if (!provider.canManageProgress) {
                             return floatingSnackBar("Login to anilist!");
                           }
                           showDialog(
@@ -90,7 +90,7 @@ class CommonInfo extends StatelessWidget {
                     ),
                     _button(
                       onClick: () {
-                        if (!provider.loggedIn) {
+                        if (!provider.canManageProgress) {
                           return floatingSnackBar("Login to anilist!");
                         }
                         showDialog(

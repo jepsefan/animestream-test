@@ -76,3 +76,10 @@ abstract class DatabaseInfo {
   List<AlternateDatabaseId> get alternateDatabases;
   int? listId;
 }
+
+abstract class DatabaseAnimeWatchProgress {
+  int get id;
+  int? get progress;
+  int? get totalEpisodes;
+  String? get status;
+}

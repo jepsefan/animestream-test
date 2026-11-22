@@ -1,13 +1,14 @@
 import 'dart:io';
 import 'dart:isolate';
 
-import 'package:animestream/core/commons/extractQuality.dart';
+import 'package:animestream/core/commons/hlsParser/hlsParser.dart';
+import 'package:animestream/core/commons/streams/streamRef.dart';
 import 'package:collection/collection.dart';
 
-import 'package:animestream/core/anime/downloader/downloadManager.dart';
-import 'package:animestream/core/anime/downloader/downloaderCore.dart';
-import 'package:animestream/core/anime/downloader/downloaderHelper.dart';
-import 'package:animestream/core/anime/downloader/types.dart';
+import 'package:animestream/core/downloader/downloadManager.dart';
+import 'package:animestream/core/downloader/downloaderCore.dart';
+import 'package:animestream/core/downloader/downloaderHelper.dart';
+import 'package:animestream/core/downloader/models.dart';
 import 'package:animestream/core/app/logging.dart';
 import 'package:animestream/core/app/runtimeDatas.dart';
 import 'package:animestream/core/commons/extensions.dart';
@@ -31,7 +32,7 @@ class Downloader {
   static final Map<int, SendPort> _isolatePorts = {};
 
   /// The max concurrent downloads count
-  static const int MAX_DOWNLOADS_COUNT = 5;
+  static final int MAX_DOWNLOADS_COUNT = Platform.isAndroid ? 2 : 3;
 
   /// The max batch size per stream (for segments)
   static int MAX_STREAM_BATCH_SIZE = 5;
@@ -109,7 +110,14 @@ class Downloader {
 
       final task = _cookTask(item, path);
 
-      logger?.log('Queuing task $task with type: ${type.name}');
+      final ext = _helper.extractExtension(item.url);
+      final kind = switch (type) {
+        _DownloadType.stream => item.videoStream?.ref is DashRef ? "stream: DASH" : "stream: HLS",
+        _DownloadType.video => "direct file: ${ext != null ? ".$ext" : "(detected by mime type)"}",
+        _DownloadType.image => "image",
+        _DownloadType.mock => "mock",
+      };
+      logger?.log('Queuing task $task as $kind');
 
       // Run the downloading
       final isolate = await Isolate.spawn(downloadFunction, task);
@@ -150,6 +158,7 @@ class Downloader {
     // hmm thinking of doing this, but since cancellation is requested
     // and not really cancelled, should it be set as cancelled? (nvm lets wing it)
     DownloadManager.downloadingItems.firstWhereOrNull((it) => it.id == id)?.status = DownloadStatus.cancelled;
+    DownloadManager.dequeue(id); // why not?
   }
 
   Future<void> requestPause(int id) async {
@@ -191,10 +200,11 @@ class Downloader {
 
   Future<void> requestRetry(int id) async {
     final item = _maybeGetDownloadItem(id);
-    if(item == null || item.status != DownloadStatus.failed) {
+    if (item == null || item.status != DownloadStatus.failed) {
       return;
     }
 
+    // cancel all state and try again
     item.progress = 0;
     item.lastDownloadedPart = null;
     _lastProgressUpdate.remove(id);
@@ -235,7 +245,8 @@ class Downloader {
           if (!msg.silent) {
             _helper.sendCompletedNotif(msg.id, msg.extras[0] as String, msg.extras[1] as String);
             DownloadHistory.saveItem(
-                _cookHistoryItem(_getDownloadItem(msg.id), DownloadStatus.completed, msg.extras[1] as String));
+              _cookHistoryItem(_getDownloadItem(msg.id), DownloadStatus.completed, msg.extras[1] as String),
+            );
           }
           _endTask(msg.id);
           logger?.log("Download completed for task ${msg.id}.", addToBuffer: true);
@@ -245,8 +256,10 @@ class Downloader {
         {
           // _endTask(msg.id);
           // print("Welp, something went wrong..");
-          logger?.log("Download error for ${msg.id}. \nError: ${msg.message} \n StackTrace: ${msg.extras[0] as String}",
-              addToBuffer: true);
+          logger?.log(
+            "Download error for ${msg.id}. \nError: ${msg.message} \n StackTrace: ${msg.extras[0] as String}",
+            addToBuffer: true,
+          );
           break;
         }
       case 'fail':
@@ -257,10 +270,7 @@ class Downloader {
           item.status = DownloadStatus.failed;
           await _cleanUp(msg.id, dequeue: false);
           _helper.sendCancelledNotif(msg.id, failed: true);
-          logger?.log(
-            "Download failed for ${msg.id}. Reason: ${msg.message}",
-            addToBuffer: true,
-          );
+          logger?.log("Download failed for ${msg.id}. Reason: ${msg.message}", addToBuffer: true);
           await _processQueue();
           break;
         }
@@ -292,6 +302,10 @@ class Downloader {
         logger?.log("<${msg.id}> Isolate timed out. Nuking the isolate.");
         break;
 
+      case 'log':
+        logger?.log("<${msg.id}> ${msg.message}");
+        break;
+
       default:
         {
           throw Exception("What the f*ck is ${msg.status} supposed to mean? (Unknown status exception)");
@@ -310,19 +324,22 @@ class Downloader {
     _receivePorts[item.id] = rp;
 
     final task = DownloadTaskIsolate(
-        url: item.url,
-        fileName: item.fileName,
-        customHeaders: item.customHeaders,
-        retryAttempts: MAX_RETRY_ATTEMPTS,
-        parallelBatches: MAX_STREAM_BATCH_SIZE * ((currentUserSettings?.fasterDownloads ?? false) ? 2 : 1),
-        subsUrl: item.subtitleUrl,
-        sendPort: rp.sendPort,
-        id: item.id,
-        // rootIsolateToken: rootIsolateToken,
-        downloadPath: downloadPath,
-        resumeFrom: item.lastDownloadedPart ?? 0,
-        useMkvRemuxer: currentUserSettings?.useMkvRemuxer ?? true,
-        writeSubtitleTrackToVideo: currentUserSettings?.writeSubtitleTrackToVideo ?? false);
+      url: item.url,
+      fileName: item.fileName,
+      customHeaders: item.customHeaders,
+      retryAttempts: MAX_RETRY_ATTEMPTS,
+      parallelBatches: MAX_STREAM_BATCH_SIZE * ((currentUserSettings?.fasterDownloads ?? false) ? 2 : 1),
+      subsUrl: item.subtitleUrl,
+      sendPort: rp.sendPort,
+      id: item.id,
+      // rootIsolateToken: rootIsolateToken,
+      downloadPath: downloadPath,
+      resumeFrom: item.lastDownloadedPart ?? 0,
+      useMkvRemuxer: item.audioStreams.isNotEmpty || (currentUserSettings?.useMkvRemuxer ?? true),
+      writeSubtitleTrackToVideo: currentUserSettings?.writeSubtitleTrackToVideo ?? false,
+      videoStream: item.videoStream,
+      audioStreams: item.audioStreams,
+    );
 
     return task;
   }
@@ -352,21 +369,23 @@ class Downloader {
 
   Future<_DownloadType> _getDownloadType(DownloadItem item) async {
     if (item.mock) return _DownloadType.mock;
+    // DASH tracks all share the manifest URL, so the ref is the only reliable signal
+    if (item.videoStream?.ref is DashRef) {
+      return _DownloadType.stream;
+    }
     final ext = _helper.extractExtension(item.url);
     final videoExtensions = ['mp4', 'mkv', 'avi', 'webm', 'flv'];
     final streamExtensions = ['m3u8', 'm3u'];
 
-    if ((videoExtensions + streamExtensions).contains(ext)) {
-      if (videoExtensions.contains(ext)) return _DownloadType.video;
-      if (streamExtensions.contains(ext)) return _DownloadType.stream;
-      if (['webp', 'jpeg', 'jpg', 'png'].contains(ext)) return _DownloadType.image;
-    }
+    if (videoExtensions.contains(ext)) return _DownloadType.video;
+    if (streamExtensions.contains(ext)) return _DownloadType.stream;
+    if (['webp', 'jpeg', 'jpg', 'png'].contains(ext)) return _DownloadType.image;
 
     // Fallback (ik this is more precise, but dont wanna send a unnecessary request most times)
     final mime = await _helper.getMimeType(item.url, item.customHeaders);
-    if (mime == null) throw Exception("Couldnt identify the media type.");
-    if (mime.contains("mpegurl") || await isM3u8Playlist(item.url, customHeader: item.customHeaders))
+    if ((mime?.contains("mpegurl") ?? false) || await HlsParser.isM3u8Playlist(item.url, customHeader: item.customHeaders))
       return _DownloadType.stream;
+    if (mime == null) throw Exception("Couldnt identify the media type.");
     if (mime.contains("video")) return _DownloadType.video;
     if (mime.contains("image")) return _DownloadType.image;
 

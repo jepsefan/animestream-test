@@ -1,8 +1,8 @@
 import 'dart:async';
 import 'dart:io';
 
-import 'package:animestream/core/anime/downloader/downloaders/baseDownloader.dart';
-import 'package:animestream/core/anime/downloader/types.dart';
+import 'package:animestream/core/downloader/downloaders/baseDownloader.dart';
+import 'package:animestream/core/downloader/models.dart';
 import 'package:http/http.dart';
 
 class VideoDownloader extends BaseDownloader {
@@ -122,7 +122,6 @@ class VideoDownloader extends BaseDownloader {
           },
           onError: (err) async {
             print(err);
-            print("From media url: ${task.url}");
             completer.completeError(err);
             await sink.close();
             await file.delete();
@@ -133,7 +132,6 @@ class VideoDownloader extends BaseDownloader {
     } catch (err) {
       // same stuff as on error
       print(err);
-      print("From media url: ${task.url}");
       await sink.close();
       await file.delete();
       setFailedStatus(err.toString());

@@ -1,3 +1,4 @@
+import 'package:animestream/ui/models/bottomSheets/batchDownload.dart';
 import 'package:animestream/core/app/runtimeDatas.dart';
 import 'package:animestream/ui/models/providers/infoProvider.dart';
 import 'package:animestream/ui/models/widgets/infoPageWidgets/commonInfo.dart';
@@ -148,7 +149,20 @@ class WatchSection extends StatelessWidget {
                           ),
                         ],
                       ),
-                      Container(
+                      if (provider.selectedSource.supportDownloads && provider.epLinks.isNotEmpty)
+                        IconButton(
+                          tooltip: 'Batch download',
+                          icon: const Icon(Icons.file_download_outlined),
+                          color: appTheme.accentColor,
+                          onPressed: () => showModalBottomSheet<void>(
+                            context: context,
+                            showDragHandle: true,
+                            isScrollControlled: true,
+                            builder: (_) => BatchDownloadSheetContent(provider: provider),
+                          ),
+                        )
+                      else
+                        Container(
                         padding: EdgeInsets.all(8),
                         decoration: BoxDecoration(
                           color: appTheme.accentColor.withAlpha(70),

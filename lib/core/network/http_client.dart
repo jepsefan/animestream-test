@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
+import 'package:crypto/crypto.dart';
 
 export 'package:http/http.dart' hide Response, Client, get, post, put, patch, delete, head;
 
@@ -65,10 +66,15 @@ class HTTP {
     Map<String, String>? queryParameters,
     Object? body,
     Duration? cacheDuration,
+    Future<void> Function()? beforeNetwork,
   }) async {
     final urlString = urlInput.toString();
     final shouldCache = _shouldCache(cacheDuration);
-    final key = _buildKey(urlString, queryParameters, body);
+    final authorization = shouldCache
+        ? headers?.entries.where((entry) => entry.key.toLowerCase() == 'authorization').firstOrNull?.value
+        : null;
+    final key = _buildKey(urlString, queryParameters, body) +
+        (authorization == null ? '' : '|auth:${sha256.convert(utf8.encode(authorization))}');
     final uri = Uri.parse(urlString).replace(queryParameters: queryParameters);
 
     if (shouldCache && _cache != null && !_cache.cacheConfig.bypassCache && (method == 'GET' || method == 'POST')) {
@@ -85,6 +91,7 @@ class HTTP {
       }
     }
 
+    await beforeNetwork?.call();
     final req = await _client.openUrl(method, uri);
 
     if (AppValues.defaultClientUserAgent.isNotEmpty &&
@@ -131,7 +138,11 @@ class HTTP {
       resBody,
       bodyBytes: Uint8List.fromList(bytes),
       reasonPhrase: res.reasonPhrase,
-      headers: res.headers.contentType == null ? {} : {'content-type': res.headers.contentType!.mimeType},
+      headers: {
+        if (res.headers.contentType != null) 'content-type': res.headers.contentType!.mimeType,
+        for (final name in ['retry-after', 'x-ratelimit-remaining', 'x-ratelimit-reset'])
+          if (res.headers.value(name) case final value?) name: value,
+      },
       request: HttpRequestInfo(uri),
     );
 
@@ -177,6 +188,7 @@ class HTTP {
     Map<String, String>? queryParameters,
     Object? body,
     Duration? cacheDuration,
+    Future<void> Function()? beforeNetwork,
   }) {
     return _request(
       'POST',
@@ -185,6 +197,7 @@ class HTTP {
       body: body,
       queryParameters: queryParameters,
       cacheDuration: cacheDuration,
+      beforeNetwork: beforeNetwork,
     );
   }
 
@@ -247,10 +260,8 @@ class HTTP {
   void close() {}
 
   bool _shouldCache(Duration? cacheDuration) {
-    if (_cache != null && !_cache.cacheConfig.enableCaching) {
-      return false;
-    }
-    return cacheDuration != null && cacheDuration > Duration.zero;
+    return cacheDuration != null && cacheDuration > Duration.zero &&
+        (_cache?.cacheConfig.enableCaching ?? false);
   }
 }
 
@@ -277,6 +288,7 @@ Future<HttpResponse> post(
   Map<String, String>? queryParameters,
   Object? body,
   Duration? cacheDuration,
+  Future<void> Function()? beforeNetwork,
 }) =>
     httpClient.post(
       url,
@@ -284,6 +296,7 @@ Future<HttpResponse> post(
       queryParameters: queryParameters,
       body: body,
       cacheDuration: cacheDuration,
+      beforeNetwork: beforeNetwork,
     );
 
 Future<HttpResponse> put(

@@ -84,6 +84,9 @@ class VideoStream {
   /// Whether this stream is a backup stream
   final bool backup;
 
+  /// Whether this stream is a dubbed variant.
+  final bool dub;
+
   /// The custom headers to be used when making requests to the video URL, optional unless required to access the stream
   final Map<String, String>? customHeaders;
 
@@ -92,6 +95,7 @@ class VideoStream {
     required this.url,
     required this.server,
     required this.backup,
+    this.dub = false,
     this.subtitleFormat = null,
     this.subtitle = null,
     this.subtitleTracks = const [],
@@ -117,6 +121,7 @@ class VideoStream {
       'externalAudioTracks': externalAudioTracks.map((track) => track.toMap()).toList(),
       'server': server,
       'backup': backup,
+      'dub': dub,
       'customHeaders': customHeaders,
     };
   }
@@ -137,8 +142,9 @@ class VideoStream {
           .toList() ?? const [],
       server: map['server'] as String,
       backup: map['backup'] as bool,
+      dub: map['dub'] as bool? ?? false,
       customHeaders:
-          map['customHeaders'] != null ? Map<String, String>.from((map['customHeaders'] as Map<String, String>)) : null,
+          map['customHeaders'] != null ? Map<String, String>.from((map['customHeaders'] as Map)) : null,
     );
   }
 

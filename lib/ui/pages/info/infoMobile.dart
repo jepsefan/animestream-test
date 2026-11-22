@@ -1,12 +1,11 @@
 import 'dart:io';
 
-import 'package:animestream/core/anime/downloader/downloadManager.dart';
+import 'package:animestream/core/downloader/downloadManager.dart';
 import 'package:animestream/core/data/watching.dart';
 import 'package:animestream/ui/models/bottomSheets/batchDownload.dart';
 import 'package:animestream/ui/models/bottomSheets/commentSection.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:animestream/ui/models/widgets/infoPageWidgets/simklEpisodeImage.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:animestream/ui/models/widgets/adultRatingIcon.dart';
 import 'package:flutter/services.dart';
@@ -168,7 +167,7 @@ class _InfoMobileState extends State<InfoMobile> {
                                     children: [
                                       // Ensure the Stack also sizes safely if no action is available.
                                       const SizedBox.shrink(),
-                                      if (provider.loggedIn)
+                                      if (provider.canManageProgress)
                                         Container(
                                           decoration: provider.activeSimklRewatch
                                               ? BoxDecoration(
@@ -518,13 +517,14 @@ class _InfoMobileState extends State<InfoMobile> {
                                   style: TextStyle(color: appTheme.backgroundColor, fontWeight: FontWeight.bold)),
                             ),
                           ),
-                          if (kDebugMode)
+                          if (provider.selectedSource.supportDownloads && provider.epLinks.isNotEmpty)
                             IconButton(
                               tooltip: "Batch download",
                               onPressed: () {
                                 showModalBottomSheet(
                                     context: context,
                                     showDragHandle: true,
+                                    isScrollControlled: true,
                                     builder: (context) {
                                       return BatchDownloadSheetContent(
                                         provider: provider,

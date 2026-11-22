@@ -1,3 +1,4 @@
+import 'package:animestream/core/database/anilist/types.dart';
 //contains base structure for a database
 
 import 'package:animestream/core/commons/enums.dart';
@@ -41,4 +42,9 @@ abstract class DatabaseMutation {
       {required int id, MediaStatus? status = MediaStatus.CURRENT, int? progress = 0, MediaStatus? previousStatus});
 
   Future<DatabaseMutationResult?> deleteAnimeEntry({ required int id });
+}
+
+abstract class Tracker implements DatabaseMutation {
+  Future<DatabaseAnimeWatchProgress> getAnimeWatchProgress(int id);
+  Future<List<UserAnimeList>> getUserAnimeList(String userName, {List<MediaStatus>? status});
 }

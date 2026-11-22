@@ -4,6 +4,24 @@ import 'package:animestream/core/database/anilist/types.dart';
 import 'package:animestream/core/commons/enums.dart';
 
 class AnilistQueries {
+  Future<({int? progress, String? status, int? listId})> getAnimeWatchProgress(int id) async {
+    final json = await Anilist().fetchQuery(
+      '''query {
+        Media(id: $id, type: ANIME) {
+          mediaListEntry { id status progress }
+        }
+      }''',
+      null,
+      token: await getSecureVal(SecureStorageKey.anilistToken),
+    );
+    final entry = json['Media']?['mediaListEntry'];
+    return (
+      progress: entry?['progress'] as int?,
+      status: entry?['status'] as String?,
+      listId: entry?['id'] as int?,
+    );
+  }
+
   Future<List<UserAnimeList>> getUserAnimeList(String userName,
       {MediaStatus? status}) async {
     final query = '''query {
@@ -185,10 +203,6 @@ class AnilistQueries {
             }
           }
         }
-      }
-      mediaListEntry {
-        id
-        status
       }
     }
   }

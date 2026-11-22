@@ -7,6 +7,7 @@ import 'package:animestream/core/anime/providers/externalAssPreferences.dart';
 import 'package:animestream/core/app/logging.dart';
 import 'package:animestream/core/app/runtimeDatas.dart';
 import 'package:animestream/core/commons/extractQuality.dart';
+import 'package:animestream/core/commons/hlsParser/hlsParser.dart';
 import 'package:animestream/core/commons/utils.dart';
 import 'package:animestream/core/data/preferences.dart';
 import 'package:animestream/core/data/preferredSubtitleLanguage.dart';
@@ -367,7 +368,7 @@ class PlayerDataProvider extends ChangeNotifier {
     // DASH is an MPEG-DASH manifest, not an HLS master playlist. Leave it
     // intact for Android ExoPlayer instead of parsing it as an HLS file.
     final path = Uri.tryParse(url)?.path.toLowerCase() ?? '';
-    if (path.endsWith('.mpd') || path.endsWith('.dash')) {
+    if (RegExp(r'\.(mpd|dash|mkv|mp4|mov|webm)$').hasMatch(path)) {
       _state = _state.copyWith(
         qualities: [QualityStream(
           url: url, resolution: 'default',
@@ -379,16 +380,16 @@ class PlayerDataProvider extends ChangeNotifier {
       return;
     }
     try {
-      final master = await parseMasterPlaylist(url, customHeader: headers);
+      final master = await HlsParser.parseMasterPlaylist(url, customHeader: headers);
       _state = _state.copyWith(qualities: master.qualityStreams, audioTracks: master.audioStreams);
     } catch (e) {
       // just a backup, the code shouldnt reach here, but my luck... brooo....
       _state = _state.copyWith(
         qualities: [QualityStream(url: url, resolution: 'default', quality: _state.currentStream.quality)],
+        audioTracks: const [],
       );
     }
     notifyListeners();
-    print("Available Qualities: ${state.qualities}");
   }
 
   /// Selects the preferred quality stream from available qualities, if it exists. Just a small helper

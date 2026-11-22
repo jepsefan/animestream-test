@@ -1,3 +1,6 @@
+import 'package:animestream/core/data/watching.dart';
+import 'package:animestream/core/database/local/local.dart';
+import 'package:animestream/core/database/local/types.dart';
 import 'dart:math';
 
 import 'package:animestream/core/app/runtimeDatas.dart';
@@ -388,36 +391,57 @@ class _MediaListStatusBottomSheetState extends State<MediaListStatusBottomSheet>
                   Expanded(
                     child: _ActionButton(
                       label: "Save",
-                      onPressed: () {
-                        final int progress = int.parse(textEditingController.value.text);
-                        if (markedDelete) {
-                          SyncHandler()
-                              .deleteAnimeEntry(
-                                  id: provider.data.listId ?? provider.id, otherIds: provider.altDatabases)
-                              .then((val) {
-                            provider.refreshListStatus(null, 0);
-                          });
-                          floatingSnackBar("Entry deleted!");
-                          if (mounted) Navigator.pop(context);
-                          return;
-                        }
-                        if (selectedValue != null || progress != provider.watched || provider.mediaListStatus == null) {
-                          SyncHandler()
-                              .mutateAnimeList(
-                            id: provider.id,
-                            status: assignItemEnum(selectedValue ?? initialSelection!),
-                            previousStatus: assignItemEnum(initialSelection),
-                            progress: progress,
-                            otherIds: provider.altDatabases,
-                          )
-                              .then((value) {
-                            initialSelection = selectedValue ?? initialSelection;
-                            provider.refreshListStatus(selectedValue ?? initialSelection!, progress);
-                            floatingSnackBar("The list has been updated!");
-                            if (mounted) {
-                              Navigator.of(context).pop();
+                      onPressed: () async {
+                        final progress = int.tryParse(textEditingController.text);
+                        if (progress == null || progress < 0) return;
+                        await provider.linkedTrackersReady;
+                        final local = await usesLocalTracker(provider.id);
+                        if (!mounted) return;
+                        try {
+                          if (markedDelete) {
+                            if (local) {
+                              await LocalTracker().deleteAnimeEntry(id: provider.id);
+                            } else {
+                              await SyncHandler().deleteAnimeEntry(
+                                id: provider.trackerListId ?? provider.id,
+                                otherIds: provider.altDatabases,
+                              );
                             }
-                          });
+                            provider.refreshListStatus(null, 0);
+                            floatingSnackBar("Entry deleted!");
+                          } else {
+                            final status = assignItemEnum(selectedValue ?? initialSelection);
+                            if (local) {
+                              final tracker = LocalTracker();
+                              await tracker.mutateAnimeList(
+                                id: provider.id,
+                                status: status,
+                                progress: progress,
+                                otherIds: provider.altDatabases,
+                                meta: LocalMeta(
+                                  title: provider.data.title,
+                                  cover: provider.data.cover,
+                                  totalEpisodes: provider.data.episodes,
+                                  rating: provider.data.rating,
+                                ),
+                              );
+                              final updated = await tracker.getAnimeWatchProgress(provider.id);
+                              provider.refreshListStatus(updated.status, updated.progress ?? 0);
+                            } else {
+                              await SyncHandler().mutateAnimeList(
+                                id: provider.id,
+                                status: status,
+                                previousStatus: assignItemEnum(initialSelection),
+                                progress: progress,
+                                otherIds: provider.altDatabases,
+                              );
+                              provider.refreshListStatus(status?.name, progress);
+                            }
+                            floatingSnackBar("The list has been updated!");
+                          }
+                          if (mounted) Navigator.of(context).pop();
+                        } catch (_) {
+                          if (mounted) floatingSnackBar("Couldn't update the list.");
                         }
                       },
                       backgroundColor: appTheme.accentColor,

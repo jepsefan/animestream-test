@@ -93,7 +93,12 @@ class AniZone extends AnimeProvider {
     final earlySpecials = <Map<String, dynamic>>[];
 
     for (final item in list) {
-      final title = item['title_list']?['1']?.toString();
+      final titleList = item['title_list'];
+      final title = switch (titleList) {
+        Map() => titleList['1']?.toString(),
+        List() => titleList.firstOrNull?.toString(),
+        _ => null,
+      };
       final epLink = item['url']?.toString();
       if (epLink == null || epLink.isEmpty) continue;
 

@@ -8,6 +8,7 @@ import 'package:animestream/core/commons/enums.dart';
 import 'package:animestream/core/commons/utils.dart';
 import 'package:animestream/core/data/secureStorage.dart';
 import 'package:animestream/core/database/anilist/queries.dart';
+import 'package:animestream/core/database/anilist/rateLimiter.dart';
 import 'package:animestream/core/database/anilist/types.dart';
 import 'package:animestream/core/database/database.dart';
 import 'package:animestream/core/database/types.dart';
@@ -57,7 +58,7 @@ class Anilist extends Database {
     final data = await fetchQuery(
       gquery,
       RequestType.media,
-      cacheDuration: const Duration(minutes: 1),
+      cacheDuration: const Duration(minutes: 10),
     );
 
     List<AnilistSearchResult> searchResults = [];
@@ -97,11 +98,9 @@ class Anilist extends Database {
 
   Future<AnilistInfo> _getAnimeInfoAniList(int id) async {
     final query = AnilistQueries.infoQuery(id);
-    final String? token = await getSecureVal(SecureStorageKey.anilistToken);
     final result = await Anilist().fetchQuery(
       query,
       RequestType.media,
-      token: token,
       // WARN: THIS WILL CAUSE PROBLEM WHEN IMPLEMENTING AIRING SHEDULE TIMER, SO WE CAN JUST SAVE UNIX EPOCH TIMER INSTEAD!!!
       cacheDuration: const Duration(hours: 24),
     );
@@ -202,8 +201,8 @@ class Anilist extends Database {
           synonyms: info['synonyms'],
           synopsis: info['description'].replaceAll(RegExp(r'<[^>]*>'), "").replaceAll(RegExp(r'\n+'), '\n'),
           tags: tags,
-          mediaListStatus: info['mediaListEntry']?['status'],
-          listId: info['mediaListEntry']?['id'],
+          mediaListStatus: null,
+          listId: null,
           alternateDatabases: [
             AlternateDatabaseId(database: Databases.anilist, id: id),
             if (info['idMal'] != null) AlternateDatabaseId(database: Databases.mal, id: info['idMal']),
@@ -282,7 +281,7 @@ class Anilist extends Database {
   }
 
   Future<List<RecentlyUpdatedResult>> _recentlyUpdatedAniList() async {
-    final timeMs = (new DateTime.now().millisecondsSinceEpoch ~/ 1000) - 10000;
+    final timeMs = DateTime.now().millisecondsSinceEpoch ~/ 300000 * 300 - 10000;
     final query = '''{
         Page(perPage: 50) {
     airingSchedules (airingAt_greater: 0, airingAt_lesser: $timeMs, sort: TIME_DESC) {
@@ -311,6 +310,7 @@ class Anilist extends Database {
     final res = await fetchQuery(
       query,
       RequestType.recentlyUpdatedAnime,
+      cacheDuration: const Duration(minutes: 5),
     );
     final List<dynamic> recentlyUpdatedAnimes = res;
 
@@ -403,12 +403,27 @@ class Anilist extends Database {
       'Referer': "https://anilist.co/",
     };
 
-    final res = await post(
-      "https://graphql.anilist.co",
-      headers: headers,
-      body: {'query': query},
-      cacheDuration: cacheDuration,
-    );
+    final limiter = AnilistRateLimiter.instance;
+    HttpResponse res;
+    for (var attempt = 0; ; attempt++) {
+      res = await post(
+        "https://graphql.anilist.co",
+        headers: headers,
+        body: {'query': query},
+        cacheDuration: cacheDuration,
+        beforeNetwork: limiter.waitUntilSlot,
+      );
+      limiter.updateFromHeaders(res.headers);
+      if (res.statusCode != 429) break;
+
+      final cooldown = limiter.handleRateLimitExceeded(res.headers);
+      if (attempt >= 1) {
+        throw AnilistApiException(
+          "AniList rate limit exceeded. Retry in ${cooldown.inSeconds} seconds.",
+          statusCode: 429,
+        );
+      }
+    }
 
     final json = res.json;
     Map<String, dynamic>? data;

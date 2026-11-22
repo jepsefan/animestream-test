@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'dart:convert';
 
 import 'package:animestream/core/app/env.dart';
@@ -11,6 +12,34 @@ import 'package:animestream/core/network/network.dart';
 class Simkl extends Database {
   static String imageLink(String url, {bool fanart = false}) =>
       "https://wsrv.nl/?url=https://simkl.in/${fanart ? "fanart" : "posters"}/${url}${fanart ? "_w" : "_ca"}.webp";
+
+  /// Resolves the Simkl ID using Simkl's modern Cloudflare-cached /redirect endpoint.
+  /// Follows 0 redirects and extracts the canonical Simkl ID directly from the Location header.
+  Future<int?> getIdFromRedirect({int? anilistId, int? malId}) async {
+    final client = HttpClient()..connectionTimeout = const Duration(seconds: 4);
+    try {
+      final queryParam = anilistId != null ? 'anilist=$anilistId' : (malId != null ? 'mal=$malId' : null);
+      if (queryParam == null) return null;
+
+      final uri = Uri.parse("https://api.simkl.com/redirect?$queryParam");
+      final request = await client.getUrl(uri).timeout(const Duration(seconds: 4));
+      request.followRedirects = false;
+      final response = await request.close().timeout(const Duration(seconds: 4));
+      final location = response.headers.value(HttpHeaders.locationHeader);
+
+      if (location != null) {
+        final match = RegExp(r'/anime/(\d+)').firstMatch(location);
+        if (match != null) {
+          return int.tryParse(match.group(1)!);
+        }
+      }
+    } catch (e) {
+      Logs.app.log("[SIMKL] Redirect lookup failed: ${e.runtimeType}");
+    } finally {
+      client.close(force: true);
+    }
+    return null;
+  }
 
   Future<List<SimklSearchResult>> search(String query) async {
     final url =
